@@ -1,0 +1,6 @@
+{
+  "name": "Krishi Kutir",
+  "description": "Pure Organic Natural Powders, Spices, and Microgreens Growing Catalogue & Training Hub",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
