@@ -13,7 +13,8 @@ import {
   Plus, 
   RotateCcw,
   Moon,
-  Sun
+  Sun,
+  Images
 } from 'lucide-react';
 import { AnimatedLogo } from '../AnimatedLogo';
 
@@ -118,8 +119,8 @@ export const AdminHeader = ({
         </div>
 
         {/* Tab Navigation Menu */}
-        <div className="flex items-center justify-between overflow-x-auto border-t border-neutral-900 py-2 gap-2 scrollbar-none">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between overflow-x-auto border-t border-neutral-900 py-2.5 gap-4 scrollbar-none">
+          <div className="flex items-center gap-1.5 shrink-0">
             
             <button
               id="page-tab-products"
@@ -198,6 +199,19 @@ export const AdminHeader = ({
             </button>
 
             <button
+              id="page-tab-media"
+              onClick={() => setActiveTab('media')}
+              className={`py-2.5 px-3.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                activeTab === 'media'
+                  ? 'bg-amber-400 text-neutral-950 shadow-md font-black'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+              }`}
+            >
+              <Images className="w-4 h-4" />
+              Homepage & Media
+            </button>
+
+            <button
               id="page-tab-settings"
               onClick={() => setActiveTab('settings')}
               className={`py-2.5 px-3.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
@@ -213,21 +227,21 @@ export const AdminHeader = ({
 
           {/* Quick Action Buttons for Products tab */}
           {activeTab === 'products' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0 ml-auto pl-3">
               <button
                 id="btn-page-add-product"
                 onClick={onOpenAdd}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shadow-xs"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shadow-md shrink-0 min-w-max"
               >
-                <Plus className="w-3.5 h-3.5" />
-                Add Product
+                <Plus className="w-4 h-4" />
+                <span>Add Product</span>
               </button>
 
               {onResetCatalog && (
                 <button
                   onClick={onResetCatalog}
                   title="Reset to factory catalog"
-                  className="p-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition-all cursor-pointer"
+                  className="p-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 transition-all cursor-pointer shrink-0"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>

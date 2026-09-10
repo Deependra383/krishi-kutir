@@ -38,7 +38,10 @@ export const FullPageCart = ({
     totalItemsCount, 
     subtotal, 
     deliveryFee, 
-    grandTotal 
+    grandTotal,
+    deliveryInfo,
+    shippingLocation,
+    updateShippingLocation
   } = useCart();
 
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -589,13 +592,81 @@ export const FullPageCart = ({
                     </span>
                   </div>
 
-                  <div className={`flex justify-between ${isDarkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                    <span>Pan-India Express Shipping</span>
+                  {/* Dynamic Courier Delivery Charges */}
+                  <div className={`flex justify-between items-center ${isDarkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                    <div className="flex flex-col">
+                      <span className="flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>Courier Delivery ({deliveryInfo?.shortLabel || 'Bhopal Local'})</span>
+                      </span>
+                      <span className="text-[10px] opacity-75 font-mono">
+                        {deliveryInfo?.carrier} • {deliveryInfo?.estimatedDelivery}
+                      </span>
+                    </div>
                     <span className={`font-black uppercase tracking-wider font-mono ${
-                      isDarkMode ? 'text-emerald-400' : 'text-emerald-700'
+                      deliveryFee === 0 
+                        ? (isDarkMode ? 'text-emerald-400' : 'text-emerald-700')
+                        : (isDarkMode ? 'text-white' : 'text-neutral-900')
                     }`}>
                       {deliveryFee === 0 ? 'FREE' : formatPrice(deliveryFee)}
                     </span>
+                  </div>
+
+                  {/* Delivery Location Quick Switcher */}
+                  <div className={`p-2.5 rounded-xl border space-y-1.5 text-xs ${
+                    isDarkMode ? 'bg-neutral-800/80 border-neutral-700' : 'bg-neutral-50 border-neutral-200'
+                  }`}>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold flex items-center gap-1">
+                        <span>📍 Courier Location:</span>
+                        <strong className="text-emerald-600">{shippingLocation?.city || 'Bhopal'}</strong>
+                      </span>
+                      {deliveryFee === 0 ? (
+                        <span className="text-[10px] font-bold text-emerald-600">Free delivery unlocked</span>
+                      ) : deliveryInfo?.amountNeededForFree > 0 ? (
+                        <span className="text-[10px] text-amber-600 font-medium">
+                          +₹{deliveryInfo.amountNeededForFree} for FREE
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => updateShippingLocation({ city: 'Bhopal', state: 'Madhya Pradesh', pincode: '462036' })}
+                        className={`px-1.5 py-1 rounded text-[10px] font-bold truncate transition-all cursor-pointer ${
+                          deliveryInfo?.isBhopalLocal
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : (isDarkMode ? 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600' : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-100')
+                        }`}
+                        title="Bhopal Intra-city"
+                      >
+                        Bhopal (₹40)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateShippingLocation({ city: 'Indore', state: 'Madhya Pradesh', pincode: '452001' })}
+                        className={`px-1.5 py-1 rounded text-[10px] font-bold truncate transition-all cursor-pointer ${
+                          deliveryInfo?.zoneId === 'mp_regional'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : (isDarkMode ? 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600' : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-100')
+                        }`}
+                        title="MP Regional Courier"
+                      >
+                        MP State (₹70)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateShippingLocation({ city: 'Delhi', state: 'Delhi', pincode: '110001' })}
+                        className={`px-1.5 py-1 rounded text-[10px] font-bold truncate transition-all cursor-pointer ${
+                          deliveryInfo?.zoneId === 'pan_india'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : (isDarkMode ? 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600' : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-100')
+                        }`}
+                        title="Pan-India Express"
+                      >
+                        Pan-India (₹110)
+                      </button>
+                    </div>
                   </div>
 
                   <div className={`flex justify-between ${isDarkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>

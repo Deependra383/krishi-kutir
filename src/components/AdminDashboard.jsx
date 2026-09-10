@@ -7,8 +7,7 @@ import {
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { db, collection, onSnapshot, doc, updateDoc, serverTimestamp } from '../firebase';
-import { supabase, isSupabaseConfigured } from '../supabase';
+import { supabase, isSupabaseConfigured, uploadProductImage } from '../supabase';
 import { AdminHeader } from './admin/AdminHeader';
 import { AdminKpiBar } from './admin/AdminKpiBar';
 import { ProductsTab } from './admin/ProductsTab';
@@ -18,6 +17,11 @@ import { PartnerInquiriesTab } from './admin/PartnerInquiriesTab';
 import { TrainingInquiriesTab } from './admin/TrainingInquiriesTab';
 import { UsersTab } from './admin/UsersTab';
 import { StoreSettingsTab } from './admin/StoreSettingsTab';
+import { HomepageImagesCard } from './admin/HomepageImagesCard';
+import { FoundersCustomizerCard } from './admin/FoundersCustomizerCard';
+import { EventsWorkshopsCard } from './admin/EventsWorkshopsCard';
+import { InfrastructureCustomizerCard } from './admin/InfrastructureCustomizerCard';
+import { ProductDivisionsCustomizerCard } from './admin/ProductDivisionsCustomizerCard';
 
 export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   const { products, addProduct, updateProduct, deleteProduct, resetToDefaultCatalog } = useProducts();
@@ -48,6 +52,8 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
     image: ''
   });
   const [imagePreview, setImagePreview] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadStatus, setImageUploadStatus] = useState(null);
   const [savingProduct, setSavingProduct] = useState(false);
   const [productSuccessMsg, setProductSuccessMsg] = useState('');
 
@@ -73,10 +79,6 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   const [productToDelete, setProductToDelete] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  // Razorpay Settings
-  const [razorpayKey, setRazorpayKey] = useState(() => localStorage.getItem('krishi_rzp_key') || '');
-  const [settingsSaved, setSettingsSaved] = useState(false);
-
   const categories = [
     'All',
     'Harvested Microgreens',
@@ -86,7 +88,8 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
     'Fruits and Vegetables',
     'Spices and Seasoning',
     'Professional Grow Trays',
-    'Substrates & Growing Mediums'
+    'Substrates & Growing Mediums',
+    'Eco Packaging'
   ];
 
   // Subscribe to all orders, users, partner inquiries, training inquiries
@@ -219,103 +222,41 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
       }
 
     } else {
-      // 2. Firestore fallback listeners
-      if (!db) {
+      // 2. Local storage fallback
+      try {
         const local = JSON.parse(localStorage.getItem('krishi_local_orders') || '[]');
         setOrders(local);
-        setLoadingOrders(false);
-        return;
+      } catch {
+        setOrders([]);
       }
+      setLoadingOrders(false);
 
-      const ordersRef = collection(db, 'orders');
-      unsubscribeOrders = onSnapshot(ordersRef, (snapshot) => {
-        const list = [];
-        snapshot.forEach(docSnap => {
-          list.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        list.sort((a, b) => {
-          const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.orderDate ? new Date(a.orderDate).getTime() : 0);
-          const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.orderDate ? new Date(b.orderDate).getTime() : 0);
-          return timeB - timeA;
-        });
-        setOrders(list);
-        setLoadingOrders(false);
-      }, (err) => {
-        console.warn('Orders realtime listener notice:', err);
-        try {
-          const local = JSON.parse(localStorage.getItem('krishi_local_orders') || '[]');
-          setOrders(local);
-        } catch {
-          setOrders([]);
-        }
-        setLoadingOrders(false);
-      });
-
-      const usersRef = collection(db, 'users');
-      unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
-        const uList = [];
-        snapshot.forEach(docSnap => {
-          uList.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        setRegisteredUsers(uList);
-        setLoadingUsers(false);
-      }, () => {
+      try {
+        const localUsers = JSON.parse(localStorage.getItem('krishi_registered_users') || '[]');
+        setRegisteredUsers(localUsers);
+      } catch {
         setRegisteredUsers([]);
-        setLoadingUsers(false);
-      });
+      }
+      setLoadingUsers(false);
 
-      const partnersRef = collection(db, 'partner_inquiries');
-      unsubscribePartners = onSnapshot(partnersRef, (snapshot) => {
-        const pList = [];
-        snapshot.forEach(docSnap => {
-          pList.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        pList.sort((a, b) => {
-          const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-          const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
-          return timeB - timeA;
-        });
-        setPartnerInquiries(pList);
-        setLoadingPartners(false);
-      }, () => {
-        try {
-          const local = JSON.parse(localStorage.getItem('kk_partner_inquiries') || '[]');
-          setPartnerInquiries(local);
-        } catch {
-          setPartnerInquiries([]);
-        }
-        setLoadingPartners(false);
-      });
+      try {
+        const localPartners = JSON.parse(localStorage.getItem('kk_partner_inquiries') || '[]');
+        setPartnerInquiries(localPartners);
+      } catch {
+        setPartnerInquiries([]);
+      }
+      setLoadingPartners(false);
 
-      const trainingRef = collection(db, 'training_inquiries');
-      unsubscribeTraining = onSnapshot(trainingRef, (snapshot) => {
-        const tList = [];
-        snapshot.forEach(docSnap => {
-          tList.push({ id: docSnap.id, ...docSnap.data() });
-        });
-        tList.sort((a, b) => {
-          const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-          const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
-          return timeB - timeA;
-        });
-        setTrainingInquiries(tList);
-        setLoadingTrainings(false);
-      }, () => {
-        try {
-          const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
-          setTrainingInquiries(local);
-        } catch {
-          setTrainingInquiries([]);
-        }
-        setLoadingTrainings(false);
-      });
+      try {
+        const localTraining = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
+        setTrainingInquiries(localTraining);
+      } catch {
+        setTrainingInquiries([]);
+      }
+      setLoadingTrainings(false);
     }
 
     return () => {
-      if (unsubscribeOrders) unsubscribeOrders();
-      if (unsubscribeUsers) unsubscribeUsers();
-      if (unsubscribePartners) unsubscribePartners();
-      if (unsubscribeTraining) unsubscribeTraining();
       if (sbOrdersChan && supabase) supabase.removeChannel(sbOrdersChan);
       if (sbPartnersChan && supabase) supabase.removeChannel(sbPartnersChan);
       if (sbTrainingsChan && supabase) supabase.removeChannel(sbTrainingsChan);
@@ -373,6 +314,7 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
       image: ''
     });
     setImagePreview('');
+    setImageUploadStatus(null);
     setIsFormOpen(true);
   };
 
@@ -388,12 +330,41 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
       image: prod.image || ''
     });
     setImagePreview(prod.image || '');
+    setImageUploadStatus(null);
     setIsFormOpen(true);
   };
 
-  const handleImageFileUpload = (e) => {
+  const handleImageFileUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert('File size exceeds 8MB. Please select a smaller image file.');
+      return;
+    }
+
+    // 1. Show immediate preview
+    const tempUrl = URL.createObjectURL(file);
+    setImagePreview(tempUrl);
+
+    // 2. Upload to Supabase Storage Bucket
+    setIsUploadingImage(true);
+    setImageUploadStatus({ type: 'uploading', message: 'Uploading to Supabase Storage bucket...' });
+
+    try {
+      const uploadResult = await uploadProductImage(file);
+      if (uploadResult?.url) {
+        setImagePreview(uploadResult.url);
+        setFormState(prev => ({ ...prev, image: uploadResult.url }));
+        setImageUploadStatus({
+          type: 'success',
+          message: `Saved to Supabase bucket "${uploadResult.bucket}"`,
+          url: uploadResult.url
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase storage upload error, using local fallback:', err);
+      // Fallback to Base64 so the admin can still save the product seamlessly
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUrl = reader.result;
@@ -401,6 +372,13 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
         setFormState(prev => ({ ...prev, image: dataUrl }));
       };
       reader.readAsDataURL(file);
+
+      setImageUploadStatus({
+        type: 'warning',
+        message: 'Loaded locally. To store directly in cloud bucket, create a public bucket named "products" in Supabase.'
+      });
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -471,29 +449,13 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
       }
     }
 
-    // Update in Firestore
     try {
-      if (db) {
-        const orderDocRef = doc(db, 'orders', orderId);
-        await updateDoc(orderDocRef, {
-          status: newStatus,
-          updatedAt: serverTimestamp()
-        });
-      } else {
-        const local = JSON.parse(localStorage.getItem('krishi_local_orders') || '[]');
-        const updated = local.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
-        localStorage.setItem('krishi_local_orders', JSON.stringify(updated));
-      }
-    } catch (err) {
-      console.error('Error updating order status in Firestore:', err);
+      const local = JSON.parse(localStorage.getItem('krishi_local_orders') || '[]');
+      const updated = local.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
+      localStorage.setItem('krishi_local_orders', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
     }
-  };
-
-  const handleSaveRazorpayKey = (e) => {
-    e.preventDefault();
-    localStorage.setItem('krishi_rzp_key', razorpayKey);
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 3000);
   };
 
   const handleResetCatalog = async () => {
@@ -505,11 +467,15 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   };
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col antialiased transition-colors duration-200 ${
-      isDarkMode 
-        ? 'admin-dark-mode bg-neutral-900 text-neutral-100' 
-        : 'admin-light-mode bg-slate-100 text-slate-800'
-    }`}>
+    <div 
+      id="admin-dashboard-root"
+      style={{ fontFamily: "'Cereal', 'Airbnb Cereal App', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}
+      className={`min-h-screen admin-dashboard flex flex-col antialiased transition-colors duration-200 ${
+        isDarkMode 
+          ? 'admin-dark-mode bg-neutral-900 text-neutral-100' 
+          : 'admin-light-mode bg-slate-100 text-slate-800'
+      }`}
+    >
       
       {/* 1. Modular Admin Header */}
       <AdminHeader
@@ -567,6 +533,8 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
             formatPrice={formatPrice}
             onOpenEdit={handleOpenEdit}
             onDeleteProduct={handleDeleteProduct}
+            onOpenAdd={handleOpenAdd}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -580,6 +548,7 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
             setOrderStatusFilter={setOrderStatusFilter}
             formatPrice={formatPrice}
             handleUpdateOrderStatus={handleUpdateOrderStatus}
+            isDarkMode={isDarkMode}
           />
         )}
 
@@ -609,14 +578,20 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
           />
         )}
 
-        {/* TAB 6: STORE, SUPABASE & RAZORPAY SETTINGS */}
+        {/* TAB 6: HOMEPAGE, FOUNDERS & EVENTS MEDIA CUSTOMIZER */}
+        {activeTab === 'media' && (
+          <div className="max-w-6xl mx-auto space-y-8">
+            <InfrastructureCustomizerCard />
+            <ProductDivisionsCustomizerCard />
+            <EventsWorkshopsCard />
+            <HomepageImagesCard />
+            <FoundersCustomizerCard />
+          </div>
+        )}
+
+        {/* TAB 7: STORE & SUPABASE SETTINGS */}
         {activeTab === 'settings' && (
-          <StoreSettingsTab
-            razorpayKey={razorpayKey}
-            setRazorpayKey={setRazorpayKey}
-            handleSaveRazorpayKey={handleSaveRazorpayKey}
-            settingsSaved={settingsSaved}
-          />
+          <StoreSettingsTab />
         )}
 
       </main>
@@ -633,6 +608,8 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
         handleImageFileUpload={handleImageFileUpload}
         handleSaveProduct={handleSaveProduct}
         savingProduct={savingProduct}
+        isUploadingImage={isUploadingImage}
+        imageUploadStatus={imageUploadStatus}
         categories={categories}
         isDarkMode={isDarkMode}
       />
@@ -640,21 +617,33 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
       {/* Product Delete Confirmation Modal */}
       {productToDelete && (
         <div className={`fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 ${!isDarkMode ? 'admin-light-mode' : 'admin-dark-mode'}`}>
-          <div className="bg-neutral-950 text-white rounded-3xl p-6 sm:p-7 max-w-sm w-full space-y-4 shadow-2xl border border-neutral-800 animate-in fade-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-red-950 text-red-400 border border-red-800/40 flex items-center justify-center mx-auto shadow-inner">
+          <div className={`${
+            isDarkMode 
+              ? 'bg-neutral-950 text-white border-neutral-800' 
+              : 'bg-white text-neutral-900 border-neutral-200'
+          } rounded-3xl p-6 sm:p-7 max-w-sm w-full space-y-4 shadow-2xl border animate-in fade-in zoom-in-95 duration-150`}>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-inner ${
+              isDarkMode 
+                ? 'bg-red-950 text-red-400 border border-red-800/40' 
+                : 'bg-red-50 text-red-600 border border-red-200'
+            }`}>
               <Trash2 className="w-6 h-6" />
             </div>
             <div className="text-center space-y-1">
-              <h3 className="text-base font-black uppercase">Remove from Catalog?</h3>
-              <p className="text-xs text-neutral-400 leading-relaxed">
-                Are you sure you want to permanently delete <strong className="text-white font-bold">"{productToDelete.name}"</strong>? This will remove it from all store visitors immediately.
+              <h3 className={`text-base font-black uppercase ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>Remove from Catalog?</h3>
+              <p className={`text-xs leading-relaxed ${isDarkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
+                Are you sure you want to permanently delete <strong className={`font-bold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>"{productToDelete.name}"</strong>? This will remove it from all store visitors immediately.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setProductToDelete(null)}
-                className="py-2.5 px-4 rounded-xl border border-neutral-800 text-neutral-300 text-xs font-bold uppercase hover:bg-neutral-900 transition-all cursor-pointer"
+                className={`py-2.5 px-4 rounded-xl border text-xs font-bold uppercase transition-all cursor-pointer ${
+                  isDarkMode 
+                    ? 'border-neutral-800 text-neutral-300 hover:bg-neutral-900' 
+                    : 'border-neutral-200 text-neutral-700 hover:bg-neutral-100'
+                }`}
               >
                 Cancel
               </button>

@@ -14,7 +14,7 @@ import {
   PhoneCall,
   UserCheck
 } from 'lucide-react';
-import { db, doc, updateDoc, deleteDoc, serverTimestamp } from '../../firebase';
+import { supabase, isSupabaseConfigured } from '../../supabase';
 
 export const TrainingInquiriesTab = ({ inquiries, loading, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,23 +27,18 @@ export const TrainingInquiriesTab = ({ inquiries, loading, onRefresh }) => {
 
   const handleUpdateStatus = async (inquiryId, newStatus) => {
     try {
-      if (db) {
-        const inquiryRef = doc(db, 'training_inquiries', inquiryId);
-        await updateDoc(inquiryRef, {
-          status: newStatus,
-          updatedAt: serverTimestamp()
-        });
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('training_inquiries').update({ status: newStatus }).eq('id', inquiryId);
       }
+      const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
+      const updated = local.map(i => i.id === inquiryId ? { ...i, status: newStatus } : i);
+      localStorage.setItem('kk_training_inquiries', JSON.stringify(updated));
+      if (onRefresh) onRefresh();
+
       setActionSuccess(`Updated training inquiry status to "${newStatus}"`);
       setTimeout(() => setActionSuccess(''), 3000);
     } catch (err) {
       console.error('Failed to update training inquiry status:', err);
-      try {
-        const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
-        const updated = local.map(i => i.id === inquiryId ? { ...i, status: newStatus } : i);
-        localStorage.setItem('kk_training_inquiries', JSON.stringify(updated));
-        if (onRefresh) onRefresh();
-      } catch {}
     }
   };
 
@@ -51,15 +46,13 @@ export const TrainingInquiriesTab = ({ inquiries, loading, onRefresh }) => {
     if (!inquiryToDelete) return;
     setIsDeleting(true);
     try {
-      if (db) {
-        await deleteDoc(doc(db, 'training_inquiries', inquiryToDelete.id));
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('training_inquiries').delete().eq('id', inquiryToDelete.id);
       }
-      try {
-        const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
-        const updated = local.filter(i => i.id !== inquiryToDelete.id);
-        localStorage.setItem('kk_training_inquiries', JSON.stringify(updated));
-        if (onRefresh) onRefresh();
-      } catch {}
+      const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
+      const updated = local.filter(i => i.id !== inquiryToDelete.id);
+      localStorage.setItem('kk_training_inquiries', JSON.stringify(updated));
+      if (onRefresh) onRefresh();
 
       setActionSuccess(`Deleted inquiry from ${inquiryToDelete.fullName}`);
       setTimeout(() => setActionSuccess(''), 3000);
@@ -122,7 +115,7 @@ export const TrainingInquiriesTab = ({ inquiries, loading, onRefresh }) => {
               <h3 className="text-base font-black uppercase text-white">Microgreens Training & Workshop Inquiries</h3>
               <span className="bg-emerald-950 text-emerald-400 border border-emerald-800/60 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Real-Time Firestore Sync
+                Real-Time Inquiries Sync
               </span>
             </div>
             <p className="text-xs text-neutral-400 mt-1">
@@ -171,7 +164,7 @@ export const TrainingInquiriesTab = ({ inquiries, loading, onRefresh }) => {
       {loading ? (
         <div className="py-20 text-center text-neutral-400 text-xs">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-500" />
-          Streaming training inquiries from Firestore...
+          Loading training inquiries...
         </div>
       ) : filteredInquiries.length === 0 ? (
         <div className="py-20 text-center bg-neutral-950 rounded-2xl border border-neutral-800 space-y-3">

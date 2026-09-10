@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { THEMES, CURRENCIES } from './data';
+import { motion, AnimatePresence } from 'motion/react';
+import { THEMES } from './data';
 
 // Context Providers
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -12,6 +13,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProductProvider } from './context/ProductContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { LogoProvider } from './context/LogoContext';
+import { HomepageContentProvider } from './context/HomepageContentContext';
 
 // Component Imports
 import { NavigationBar } from './components/NavigationBar';
@@ -92,8 +94,8 @@ function MainAppContent() {
   const [hoverCoords, setHoverCoords] = useState({});
   const [hoverState, setHoverState] = useState({});
 
-  // Currency state
-  const [activeCurrency, setActiveCurrency] = useState('INR');
+  // Currency state - Fixed to Indian Rupee (INR)
+  const [activeCurrency] = useState('INR');
   
   // Modals state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -103,11 +105,10 @@ function MainAppContent() {
   // Certificate / Microscope Viewer State
   const [selectedMicroscopeItem, setSelectedMicroscopeItem] = useState(null);
 
-  // Dynamic currency conversion helper
+  // Dynamic currency conversion helper - Fixed to INR
   const formatPrice = (priceInINR) => {
-    const currency = CURRENCIES[activeCurrency] || CURRENCIES.INR;
-    const converted = (Number(priceInINR) || 0) * currency.rate;
-    return `${currency.symbol}${converted.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: activeCurrency === 'INR' ? 0 : 2 })}`;
+    const num = Math.round(Number(priceInINR) || 0);
+    return `₹${num.toLocaleString('en-IN')}`;
   };
 
   // Mouse hover coordinate tracking for card floating effect
@@ -151,73 +152,64 @@ function MainAppContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // If Admin View is active, render full-page Admin Dashboard
-  if (currentView === 'admin') {
-    return (
-      <AdminDashboard 
-        onBackToStore={handleBackToStore}
-        formatPrice={formatPrice}
-      />
-    );
-  }
-
-  // If Bag/Cart View is active, render full-page Shopping Bag (like Admin Panel)
-  if (currentView === 'cart' || isCartOpen) {
-    return (
-      <div className={`min-h-screen font-sans transition-colors duration-200 ${
-        isDarkMode ? 'bg-neutral-950 text-neutral-100' : 'bg-[#f8fcf9] text-neutral-900'
-      }`}>
-        <FullPageCart 
-          onBackToStore={handleBackToStore}
-          formatPrice={formatPrice}
-          onProceedToCheckout={() => setIsCheckoutOpen(true)}
-          onOpenAuth={handleOpenAuth}
-          onOpenOrders={() => {
-            handleBackToStore();
-            setTimeout(() => {
-              const el = document.getElementById('my-orders-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-          }}
-        />
-
-        {/* Razorpay Checkout & Address Modal */}
-        <CheckoutModal 
-          isOpen={isCheckoutOpen}
-          onClose={() => setIsCheckoutOpen(false)}
-          formatPrice={formatPrice}
-          onOpenAuth={handleOpenAuth}
-        />
-
-        {/* User Authentication Modal */}
-        <AuthModal 
-          isOpen={isAuthModalOpen}
-          onClose={() => setIsAuthModalOpen(false)}
-          initialTab={authInitialTab}
-          onAdminSuccess={() => {
-            setIsAuthModalOpen(false);
-            setCurrentView('admin');
-            window.location.hash = 'admin';
-          }}
-        />
-
-        {/* Quick Night / Dark Mode Toggle */}
-        <FloatingThemeToggle />
-      </div>
-    );
-  }
-
   return (
-    <div className={`min-h-screen transition-all duration-300 font-sans ${
-      isDarkMode ? 'bg-[#0b110e] text-neutral-100' : `${activeTheme.bodyClass}`
-    }`}>
-      
-      {/* ================= BACKGROUND DECORATIVE FLOATING ELEMENTS ================= */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
-        <div className="absolute top-[10%] left-[5%] w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-[15%] right-[5%] w-96 h-96 bg-[#be123c]/5 rounded-full blur-3xl"></div>
-        <div className="absolute top-[50%] left-[80%] w-60 h-60 bg-amber-200/15 rounded-full blur-3xl"></div>
-      </div>
+    <div className="relative">
+      <AnimatePresence mode="wait">
+        {currentView === 'admin' ? (
+          <motion.div
+            key="admin-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+          >
+            <AdminDashboard 
+              onBackToStore={handleBackToStore}
+              formatPrice={formatPrice}
+            />
+          </motion.div>
+        ) : currentView === 'cart' || isCartOpen ? (
+          <motion.div
+            key="cart-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className={`min-h-screen font-sans transition-colors duration-200 ${
+              isDarkMode ? 'bg-neutral-950 text-neutral-100' : 'bg-[#f8fcf9] text-neutral-900'
+            }`}
+          >
+            <FullPageCart 
+              onBackToStore={handleBackToStore}
+              formatPrice={formatPrice}
+              onProceedToCheckout={() => setIsCheckoutOpen(true)}
+              onOpenAuth={handleOpenAuth}
+              onOpenOrders={() => {
+                handleBackToStore();
+                setTimeout(() => {
+                  const el = document.getElementById('my-orders-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }, 250);
+              }}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="store-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className={`min-h-screen transition-all duration-300 font-sans ${
+              isDarkMode ? 'bg-[#0b110e] text-neutral-100' : `${activeTheme.bodyClass}`
+            }`}
+          >
+            {/* ================= BACKGROUND DECORATIVE FLOATING ELEMENTS ================= */}
+            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
+              <div className="absolute top-[10%] left-[5%] w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute bottom-[15%] right-[5%] w-96 h-96 bg-[#be123c]/5 rounded-full blur-3xl"></div>
+              <div className="absolute top-[50%] left-[80%] w-60 h-60 bg-amber-200/15 rounded-full blur-3xl"></div>
+            </div>
 
       {/* ================= PRIMARY NAVIGATION BAR ================= */}
       <NavigationBar 
@@ -280,8 +272,6 @@ function MainAppContent() {
       {/* ================= FULL PAGE ALL PRODUCTS CATALOGUE (Shows all added products across all categories) ================= */}
       <ProductCatalog
         activeTheme={activeTheme}
-        activeCurrency={activeCurrency}
-        setActiveCurrency={setActiveCurrency}
         setSelectedMicroscopeItem={setSelectedMicroscopeItem}
         hoverCoords={hoverCoords}
         hoverState={hoverState}
@@ -334,6 +324,9 @@ function MainAppContent() {
         onOpenAuth={handleOpenAuth}
         onOpenAdmin={handleOpenAdmin}
       />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 
       {/* ================= RAZORPAY CHECKOUT & ADDRESS MODAL ================= */}
@@ -375,13 +368,15 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <LogoProvider>
-          <ProductProvider>
-            <CartProvider>
-              <MainAppContent />
-            </CartProvider>
-          </ProductProvider>
-        </LogoProvider>
+        <HomepageContentProvider>
+          <LogoProvider>
+            <ProductProvider>
+              <CartProvider>
+                <MainAppContent />
+              </CartProvider>
+            </ProductProvider>
+          </LogoProvider>
+        </HomepageContentProvider>
       </AuthProvider>
     </ThemeProvider>
   );

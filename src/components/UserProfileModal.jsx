@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { db, collection, query, where, getDocs, onSnapshot } from '../firebase';
 
 export const UserProfileModal = ({ isOpen, onClose, onOpenAdmin, formatPrice }) => {
   const { currentUser, userProfile, updateProfileData, logout, isAdmin } = useAuth();
@@ -139,45 +138,6 @@ export const UserProfileModal = ({ isOpen, onClose, onOpenAdmin, formatPrice }) 
           }
         } catch (err) {
           console.warn('Supabase user orders fetch notice:', err);
-        }
-      }
-
-      // 3. Fetch from Firestore for user orders
-      if (db) {
-        try {
-          const firestoreOrders = [];
-          if (uid) {
-            try {
-              const qUid = query(collection(db, 'orders'), where('userId', '==', uid));
-              const snap = await getDocs(qUid);
-              snap.forEach(docSnap => firestoreOrders.push({ id: docSnap.id, ...docSnap.data() }));
-            } catch (e) {
-              console.warn('Firestore query by uid:', e);
-            }
-          }
-
-          if (currentUser.email) {
-            try {
-              const qEmail = query(collection(db, 'orders'), where('userEmail', '==', currentUser.email));
-              const snap = await getDocs(qEmail);
-              snap.forEach(docSnap => firestoreOrders.push({ id: docSnap.id, ...docSnap.data() }));
-            } catch (e) {
-              console.warn('Firestore query by userEmail:', e);
-            }
-          }
-
-          firestoreOrders.forEach(orderObj => {
-            if (doesOrderBelongToUser(orderObj)) {
-              const idx = combined.findIndex(c => c.id === orderObj.id);
-              if (idx !== -1) {
-                combined[idx] = { ...combined[idx], ...orderObj };
-              } else {
-                combined.unshift(orderObj);
-              }
-            }
-          });
-        } catch (fsErr) {
-          console.warn('Firestore user orders fetch notice:', fsErr);
         }
       }
 
@@ -412,7 +372,7 @@ export const UserProfileModal = ({ isOpen, onClose, onOpenAdmin, formatPrice }) 
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-dashed border-neutral-200 text-[11px] text-neutral-500">
                       <div className="flex items-center gap-1.5">
                         <CreditCard className="w-3.5 h-3.5 text-neutral-400" />
-                        <span>Paid via: <strong className="text-neutral-800 uppercase">{order.paymentMethod || 'Razorpay'}</strong></span>
+                        <span>Paid via: <strong className="text-neutral-800 uppercase">{order.paymentMethod || 'Direct UPI'}</strong></span>
                         {order.paymentId && <span className="font-mono text-[10px] text-neutral-400">({order.paymentId})</span>}
                       </div>
 

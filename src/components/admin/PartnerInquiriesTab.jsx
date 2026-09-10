@@ -18,7 +18,7 @@ import {
   ExternalLink,
   PhoneCall
 } from 'lucide-react';
-import { db, doc, updateDoc, deleteDoc, serverTimestamp } from '../../firebase';
+import { supabase, isSupabaseConfigured } from '../../supabase';
 
 export const PartnerInquiriesTab = ({ inquiries, loading, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,24 +49,18 @@ export const PartnerInquiriesTab = ({ inquiries, loading, onRefresh }) => {
 
   const handleUpdateStatus = async (inquiryId, newStatus) => {
     try {
-      if (db) {
-        const inquiryRef = doc(db, 'partner_inquiries', inquiryId);
-        await updateDoc(inquiryRef, {
-          status: newStatus,
-          updatedAt: serverTimestamp()
-        });
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('partner_inquiries').update({ status: newStatus }).eq('id', inquiryId);
       }
+      const local = JSON.parse(localStorage.getItem('kk_partner_inquiries') || '[]');
+      const updated = local.map(i => i.id === inquiryId ? { ...i, status: newStatus } : i);
+      localStorage.setItem('kk_partner_inquiries', JSON.stringify(updated));
+      if (onRefresh) onRefresh();
+
       setActionSuccess(`Updated inquiry status to "${newStatus}"`);
       setTimeout(() => setActionSuccess(''), 3000);
     } catch (err) {
       console.error('Failed to update partner inquiry status:', err);
-      // Local fallback
-      try {
-        const local = JSON.parse(localStorage.getItem('kk_partner_inquiries') || '[]');
-        const updated = local.map(i => i.id === inquiryId ? { ...i, status: newStatus } : i);
-        localStorage.setItem('kk_partner_inquiries', JSON.stringify(updated));
-        if (onRefresh) onRefresh();
-      } catch {}
     }
   };
 
@@ -74,16 +68,13 @@ export const PartnerInquiriesTab = ({ inquiries, loading, onRefresh }) => {
     if (!inquiryToDelete) return;
     setIsDeleting(true);
     try {
-      if (db) {
-        await deleteDoc(doc(db, 'partner_inquiries', inquiryToDelete.id));
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('partner_inquiries').delete().eq('id', inquiryToDelete.id);
       }
-      // Also clean local if present
-      try {
-        const local = JSON.parse(localStorage.getItem('kk_partner_inquiries') || '[]');
-        const updated = local.filter(i => i.id !== inquiryToDelete.id);
-        localStorage.setItem('kk_partner_inquiries', JSON.stringify(updated));
-        if (onRefresh) onRefresh();
-      } catch {}
+      const local = JSON.parse(localStorage.getItem('kk_partner_inquiries') || '[]');
+      const updated = local.filter(i => i.id !== inquiryToDelete.id);
+      localStorage.setItem('kk_partner_inquiries', JSON.stringify(updated));
+      if (onRefresh) onRefresh();
 
       setActionSuccess(`Deleted inquiry from ${inquiryToDelete.businessName || inquiryToDelete.fullName}`);
       setTimeout(() => setActionSuccess(''), 3000);
@@ -118,7 +109,7 @@ export const PartnerInquiriesTab = ({ inquiries, loading, onRefresh }) => {
       case 'Contacted':
         return 'bg-blue-500/20 text-blue-300 border border-blue-500/30';
       case 'Proposal Sent':
-        return 'bg-purple-500/20 text-purple-300 border border-purple-500/30';
+        return 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30';
       case 'Contracted':
         return 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
       case 'Closed':
@@ -150,7 +141,7 @@ export const PartnerInquiriesTab = ({ inquiries, loading, onRefresh }) => {
               <h3 className="text-base font-black uppercase text-white">B2B Partner & Commercial Inquiries</h3>
               <span className="bg-emerald-950 text-emerald-400 border border-emerald-800/60 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Real-Time Firestore Sync
+                Real-Time Inquiries Sync
               </span>
             </div>
             <p className="text-xs text-neutral-400 mt-1">
@@ -225,7 +216,7 @@ export const PartnerInquiriesTab = ({ inquiries, loading, onRefresh }) => {
       {loading ? (
         <div className="py-20 text-center text-neutral-400 text-xs">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-500" />
-          Streaming partner proposals from Firestore...
+          Loading partner proposals...
         </div>
       ) : filteredInquiries.length === 0 ? (
         <div className="py-20 text-center bg-neutral-950 rounded-2xl border border-neutral-800 space-y-3">

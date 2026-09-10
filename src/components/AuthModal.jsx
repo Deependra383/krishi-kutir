@@ -82,44 +82,44 @@ export const AuthModal = ({ isOpen, onClose, initialTab = 'login', onAdminSucces
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white text-neutral-900 w-full max-w-md rounded-2xl shadow-2xl border border-neutral-100 overflow-hidden relative">
+      <div className="bg-white text-neutral-900 w-full max-w-md rounded-3xl shadow-2xl border border-neutral-200/80 overflow-hidden relative">
         
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-950 via-neutral-900 to-emerald-900 text-white p-6 relative">
+        {/* Light Theme Header */}
+        <div className="bg-gradient-to-b from-emerald-50/70 via-neutral-50/50 to-white text-neutral-900 p-6 pb-5 border-b border-neutral-100 relative">
           <button 
             id="close-auth-modal"
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+            className="absolute top-5 right-5 p-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-all cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-2 mb-2">
-            <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
-              <Sparkles className="w-4 h-4" />
+            <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
+              <Sparkles className="w-3.5 h-3.5" />
             </span>
-            <span className="text-xs uppercase font-extrabold tracking-widest text-emerald-400">Krishi Kutir Authentication</span>
+            <span className="text-[11px] uppercase font-extrabold tracking-widest text-emerald-800">Krishi Kutir Store Access</span>
           </div>
 
-          <h2 className="text-2xl font-black uppercase tracking-tight">
+          <h2 className="text-2xl font-black uppercase tracking-tight text-neutral-900">
             {tab === 'login' && 'Welcome Back'}
-            {tab === 'signup' && 'Create User Profile'}
-            {tab === 'admin' && 'Admin Store Portal'}
+            {tab === 'signup' && 'Create Customer Account'}
+            {tab === 'admin' && 'Store Admin Portal'}
           </h2>
-          <p className="text-neutral-400 text-xs mt-1">
-            {tab === 'login' && 'Sign in to access your saved delivery address and order history.'}
-            {tab === 'signup' && 'Create your customer profile for seamless 1-click Razorpay checkout.'}
-            {tab === 'admin' && 'Authorized store owner login to edit catalog, prices, images & manage orders.'}
+          <p className="text-neutral-500 text-xs mt-1.5 leading-relaxed font-normal">
+            {tab === 'login' && 'Sign in to access your saved delivery address and order tracking history.'}
+            {tab === 'signup' && 'Create your personal profile for fast 1-click checkout and saved invoices.'}
+            {tab === 'admin' && 'Authorized store administrator login to manage products, orders, and storefront media.'}
           </p>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex border-b border-neutral-200 bg-neutral-50/80 p-1">
+        <div className="flex border-b border-neutral-200 bg-neutral-100/70 p-1.5 gap-1.5">
           <button
             id="tab-user-login"
             onClick={() => { setTab('login'); setError(''); }}
             className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
-              tab === 'login' ? 'bg-white text-emerald-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-900'
+              tab === 'login' ? 'bg-white text-emerald-800 shadow-xs font-black border border-neutral-200/60' : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
             User Login
@@ -128,7 +128,7 @@ export const AuthModal = ({ isOpen, onClose, initialTab = 'login', onAdminSucces
             id="tab-user-signup"
             onClick={() => { setTab('signup'); setError(''); }}
             className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
-              tab === 'signup' ? 'bg-white text-emerald-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-900'
+              tab === 'signup' ? 'bg-white text-emerald-800 shadow-xs font-black border border-neutral-200/60' : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
             Sign Up
@@ -137,7 +137,7 @@ export const AuthModal = ({ isOpen, onClose, initialTab = 'login', onAdminSucces
             id="tab-admin-portal"
             onClick={() => { setTab('admin'); setError(''); }}
             className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
-              tab === 'admin' ? 'bg-neutral-900 text-amber-400 shadow-sm' : 'text-neutral-500 hover:text-neutral-900'
+              tab === 'admin' ? 'bg-neutral-900 text-amber-300 shadow-xs font-black' : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
             Admin Key
@@ -256,10 +256,10 @@ export const AuthModal = ({ isOpen, onClose, initialTab = 'login', onAdminSucces
               id="submit-auth-btn"
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+              className={`w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
                 tab === 'admin'
-                  ? 'bg-neutral-900 hover:bg-neutral-800 text-amber-400'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  ? 'bg-neutral-900 hover:bg-neutral-800 text-amber-300'
+                  : 'bg-emerald-700 hover:bg-emerald-800 text-white'
               } ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {loading ? 'Processing...' : (
@@ -287,7 +287,7 @@ export const AuthModal = ({ isOpen, onClose, initialTab = 'login', onAdminSucces
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="w-full py-2.5 px-4 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-700 flex items-center justify-center gap-3 transition-all cursor-pointer"
+                className="w-full py-3 px-4 bg-white hover:bg-neutral-50 border border-neutral-200/90 rounded-xl text-xs font-bold text-neutral-800 flex items-center justify-center gap-3 transition-all cursor-pointer shadow-2xs"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -295,7 +295,7 @@ export const AuthModal = ({ isOpen, onClose, initialTab = 'login', onAdminSucces
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
                 </svg>
-                Continue with Google
+                <span>Continue with Google</span>
               </button>
             </>
           )}

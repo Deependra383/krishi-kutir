@@ -1,15 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  db, 
-  collection, 
-  doc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  serverTimestamp 
-} from '../firebase';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { ALL_PRODUCTS_LIST } from '../data';
 
@@ -22,17 +11,21 @@ export const useProducts = () => {
 };
 
 export const ProductProvider = ({ children }) => {
-  const [products, setProducts] = useState(ALL_PRODUCTS_LIST);
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('krishi_local_products');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ALL_PRODUCTS_LIST;
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Sync products with Supabase or Firestore
+  // Sync products with Supabase or LocalStorage
   useEffect(() => {
-    let unsubscribeFirestore = null;
     let supabaseChannel = null;
 
     if (isSupabaseConfigured && supabase) {
-      // 1. Fetch from Supabase
       const fetchSupabaseProducts = async () => {
         try {
           const { data, error: sbError } = await supabase
@@ -43,19 +36,41 @@ export const ProductProvider = ({ children }) => {
           if (sbError) throw sbError;
 
           if (data && data.length > 0) {
-            setProducts(data);
-          } else {
-            // Seed initial data to Supabase if empty
-            const hasBeenSeeded = localStorage.getItem('krishi_sb_catalog_seeded');
-            if (!hasBeenSeeded) {
-              localStorage.setItem('krishi_sb_catalog_seeded', 'true');
-              await supabase.from('products').upsert(ALL_PRODUCTS_LIST);
+            // Check if any standard catalog products are missing in Supabase
+            const existingIds = new Set(data.map(p => p.id));
+            const missingCatalog = ALL_PRODUCTS_LIST.filter(p => !existingIds.has(p.id));
+            
+            if (missingCatalog.length > 0) {
+              console.log(`Synchronizing ${missingCatalog.length} missing catalog products to Supabase...`);
+              supabase.from('products').upsert(missingCatalog).then(() => {});
+              const merged = [...data, ...missingCatalog];
+              setProducts(merged);
+              try {
+                localStorage.setItem('krishi_local_products', JSON.stringify(merged));
+              } catch {}
+            } else {
+              setProducts(data);
+              try {
+                localStorage.setItem('krishi_local_products', JSON.stringify(data));
+              } catch {}
             }
+          } else {
+            // Seed all initial catalog products to Supabase if empty
+            await supabase.from('products').upsert(ALL_PRODUCTS_LIST);
             setProducts(ALL_PRODUCTS_LIST);
+            try {
+              localStorage.setItem('krishi_local_products', JSON.stringify(ALL_PRODUCTS_LIST));
+            } catch {}
           }
         } catch (err) {
-          console.warn('Supabase products fetch failed, falling back to local/Firestore:', err);
-          setProducts(ALL_PRODUCTS_LIST);
+          console.warn('Supabase products fetch failed, using local catalog:', err);
+          try {
+            const saved = localStorage.getItem('krishi_local_products');
+            if (saved) setProducts(JSON.parse(saved));
+            else setProducts(ALL_PRODUCTS_LIST);
+          } catch {
+            setProducts(ALL_PRODUCTS_LIST);
+          }
         } finally {
           setLoading(false);
         }
@@ -69,61 +84,46 @@ export const ProductProvider = ({ children }) => {
           .channel('public:products')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
             const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-            if (data) setProducts(data);
+            if (data) {
+              setProducts(data);
+              try {
+                localStorage.setItem('krishi_local_products', JSON.stringify(data));
+              } catch {}
+            }
           })
           .subscribe();
       } catch (subErr) {
         console.warn('Supabase realtime channel subscription notice:', subErr);
       }
-
     } else {
-      // 2. Firestore Sync fallback
-      const productsRef = collection(db, 'products');
-
-      unsubscribeFirestore = onSnapshot(productsRef, async (snapshot) => {
-        if (snapshot.empty) {
-          const hasBeenSeeded = localStorage.getItem('krishi_catalog_initialized');
-          if (!hasBeenSeeded) {
-            localStorage.setItem('krishi_catalog_initialized', 'true');
-            try {
-              for (const item of ALL_PRODUCTS_LIST) {
-                const productDoc = doc(db, 'products', item.id);
-                await setDoc(productDoc, {
-                  ...item,
-                  createdAt: serverTimestamp()
-                });
-              }
-            } catch (seedErr) {
-              console.error('Error auto-seeding products to Firestore:', seedErr);
-              setProducts(ALL_PRODUCTS_LIST);
-            }
-          } else {
-            setProducts([]);
-          }
+      // Local storage fallback
+      try {
+        const saved = localStorage.getItem('krishi_local_products');
+        if (saved) {
+          setProducts(JSON.parse(saved));
         } else {
-          localStorage.setItem('krishi_catalog_initialized', 'true');
-          const productList = [];
-          snapshot.forEach((docSnap) => {
-            productList.push({
-              id: docSnap.id,
-              ...docSnap.data()
-            });
-          });
-          setProducts(productList);
+          localStorage.setItem('krishi_local_products', JSON.stringify(ALL_PRODUCTS_LIST));
+          setProducts(ALL_PRODUCTS_LIST);
         }
-        setLoading(false);
-      }, (err) => {
-        console.warn('Firestore real-time subscription error, using local catalog:', err);
+      } catch {
         setProducts(ALL_PRODUCTS_LIST);
-        setLoading(false);
-      });
+      }
+      setLoading(false);
     }
 
     return () => {
-      if (unsubscribeFirestore) unsubscribeFirestore();
       if (supabaseChannel && supabase) supabase.removeChannel(supabaseChannel);
     };
   }, []);
+
+  // Save to local storage whenever products change
+  const persistLocally = (newProducts) => {
+    try {
+      localStorage.setItem('krishi_local_products', JSON.stringify(newProducts));
+    } catch (e) {
+      console.warn('LocalStorage save error:', e);
+    }
+  };
 
   // Add Product
   const addProduct = async (productData) => {
@@ -139,27 +139,18 @@ export const ProductProvider = ({ children }) => {
       image: productData.image || 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=600&q=80',
     };
 
-    // Optimistic update
-    setProducts(prev => [newProduct, ...prev.filter(p => p.id !== generatedId)]);
+    setProducts(prev => {
+      const updated = [newProduct, ...prev.filter(p => p.id !== generatedId)];
+      persistLocally(updated);
+      return updated;
+    });
 
-    // Write to Supabase if configured
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('products').insert([newProduct]);
       } catch (err) {
         console.error('Error adding product to Supabase:', err);
       }
-    }
-
-    // Write to Firestore as backup
-    try {
-      const productRef = doc(db, 'products', generatedId);
-      await setDoc(productRef, {
-        ...newProduct,
-        createdAt: serverTimestamp()
-      });
-    } catch (err) {
-      console.warn('Firestore backup sync notice:', err);
     }
 
     return newProduct;
@@ -171,10 +162,13 @@ export const ProductProvider = ({ children }) => {
     if (cleanData.price !== undefined) {
       cleanData.price = Number(cleanData.price);
     }
-    // Optimistic update
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...cleanData } : p));
 
-    // Update in Supabase
+    setProducts(prev => {
+      const updated = prev.map(p => p.id === id ? { ...p, ...cleanData } : p);
+      persistLocally(updated);
+      return updated;
+    });
+
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('products').update(cleanData).eq('id', id);
@@ -182,25 +176,16 @@ export const ProductProvider = ({ children }) => {
         console.error('Error updating product in Supabase:', err);
       }
     }
-
-    // Update in Firestore
-    try {
-      const productRef = doc(db, 'products', id);
-      await updateDoc(productRef, {
-        ...cleanData,
-        updatedAt: serverTimestamp()
-      });
-    } catch (err) {
-      console.warn('Firestore update sync notice:', err);
-    }
   };
 
   // Delete Product
   const deleteProduct = async (id) => {
-    // Optimistically remove from state immediately
-    setProducts(prev => prev.filter(p => p.id !== id));
+    setProducts(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      persistLocally(updated);
+      return updated;
+    });
 
-    // Delete in Supabase
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.from('products').delete().eq('id', id);
@@ -208,19 +193,12 @@ export const ProductProvider = ({ children }) => {
         console.error('Error deleting product from Supabase:', err);
       }
     }
-
-    // Delete in Firestore
-    try {
-      const productRef = doc(db, 'products', id);
-      await deleteDoc(productRef);
-    } catch (err) {
-      console.warn('Firestore delete sync notice:', err);
-    }
   };
 
   // Reset to default catalogue
   const resetToDefaultCatalog = async () => {
     setProducts(ALL_PRODUCTS_LIST);
+    persistLocally(ALL_PRODUCTS_LIST);
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -229,22 +207,6 @@ export const ProductProvider = ({ children }) => {
       } catch (err) {
         console.error('Error resetting Supabase catalog:', err);
       }
-    }
-
-    try {
-      const productsRef = collection(db, 'products');
-      const snapshot = await getDocs(productsRef);
-      for (const docSnap of snapshot.docs) {
-        await deleteDoc(doc(db, 'products', docSnap.id));
-      }
-      for (const item of ALL_PRODUCTS_LIST) {
-        await setDoc(doc(db, 'products', item.id), {
-          ...item,
-          createdAt: serverTimestamp()
-        });
-      }
-    } catch (err) {
-      console.warn('Error resetting Firestore catalog:', err);
     }
   };
 

@@ -3,6 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import microgreens3D from './assets/images/microgreens_tray_3d_1788782941452.jpg';
+import herbalSpices3D from './assets/images/herbal_spices_3d_1788782975754.jpg';
+import verticalFarm3D from './assets/images/vertical_farm_3d_1788782992145.jpg';
+import botanicalPowders3D from './assets/images/botanical_powders_3d_1788783009356.jpg';
+
+export const HOME_3D_ASSETS = {
+  microgreens: microgreens3D,
+  spices: herbalSpices3D,
+  verticalFarm: verticalFarm3D,
+  botanicalPowders: botanicalPowders3D
+};
+
 // ==========================================
 // 1. MICROGREENS SECTION PRODUCTS
 // ==========================================
@@ -13,6 +25,7 @@ export const HARVESTED_MICROGREENS = [
     name: 'Harvested Broccoli Microgreens', 
     price: 350, 
     unit: '150 GM Clamshell', 
+    moq: '1 Clamshell',
     category: 'Harvested Microgreens', 
     benefit: 'Freshly cut, packed with intense Sulforaphane. Crisp, delicate, healthy green topping.', 
     image: 'https://images.unsplash.com/photo-1569949380643-6e746ecaa3bd?auto=format&fit=crop&w=600&q=80' 
@@ -22,6 +35,7 @@ export const HARVESTED_MICROGREENS = [
     name: 'Harvested Red Amaranthus Microgreens', 
     price: 380, 
     unit: '120 GM Clamshell', 
+    moq: '1 Clamshell',
     category: 'Harvested Microgreens', 
     benefit: 'Striking fuchsia color, rich in calcium and iron with a mild spinach-like flavor.', 
     image: 'https://images.unsplash.com/photo-1551893086-c0d51f4f494d?auto=format&fit=crop&w=600&q=80' 
@@ -31,6 +45,7 @@ export const HARVESTED_MICROGREENS = [
     name: 'Harvested Sunflower Shoots', 
     price: 300, 
     unit: '200 GM Clamshell', 
+    moq: '1 Clamshell',
     category: 'Harvested Microgreens', 
     benefit: 'Juicy, highly crunchy and nutty leaves, loaded with essential amino acids and proteins.', 
     image: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&w=600&q=80' 
@@ -40,6 +55,7 @@ export const HARVESTED_MICROGREENS = [
     name: 'Harvested Radish Purple Microgreens', 
     price: 320, 
     unit: '150 GM Clamshell', 
+    moq: '1 Clamshell',
     category: 'Harvested Microgreens', 
     benefit: 'Beautiful solid purple sprouts, highly spicy and punchy radish taste, full of antioxidants.', 
     image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=600&q=80' 
@@ -49,6 +65,7 @@ export const HARVESTED_MICROGREENS = [
     name: 'Harvested Sweet Pea Shoots', 
     price: 340, 
     unit: '180 GM Clamshell', 
+    moq: '1 Clamshell',
     category: 'Harvested Microgreens', 
     benefit: 'Tender sweet curly tendrils, rich in folate, vitamins A & C, ideal for gourmet stir-fries.', 
     image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80' 
@@ -61,6 +78,7 @@ export const LIVE_MICROGREENS = [
     name: 'Live Broccoli Microgreens Tray', 
     price: 450, 
     unit: 'Standard Live Tray', 
+    moq: '1 Live Tray',
     category: 'Live Microgreens', 
     benefit: 'Delivered growing live on a low-EC organic coco-coir pad. Cut fresh as you eat!', 
     image: 'https://images.unsplash.com/photo-1508500387557-b8642a862637?auto=format&fit=crop&w=600&q=80' 
@@ -70,6 +88,7 @@ export const LIVE_MICROGREENS = [
     name: 'Live Wheatgrass Growing Tray', 
     price: 380, 
     unit: 'Standard Live Tray', 
+    moq: '1 Live Tray',
     category: 'Live Microgreens', 
     benefit: 'Thick, lush green growing grass, ready for daily juicing of pure alkalizing shots.', 
     image: 'https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&w=600&q=80' 
@@ -79,6 +98,7 @@ export const LIVE_MICROGREENS = [
     name: 'Live Aromatic Basil Tray', 
     price: 480, 
     unit: 'Standard Live Tray', 
+    moq: '1 Live Tray',
     category: 'Live Microgreens', 
     benefit: 'Warm, sweet Italian aroma on your kitchen counter. Enhance pastas, pizzas, and gourmet recipes.', 
     image: 'https://images.unsplash.com/photo-1618386230248-993af36179b1?auto=format&fit=crop&w=600&q=80' 
@@ -88,6 +108,7 @@ export const LIVE_MICROGREENS = [
     name: 'Live Red Amaranthus Tray', 
     price: 420, 
     unit: 'Standard Live Tray', 
+    moq: '1 Live Tray',
     category: 'Live Microgreens', 
     benefit: 'Incredibly beautiful fuchsia growing trays. A stunning live kitchen centerpiece.', 
     image: 'https://images.unsplash.com/photo-1608797178974-15b35a61d121?auto=format&fit=crop&w=600&q=80' 
@@ -97,6 +118,7 @@ export const LIVE_MICROGREENS = [
     name: 'Live Yellow Mustard Tray', 
     price: 390, 
     unit: 'Standard Live Tray', 
+    moq: '1 Live Tray',
     category: 'Live Microgreens', 
     benefit: 'Sharp, peppery zesty flavor profile. Instant culinary punch harvested live right off the rack.', 
     image: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?auto=format&fit=crop&w=600&q=80' 
@@ -134,6 +156,7 @@ export const DAIRY_ALTERNATIVES = [
     name: 'Organic Coconut Milk Powder', 
     price: 650, 
     unit: '250g Jar', 
+    moq: '1 Jar',
     category: 'Dairy Alternatives', 
     benefit: '100% plant-based spray-dried coconut cream. Instant creamy dairy-free milk, lattes, and vegan curries.', 
     image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=600&q=80' 
@@ -143,6 +166,7 @@ export const DAIRY_ALTERNATIVES = [
     name: 'Raw Cashew Milk Powder', 
     price: 780, 
     unit: '250g Jar', 
+    moq: '1 Jar',
     category: 'Dairy Alternatives', 
     benefit: 'Velvety smooth, lactose-free rich plant milk base with natural magnesium and healthy fats.', 
     image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=600&q=80' 
@@ -152,6 +176,7 @@ export const DAIRY_ALTERNATIVES = [
     name: 'Blanched Almond Milk Powder', 
     price: 820, 
     unit: '250g Jar', 
+    moq: '1 Jar',
     category: 'Dairy Alternatives', 
     benefit: 'Pure California blanched almonds powder, rich in Vitamin E. Blends instantly into keto tea & coffee.', 
     image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=600&q=80' 
@@ -161,6 +186,7 @@ export const DAIRY_ALTERNATIVES = [
     name: 'Golden Oat Milk Powder', 
     price: 520, 
     unit: '300g Jar', 
+    moq: '1 Jar',
     category: 'Dairy Alternatives', 
     benefit: 'Naturally sweet whole grain oat powder, beta-glucan fiber rich, ideal for barista frothing.', 
     image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80' 
@@ -170,6 +196,7 @@ export const DAIRY_ALTERNATIVES = [
     name: 'Non-GMO Soy Milk Powder', 
     price: 460, 
     unit: '300g Jar', 
+    moq: '1 Jar',
     category: 'Dairy Alternatives', 
     benefit: 'High-protein plant alternative with complete amino acid profile and zero lactose or cholesterol.', 
     image: 'https://images.unsplash.com/photo-1514733670139-4d87a1941d55?auto=format&fit=crop&w=600&q=80' 
@@ -177,29 +204,29 @@ export const DAIRY_ALTERNATIVES = [
 ];
 
 export const FRUITS_AND_VEGETABLES_POWDERS = [
-  { id: 'FV1', name: 'Beetroot Powder', price: 490, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: 'Pre-workout vasodilator, boosts nitric oxide, pristine sweet maroon color.', image: 'https://images.unsplash.com/photo-1592394533824-9440e5d68530?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV2', name: 'Moringa Leaf Superfood Powder', price: 420, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: 'Miracle leaf superfood, 90+ essential nutrients, natural stamina booster.', image: 'https://images.unsplash.com/photo-1515023115689-589c3f0be534?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV3', name: 'Spinach Chlorophyll Powder', price: 450, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: 'Dehydrated iron-rich spinach, organic chlorophyll green, perfect smoothie base.', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV4', name: 'Tomato Umami Powder', price: 380, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: 'Dehydrated ripe red tomatoes. Deep savory, umami flavor booster for soups and sauces.', image: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV5', name: 'Mint Leaves Powder (पुदीना)', price: 340, unit: '150g Jar', category: 'Fruits and Vegetables', benefit: 'Air-dried menthol rich mint leaves, refreshing detox garnish and digestive calm.', image: 'https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV6', name: 'Pure Amla Berry Powder', price: 360, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: 'Indian gooseberry, unmatched Vitamin C density, anti-aging, immunity and hair health.', image: 'https://images.unsplash.com/photo-1511117833452-4857581106df?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV7', name: 'Amchur Powder (Green Mango)', price: 390, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: '100% natural, tangy, made from handpicked green mangoes, digestive aid.', image: 'https://images.unsplash.com/photo-1596790011462-840c6b1f32a2?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV8', name: 'Anardana Powder (Pomegranate)', price: 480, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: 'Sun-dried wild pomegranate seeds, rich sour and deep fruity undertones.', image: 'https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV9', name: 'Pineapple Fruit Juice Powder', price: 540, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: 'Spray-dried natural pineapple juice. Adds delicious sweet tropical tang to smoothies and desserts.', image: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV10', name: 'Orange Peel Vitamin-C Powder', price: 350, unit: '150g Jar', category: 'Fruits and Vegetables', benefit: 'Sun-dried premium orange peels. Rich in bioflavonoids, adds amazing citrus burst.', image: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV11', name: 'Ashwagandha Vitality Root Powder', price: 550, unit: '200g Jar', category: 'Fruits and Vegetables', benefit: 'Supreme adaptogenic root, stress reduction, restorative calm, and physical stamina booster.', image: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&w=600&q=80' },
-  { id: 'FV12', name: 'Wheatgrass Alkalizing Powder', price: 420, unit: '150g Jar', category: 'Fruits and Vegetables', benefit: 'Highly alkalizing green wheatgrass shoots, oxygenates blood and detoxifies.', image: 'https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&w=600&q=80' }
+  { id: 'FV1', name: 'Beetroot Powder', price: 490, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Pre-workout vasodilator, boosts nitric oxide, pristine sweet maroon color.', image: 'https://images.unsplash.com/photo-1592394533824-9440e5d68530?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV2', name: 'Moringa Leaf Superfood Powder', price: 420, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Miracle leaf superfood, 90+ essential nutrients, natural stamina booster.', image: 'https://images.unsplash.com/photo-1515023115689-589c3f0be534?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV3', name: 'Spinach Chlorophyll Powder', price: 450, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Dehydrated iron-rich spinach, organic chlorophyll green, perfect smoothie base.', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV4', name: 'Tomato Umami Powder', price: 380, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Dehydrated ripe red tomatoes. Deep savory, umami flavor booster for soups and sauces.', image: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV5', name: 'Mint Leaves Powder (पुदीना)', price: 340, unit: '150g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Air-dried menthol rich mint leaves, refreshing detox garnish and digestive calm.', image: 'https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV6', name: 'Pure Amla Berry Powder', price: 360, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Indian gooseberry, unmatched Vitamin C density, anti-aging, immunity and hair health.', image: 'https://images.unsplash.com/photo-1511117833452-4857581106df?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV7', name: 'Amchur Powder (Green Mango)', price: 390, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: '100% natural, tangy, made from handpicked green mangoes, digestive aid.', image: 'https://images.unsplash.com/photo-1596790011462-840c6b1f32a2?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV8', name: 'Anardana Powder (Pomegranate)', price: 480, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Sun-dried wild pomegranate seeds, rich sour and deep fruity undertones.', image: 'https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV9', name: 'Pineapple Fruit Juice Powder', price: 540, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Spray-dried natural pineapple juice. Adds delicious sweet tropical tang to smoothies and desserts.', image: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV10', name: 'Orange Peel Vitamin-C Powder', price: 350, unit: '150g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Sun-dried premium orange peels. Rich in bioflavonoids, adds amazing citrus burst.', image: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV11', name: 'Ashwagandha Vitality Root Powder', price: 550, unit: '200g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Supreme adaptogenic root, stress reduction, restorative calm, and physical stamina booster.', image: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&w=600&q=80' },
+  { id: 'FV12', name: 'Wheatgrass Alkalizing Powder', price: 420, unit: '150g Jar', moq: '1 Jar', category: 'Fruits and Vegetables', benefit: 'Highly alkalizing green wheatgrass shoots, oxygenates blood and detoxifies.', image: 'https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&w=600&q=80' }
 ];
 
 export const SPICES_AND_SEASONING = [
-  { id: 'SS1', name: 'Black Pepper Powder (काली मिर्च)', price: 420, unit: '150g Jar', category: 'Spices and Seasoning', benefit: 'High piperine concentration, powerful immunity booster, authentic warm heat.', image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=600&q=80' },
-  { id: 'SS2', name: 'Ceylon Cinnamon Powder (दालचीनी)', price: 510, unit: '150g Jar', category: 'Spices and Seasoning', benefit: 'Premium sweet Ceylon bark powder, balances blood sugar levels and enhances desserts.', image: 'https://images.unsplash.com/photo-1509358711771-46538411e1e6?auto=format&fit=crop&w=600&q=80' },
-  { id: 'SS3', name: 'Roasted Cumin Powder (भुना जीरा)', price: 360, unit: '200g Jar', category: 'Spices and Seasoning', benefit: 'Slow-roasted cumin seed crush, incredible aroma, cures indigestion and elevates chaats.', image: 'https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&w=600&q=80' },
-  { id: 'SS4', name: 'Dehydrated Garlic Powder (लहसुन)', price: 380, unit: '200g Jar', category: 'Spices and Seasoning', benefit: 'Pure dehydrated garlic cloves, perfect savory garlic touch with zero preservatives.', image: 'https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?auto=format&fit=crop&w=600&q=80' },
-  { id: 'SS5', name: 'Dried Ginger Powder - Sonth (सोंठ)', price: 410, unit: '150g Jar', category: 'Spices and Seasoning', benefit: 'Finest dried ginger roots, treats throat congestion, cold recovery, and warm teas.', image: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&w=600&q=80' },
-  { id: 'SS6', name: 'Lakadong High-Curcumin Turmeric (हल्दी)', price: 450, unit: '250g Jar', category: 'Spices and Seasoning', benefit: 'Over 7.5% natural curcumin content, ultra anti-inflammatory golden wellness core.', image: 'https://images.unsplash.com/photo-1582515073490-39981397c445?auto=format&fit=crop&w=600&q=80' },
-  { id: 'SS7', name: 'Black Cardamom Powder (बड़ी इलायची)', price: 680, unit: '100g Jar', category: 'Spices and Seasoning', benefit: 'Intense smoky aromatic notes, freshly ground pods for royal biryanis and curries.', image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80' },
-  { id: 'SS8', name: 'Signature Italian Herb Seasoning Blend', price: 430, unit: '120g Sprinkler', category: 'Spices and Seasoning', benefit: 'Artisanal blend of dried basil, oregano, rosemary, thyme, and pink rock salt.', image: 'https://images.unsplash.com/photo-1618386230248-993af36179b1?auto=format&fit=crop&w=600&q=80' }
+  { id: 'SS1', name: 'Black Pepper Powder (काली मिर्च)', price: 420, unit: '150g Jar', moq: '1 Jar', category: 'Spices and Seasoning', benefit: 'High piperine concentration, powerful immunity booster, authentic warm heat.', image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=600&q=80' },
+  { id: 'SS2', name: 'Ceylon Cinnamon Powder (दालचीनी)', price: 510, unit: '150g Jar', moq: '1 Jar', category: 'Spices and Seasoning', benefit: 'Premium sweet Ceylon bark powder, balances blood sugar levels and enhances desserts.', image: 'https://images.unsplash.com/photo-1509358711771-46538411e1e6?auto=format&fit=crop&w=600&q=80' },
+  { id: 'SS3', name: 'Roasted Cumin Powder (भुना जीरा)', price: 360, unit: '200g Jar', moq: '1 Jar', category: 'Spices and Seasoning', benefit: 'Slow-roasted cumin seed crush, incredible aroma, cures indigestion and elevates chaats.', image: 'https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&w=600&q=80' },
+  { id: 'SS4', name: 'Dehydrated Garlic Powder (लहसुन)', price: 380, unit: '200g Jar', moq: '1 Jar', category: 'Spices and Seasoning', benefit: 'Pure dehydrated garlic cloves, perfect savory garlic touch with zero preservatives.', image: 'https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?auto=format&fit=crop&w=600&q=80' },
+  { id: 'SS5', name: 'Dried Ginger Powder - Sonth (सोंठ)', price: 410, unit: '150g Jar', moq: '1 Jar', category: 'Spices and Seasoning', benefit: 'Finest dried ginger roots, treats throat congestion, cold recovery, and warm teas.', image: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&w=600&q=80' },
+  { id: 'SS6', name: 'Lakadong High-Curcumin Turmeric (हल्दी)', price: 450, unit: '250g Jar', moq: '1 Jar', category: 'Spices and Seasoning', benefit: 'Over 7.5% natural curcumin content, ultra anti-inflammatory golden wellness core.', image: 'https://images.unsplash.com/photo-1582515073490-39981397c445?auto=format&fit=crop&w=600&q=80' },
+  { id: 'SS7', name: 'Black Cardamom Powder (बड़ी इलायची)', price: 680, unit: '100g Jar', moq: '1 Jar', category: 'Spices and Seasoning', benefit: 'Intense smoky aromatic notes, freshly ground pods for royal biryanis and curries.', image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80' },
+  { id: 'SS8', name: 'Signature Italian Herb Seasoning Blend', price: 430, unit: '120g Sprinkler', moq: '1 Sprinkler', category: 'Spices and Seasoning', benefit: 'Artisanal blend of dried basil, oregano, rosemary, thyme, and pink rock salt.', image: 'https://images.unsplash.com/photo-1618386230248-993af36179b1?auto=format&fit=crop&w=600&q=80' }
 ];
 
 export const OTHER_PRODUCTS = [
@@ -311,36 +338,44 @@ export const CAROUSEL_ITEMS = [
     title: "Living Superfoods. 40x Nutrition.",
     heading: "Fresh Microgreens & Live Growing Trays",
     description: "Harvested at peak vibrancy in the Leaf Lounge or delivered growing live on organic coco-coir pads. 100% chemical-free, nutrient-dense living greens.",
-    image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80",
+    image: microgreens3D,
+    image3d: microgreens3D,
     accent: "Living Broccoli, Radish, Sunflower & Pea Shoots",
     tag: "Living Greens Division",
-    type: "microgreens"
+    type: "microgreens",
+    target: "#microgreens-section"
   },
   {
     title: "100% Pure. Plant Powered.",
     heading: "Herbal Powders, Pure Extracts & Spices",
     description: "Dehydrated superfoods, dairy-free milk powders, organic vegetable powders, and fragrant whole spices processed under ISO 22000 and FSSAI hygienic standards.",
-    image: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=1200&q=80",
+    image: herbalSpices3D,
+    image3d: herbalSpices3D,
     accent: "Lakadong Turmeric, Moringa, Beetroot & Amla",
     tag: "Natural Nutrition & Extracts",
-    type: "powders"
+    type: "powders",
+    target: "#powders-spices-section"
   },
   {
     title: "Grow Together. Supply Chain Excellence.",
     heading: "Partner With Krishi Kutir - B2B & Wholesale",
     description: "Reliable commercial supply for restaurants, cafes, supermarkets, wellness brands, and international distributors with customized bulk pricing and cold-chain dispatch.",
-    image: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=1200&q=80",
+    image: verticalFarm3D,
+    image3d: verticalFarm3D,
     accent: "HoReCa Supply, Contract Farming & Export Shipments",
     tag: "B2B & Institutional",
-    type: "partner"
+    type: "partner",
+    target: "#partner-with-us"
   },
   {
     title: "Natural Food Solutions. 100% Traceable.",
     heading: "Cryo-Dehydrated Fruit & Vegetable Powders",
     description: "Serving taste with purity: retain over 95% of native active enzymes and natural colors without chemical additives, carriers, or artificial preservatives.",
-    image: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=1200&q=80",
+    image: botanicalPowders3D,
+    image3d: botanicalPowders3D,
     accent: "Tomato Umami, Mint, Spinach & Green Mango",
     tag: "Botanical Ingredients",
-    type: "powders"
+    type: "powders",
+    target: "#powders-spices-section"
   }
 ];

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { GraduationCap, Send, CheckCircle2, PhoneCall, MessageCircle, Mail, BookOpen, Sun } from 'lucide-react';
-import { db } from '../../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { supabase, isSupabaseConfigured } from '../../supabase';
 
 export const MicrogreensTraining = () => {
@@ -36,17 +34,9 @@ export const MicrogreensTraining = () => {
         }
       }
 
-      if (db) {
-        await addDoc(collection(db, 'training_inquiries'), {
-          ...trainingForm,
-          createdAt: serverTimestamp(),
-          status: 'New Inquiry'
-        });
-      } else {
-        const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
-        local.push({ ...trainingForm, id: Date.now().toString(), createdAt: new Date().toISOString(), status: 'New Inquiry' });
-        localStorage.setItem('kk_training_inquiries', JSON.stringify(local));
-      }
+      const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
+      local.push({ ...trainingForm, id: Date.now().toString(), createdAt: new Date().toISOString(), status: 'New Inquiry' });
+      localStorage.setItem('kk_training_inquiries', JSON.stringify(local));
       setTrainingSuccess(true);
     } catch (err) {
       console.error('Error saving training inquiry:', err);

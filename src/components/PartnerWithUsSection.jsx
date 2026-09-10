@@ -14,11 +14,15 @@ import {
   MapPin, 
   Layers
 } from 'lucide-react';
-import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { supabase, isSupabaseConfigured } from '../supabase';
+import { useHomepageContent } from '../context/HomepageContentContext';
 
 export const PartnerWithUsSection = ({ activeTheme }) => {
+  const { infrastructureCards, defaultInfrastructureCards } = useHomepageContent();
+  const displayInfrastructure = (infrastructureCards && infrastructureCards.length > 0) 
+    ? infrastructureCards 
+    : defaultInfrastructureCards;
+
   const [formData, setFormData] = useState({
     fullName: '',
     businessName: '',
@@ -58,21 +62,13 @@ export const PartnerWithUsSection = ({ activeTheme }) => {
         }
       }
 
-      if (db) {
-        await addDoc(collection(db, 'partner_inquiries'), {
-          ...formData,
-          createdAt: serverTimestamp(),
-          status: 'New Partner Inquiry'
-        });
-      } else {
-        const local = JSON.parse(localStorage.getItem('kk_partner_inquiries') || '[]');
-        local.push({
-          ...formData,
-          id: Date.now().toString(),
-          createdAt: new Date().toISOString()
-        });
-        localStorage.setItem('kk_partner_inquiries', JSON.stringify(local));
-      }
+      const local = JSON.parse(localStorage.getItem('kk_partner_inquiries') || '[]');
+      local.push({
+        ...formData,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString()
+      });
+      localStorage.setItem('kk_partner_inquiries', JSON.stringify(local));
       setIsSubmitted(true);
     } catch (err) {
       console.error('Error submitting partner inquiry:', err);
@@ -365,111 +361,55 @@ export const PartnerWithUsSection = ({ activeTheme }) => {
 
         {/* 4 Image & Description Columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          {/* Item 1 */}
-          <div className="bg-white rounded-3xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between">
-            <div>
-              <div className="h-52 overflow-hidden bg-neutral-100 relative">
-                <img 
-                  src="https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80" 
-                  alt="Controlled Vertical Farming Racks"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-6 space-y-2">
-                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Farm Infrastructure</span>
-                <h4 className="text-base font-bold text-neutral-900 uppercase">Controlled Vertical Racks</h4>
-                <p className="text-xs text-neutral-600 font-light leading-relaxed">
-                  High-efficiency LED full-spectrum lights, automated air circulation fans, and low-EC coco substrate ensure 365-day harvest reliability without seasonal crop failure.
-                </p>
-              </div>
-            </div>
-            <div className="p-6 pt-0">
-              <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> 100% Crop Continuity
-              </span>
-            </div>
-          </div>
+          {displayInfrastructure.map((card, idx) => {
+            const colorThemes = [
+              { label: 'text-emerald-700', icon: ShieldCheck, fallbackImg: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80' },
+              { label: 'text-amber-700', icon: Truck, fallbackImg: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80' },
+              { label: 'text-rose-700', icon: Layers, fallbackImg: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80' },
+              { label: 'text-sky-700', icon: Globe2, fallbackImg: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80' }
+            ];
+            const theme = colorThemes[idx % colorThemes.length];
+            const IconComponent = theme.icon;
 
-          {/* Item 2 */}
-          <div className="bg-white rounded-3xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between">
-            <div>
-              <div className="h-52 overflow-hidden bg-neutral-100 relative">
-                <img 
-                  src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80" 
-                  alt="HORECA Chef Supply"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+            return (
+              <div 
+                key={card.id || idx}
+                className="bg-white rounded-3xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="h-52 overflow-hidden bg-neutral-100 relative">
+                    <img 
+                      src={card.image} 
+                      alt={card.title}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = theme.fallbackImg;
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-6 space-y-2">
+                    <span className={`text-[10px] font-bold ${theme.label} uppercase tracking-wider block`}>
+                      {card.category}
+                    </span>
+                    <h4 className="text-base font-bold text-neutral-900 uppercase">
+                      {card.title}
+                    </h4>
+                    <p className="text-xs text-neutral-600 font-light leading-relaxed">
+                      {card.desc}
+                    </p>
+                  </div>
+                </div>
+                <div className="p-6 pt-0">
+                  <span className={`text-[11px] font-bold ${theme.label} flex items-center gap-1`}>
+                    <IconComponent className="w-3.5 h-3.5 shrink-0" />
+                    <span>{card.badge}</span>
+                  </span>
+                </div>
               </div>
-              <div className="p-6 space-y-2">
-                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Culinary Partners</span>
-                <h4 className="text-base font-bold text-neutral-900 uppercase">HORECA Chef Supply</h4>
-                <p className="text-xs text-neutral-600 font-light leading-relaxed">
-                  Daily recurring delivery of live trays or freshly harvested clamshells to fine-dining restaurants, five-star banquets, and boutique wellness cafes.
-                </p>
-              </div>
-            </div>
-            <div className="p-6 pt-0">
-              <span className="text-[11px] font-bold text-amber-700 flex items-center gap-1">
-                <Truck className="w-3.5 h-3.5" /> Direct Morning Drop-offs
-              </span>
-            </div>
-          </div>
-
-          {/* Item 3 */}
-          <div className="bg-white rounded-3xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between">
-            <div>
-              <div className="h-52 overflow-hidden bg-neutral-100 relative">
-                <img 
-                  src="https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80" 
-                  alt="Hygienic Low-Temp Dehydration"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-6 space-y-2">
-                <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Botanical Processing</span>
-                <h4 className="text-base font-bold text-neutral-900 uppercase">Hygienic Dehydration</h4>
-                <p className="text-xs text-neutral-600 font-light leading-relaxed">
-                  Precision low-temperature air-drying prevents heat oxidation, preserving intact vitamins, live chlorophyll, and deep natural colors in every powder batch.
-                </p>
-              </div>
-            </div>
-            <div className="p-6 pt-0">
-              <span className="text-[11px] font-bold text-rose-700 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5" /> Moisture &lt; 5% Certified
-              </span>
-            </div>
-          </div>
-
-          {/* Item 4 */}
-          <div className="bg-white rounded-3xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between">
-            <div>
-              <div className="h-52 overflow-hidden bg-neutral-100 relative">
-                <img 
-                  src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80" 
-                  alt="Global B2B Cargo Logistics"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-6 space-y-2">
-                <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">Global Logistics</span>
-                <h4 className="text-base font-bold text-neutral-900 uppercase">Global Cargo & Export</h4>
-                <p className="text-xs text-neutral-600 font-light leading-relaxed">
-                  Phytosanitary certification, vacuum nitrogen sealing, and express air-freight clearance to the US, Europe, Middle East, and Asia-Pacific.
-                </p>
-              </div>
-            </div>
-            <div className="p-6 pt-0">
-              <span className="text-[11px] font-bold text-sky-700 flex items-center gap-1">
-                <Globe2 className="w-3.5 h-3.5" /> Worldwide Export Ready
-              </span>
-            </div>
-          </div>
-
+            );
+          })}
         </div>
 
       </div>

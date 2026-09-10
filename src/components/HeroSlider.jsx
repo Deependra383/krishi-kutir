@@ -1,12 +1,25 @@
 import React, { useEffect } from 'react';
 import { ArrowLeft, ArrowRight, ShieldCheck, Leaf, Award, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
 import { CAROUSEL_ITEMS } from '../data';
+import { useHomepageContent } from '../context/HomepageContentContext';
 
 export const HeroSlider = ({ 
   carouselIndex, 
   setCarouselIndex 
 }) => {
+  const { homeImages } = useHomepageContent();
   const currentSlide = CAROUSEL_ITEMS[carouselIndex] || CAROUSEL_ITEMS[0];
+
+  const getSlideImage = (index, fallbackImage) => {
+    if (!homeImages) return fallbackImage;
+    if (index === 0 && homeImages.microgreens?.url) return homeImages.microgreens.url;
+    if (index === 1 && homeImages.spices?.url) return homeImages.spices.url;
+    if (index === 2 && homeImages.verticalFarm?.url) return homeImages.verticalFarm.url;
+    if (index === 3 && homeImages.botanicalPowders?.url) return homeImages.botanicalPowders.url;
+    return fallbackImage;
+  };
+
+  const activeSlideImage = getSlideImage(carouselIndex, currentSlide.image);
 
   // Optional subtle auto-play
   useEffect(() => {
@@ -129,7 +142,7 @@ export const HeroSlider = ({
             
             <div className="w-full h-[380px] sm:h-[440px] md:h-[480px] rounded-3xl overflow-hidden relative shadow-2xl border border-neutral-200/90 bg-neutral-900 group">
               <img 
-                src={currentSlide.image} 
+                src={activeSlideImage} 
                 alt={currentSlide.heading}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
@@ -137,8 +150,9 @@ export const HeroSlider = ({
 
               {/* Top tag */}
               <div className="absolute top-5 left-5 right-5 flex items-center justify-between pointer-events-none">
-                <span className="px-3.5 py-1.5 rounded-full bg-neutral-900/85 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider border border-white/10 shadow-sm">
-                  Krishi Kutir • Bhopal
+                <span className="px-3.5 py-1.5 rounded-full bg-neutral-900/85 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider border border-white/10 shadow-sm flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Krishi Kutir • 3D Visual Lot</span>
                 </span>
                 <span className="px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-neutral-900 text-xs font-black uppercase tracking-wider shadow-sm">
                   {currentSlide.tag}
@@ -149,8 +163,10 @@ export const HeroSlider = ({
               <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-neutral-950/90 via-neutral-950/50 to-transparent p-6 sm:p-8 text-white">
                 <div className="flex items-end justify-between gap-4">
                   <div className="space-y-1.5 min-w-0">
-                    <p className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-semibold">
-                      Leaf Lounge Vertical Farm
+                    <p className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-semibold flex items-center gap-1.5">
+                      <span>Leaf Lounge Vertical Farm</span>
+                      <span>•</span>
+                      <span className="text-white/80">3D Rendered Profile</span>
                     </p>
                     <h3 className="text-xl sm:text-2xl font-black uppercase text-white truncate">
                       {currentSlide.heading}
@@ -208,6 +224,7 @@ export const HeroSlider = ({
           </div>
 
         </div>
+
       </div>
     </section>
   );

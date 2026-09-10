@@ -1,4 +1,5 @@
 import React from 'react';
+import { useHomepageContent } from '../context/HomepageContentContext';
 
 export const Certifications = ({
   activeTheme,
@@ -9,6 +10,9 @@ export const Certifications = ({
   handleCardMouseLeave,
   formatPrice
 }) => {
+  const { eventsWorkshops, defaultEventsWorkshops } = useHomepageContent();
+  const displayEvents = (eventsWorkshops && eventsWorkshops.length > 0) ? eventsWorkshops : defaultEventsWorkshops;
+
   return (
     <section id="certifications-gallery" className="py-20 px-6 transition-colors duration-500" style={{ backgroundColor: `${activeTheme.accentColor}05` }}>
       <div className="max-w-7xl mx-auto space-y-16">
@@ -45,11 +49,7 @@ export const Certifications = ({
         <div className="pt-10 space-y-8">
           <h3 className="text-2xl font-black uppercase tracking-tight text-center">Our Events & Workshop Footprint</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { title: "Dietetics Association Workshop", location: "Bhopal Chapter", desc: "Demonstrating high-density microgreens nutrition to 100+ clinical nutritionists.", image: "https://images.unsplash.com/photo-1544535830-9d5a6724cd31?auto=format&fit=crop&w=500&q=80" },
-              { title: "Central Agri Institute Visit", location: "CIAE Campus", desc: "Co-founding high-tech seedling trays and solar LED strip growth optimization tests.", image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=500&q=80" },
-              { title: "Culinary Wellness Summit", location: "Orchard Majestic", desc: "Pairing dehydrated beetroot and spinach powder with elite vegan gourmet dishes.", image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=500&q=80" }
-            ].map((ev, i) => {
+            {displayEvents.map((ev, i) => {
               const cardId = `workshop-${i}`;
               const isHovering = hoverState[cardId];
               const coord = hoverCoords[cardId] || { x: 0, y: 0 };
@@ -84,6 +84,10 @@ export const Certifications = ({
                         src={ev.image} 
                         alt={ev.title} 
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://images.unsplash.com/photo-1544535830-9d5a6724cd31?auto=format&fit=crop&w=500&q=80';
+                        }}
                         className="w-full h-full object-cover transition-transform duration-700 ease-out"
                         style={{
                           transform: isHovering ? 'scale(1.1) translate3d(2px, 2px, 0)' : 'scale(1.05)'

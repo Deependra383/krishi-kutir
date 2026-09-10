@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -21,20 +21,20 @@ import {
   ExternalLink,
   Check,
   Zap,
-  Package
+  Package,
+  Truck,
+  Info
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { db, doc, setDoc, serverTimestamp } from '../firebase';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { openRazorpayCheckout, getRazorpayKeyId, isLiveMode, isCustomKeyConfigured } from '../utils/razorpay';
 import { getMerchantUpiId, getMerchantName, generateUpiUri, generateUpiQrUrl } from '../utils/upi';
-import { RazorpayTestModal } from './RazorpayTestModal';
+import { calculateDelivery } from '../utils/deliveryCharges';
 
 export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
   const { currentUser, userProfile, updateProfileData } = useAuth();
-  const { cartItems, subtotal, deliveryFee, grandTotal, clearCart } = useCart();
+  const { cartItems, subtotal, clearCart, shippingLocation, updateShippingLocation } = useCart();
 
   // Form State
   const [shippingInfo, setShippingInfo] = useState({
@@ -42,25 +42,37 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
     email: '',
     phone: '',
     address: '',
-    city: '',
-    state: '',
-    pincode: ''
+    city: 'Bhopal',
+    state: 'Madhya Pradesh',
+    pincode: '462036'
   });
 
-  // Options: 'direct_upi' | 'razorpay_gateway' | 'cod'
+  // Calculate live courier charges based on customer delivery location
+  const activeDeliveryInfo = useMemo(() => {
+    return calculateDelivery({
+      city: shippingInfo.city,
+      state: shippingInfo.state,
+      pincode: shippingInfo.pincode,
+      subtotal
+    });
+  }, [shippingInfo.city, shippingInfo.state, shippingInfo.pincode, subtotal]);
+
+  const activeDeliveryFee = activeDeliveryInfo.deliveryFee;
+  const activeGrandTotal = subtotal + activeDeliveryFee;
+
+  // Options: 'direct_upi' | 'cod'
   const [paymentMethod, setPaymentMethod] = useState('direct_upi');
   const [upiUtrNumber, setUpiUtrNumber] = useState('');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(null);
   const [error, setError] = useState('');
-  const [showTestGateway, setShowTestGateway] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState('');
 
   const merchantUpi = getMerchantUpiId();
   const merchantName = getMerchantName();
 
-  // Prepopulate with user profile
+  // Prepopulate with user profile or default to Bhopal
   useEffect(() => {
     if (userProfile || currentUser) {
       setShippingInfo({
@@ -68,12 +80,19 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
         email: userProfile?.email || currentUser?.email || '',
         phone: userProfile?.phone || '',
         address: userProfile?.address || '',
-        city: userProfile?.city || 'Pune',
-        state: userProfile?.state || 'Maharashtra',
-        pincode: userProfile?.pincode || '411001'
+        city: userProfile?.city || shippingLocation?.city || 'Bhopal',
+        state: userProfile?.state || shippingLocation?.state || 'Madhya Pradesh',
+        pincode: userProfile?.pincode || shippingLocation?.pincode || '462036'
       });
+    } else if (shippingLocation) {
+      setShippingInfo(prev => ({
+        ...prev,
+        city: prev.city || shippingLocation.city || 'Bhopal',
+        state: prev.state || shippingLocation.state || 'Madhya Pradesh',
+        pincode: prev.pincode || shippingLocation.pincode || '462036'
+      }));
     }
-  }, [userProfile, currentUser]);
+  }, [userProfile, currentUser, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -144,8 +163,12 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
           unit: item.unit || item.moq || ''
         })),
         subtotal: subtotal,
-        deliveryFee: deliveryFee,
-        totalAmount: grandTotal,
+        deliveryFee: activeDeliveryFee,
+        delivery_fee: activeDeliveryFee,
+        courierZone: activeDeliveryInfo.shortLabel,
+        courierZoneName: activeDeliveryInfo.zoneName,
+        courierCarrier: activeDeliveryInfo.carrier,
+        totalAmount: activeGrandTotal,
         paymentMethod: paymentMethodName,
         paymentId: paymentId,
         signature: signature || null,
@@ -167,10 +190,12 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
               address: shippingInfo.address,
               city: shippingInfo.city,
               state: shippingInfo.state,
-              pincode: shippingInfo.pincode
+              pincode: shippingInfo.pincode,
+              courier_zone: activeDeliveryInfo.shortLabel,
+              delivery_fee: activeDeliveryFee
             },
             items: orderData.items,
-            total_amount: grandTotal,
+            total_amount: activeGrandTotal,
             currency: 'INR',
             payment_method: orderData.paymentMethod,
             payment_id: paymentId,
@@ -182,20 +207,7 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
         }
       }
 
-      // 2. Save to Firestore
-      try {
-        if (db) {
-          const orderRef = doc(db, 'orders', orderId);
-          await setDoc(orderRef, {
-            ...orderData,
-            createdAt: serverTimestamp()
-          });
-        }
-      } catch (firestoreErr) {
-        console.warn('Firestore write notice, saving locally:', firestoreErr);
-      }
-
-      // 3. Save to local storage history
+      // 2. Save to local storage history
       try {
         const local = JSON.parse(localStorage.getItem('krishi_local_orders') || '[]');
         local.unshift(orderData);
@@ -204,7 +216,7 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
         console.warn('LocalStorage save error:', storageErr);
       }
 
-      // 3b. If placed as guest, track in session guest list
+      // 2b. If placed as guest, track in session guest list
       if (!currentUser) {
         try {
           const guestList = JSON.parse(sessionStorage.getItem('krishi_guest_order_ids') || '[]');
@@ -215,7 +227,7 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
         } catch {}
       }
 
-      // 4. Update user profile address for future 1-click checkout
+      // 3. Update user profile address for future 1-click checkout
       if (currentUser && updateProfileData) {
         updateProfileData({
           displayName: shippingInfo.customerName,
@@ -227,7 +239,16 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
         }).catch(() => {});
       }
 
-      // 5. Complete order
+      // 3b. Remember shipping location in cart context
+      if (updateShippingLocation) {
+        updateShippingLocation({
+          city: shippingInfo.city,
+          state: shippingInfo.state,
+          pincode: shippingInfo.pincode
+        });
+      }
+
+      // 4. Complete order
       clearCart();
       setOrderCompleted(orderData);
       triggerConfetti();
@@ -271,70 +292,25 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
     }
 
     // Cash on Delivery Flow
-    if (paymentMethod === 'cod') {
-      const paymentId = `COD-${Date.now().toString().slice(-6)}`;
-      await saveFinalOrder({
-        orderId,
-        paymentId,
-        paymentMethodName: 'Cash on Delivery'
-      });
-      return;
-    }
-
-    // Razorpay Online Gateway Flow
-    setProcessing(true);
-
-    try {
-      const openedOfficial = await openRazorpayCheckout({
-        amountInRupees: grandTotal,
-        orderId: orderId,
-        customerName: shippingInfo.customerName,
-        email: shippingInfo.email || currentUser?.email || 'customer@krishikutir.com',
-        phone: shippingInfo.phone,
-        address: shippingInfo.address,
-        city: shippingInfo.city,
-        pincode: shippingInfo.pincode,
-        paymentMethodPrefill: 'upi',
-        onSuccess: (res) => {
-          saveFinalOrder({
-            orderId: orderId,
-            paymentId: res.paymentId,
-            paymentMethodName: 'Razorpay Payment Gateway',
-            signature: res.signature
-          });
-        },
-        onFailure: (errMsg) => {
-          setProcessing(false);
-          setError(errMsg || 'Razorpay payment was not completed.');
-        },
-        onDismiss: () => {
-          setProcessing(false);
-        }
-      });
-
-      if (!openedOfficial) {
-        // Fallback test sandbox modal
-        setProcessing(false);
-        setShowTestGateway(true);
-      }
-    } catch (err) {
-      console.warn('Razorpay checkout launcher note:', err);
-      setProcessing(false);
-      setShowTestGateway(true);
-    }
+    const paymentId = `COD-${Date.now().toString().slice(-6)}`;
+    await saveFinalOrder({
+      orderId,
+      paymentId,
+      paymentMethodName: 'Cash on Delivery'
+    });
   };
 
   const currentUpiUri = generateUpiUri({
     upiId: merchantUpi,
     merchantName: merchantName,
-    amountInRupees: grandTotal,
+    amountInRupees: activeGrandTotal,
     orderId: activeOrderId || 'KK-CHECKOUT'
   });
 
   const currentQrUrl = generateUpiQrUrl({
     upiId: merchantUpi,
     merchantName: merchantName,
-    amountInRupees: grandTotal,
+    amountInRupees: activeGrandTotal,
     orderId: activeOrderId || 'KK-CHECKOUT',
     size: 240
   });
@@ -344,21 +320,33 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
       <div className="bg-white text-neutral-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-neutral-100 overflow-hidden relative my-8">
         
         {/* Header */}
-        <div className="bg-neutral-900 text-white p-6 relative flex items-center justify-between border-b border-neutral-800">
+        <div className={`p-6 relative flex items-center justify-between border-b transition-colors ${
+          orderCompleted 
+            ? 'bg-amber-50 text-neutral-900 border-amber-200' 
+            : 'bg-emerald-50/80 text-neutral-900 border-emerald-200'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400">
-              <CreditCard className="w-5 h-5" />
+            <div className={`p-2.5 rounded-xl border ${
+              orderCompleted 
+                ? 'bg-amber-100 text-amber-800 border-amber-300' 
+                : 'bg-emerald-100 text-emerald-700 border-emerald-300'
+            }`}>
+              {orderCompleted ? <Clock className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                  Instant Direct Payments
+                <span className={`text-[10px] uppercase font-black tracking-widest px-2 py-0.5 rounded border ${
+                  orderCompleted
+                    ? 'text-amber-900 bg-amber-200/60 border-amber-300'
+                    : 'text-emerald-800 bg-emerald-100 border-emerald-200'
+                }`}>
+                  {orderCompleted ? 'Pending Payment Verification' : 'Instant Direct Payments'}
                 </span>
-                <span className="text-[9px] uppercase font-bold text-amber-300 bg-amber-950 px-1.5 py-0.5 rounded border border-amber-800">
+                <span className="text-[9px] uppercase font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
                   0% Gateway Fee
                 </span>
               </div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-white mt-1">
+              <h2 className="text-xl font-black uppercase tracking-tight text-neutral-900 mt-1">
                 {orderCompleted ? 'Order Submitted' : 'Complete Your Purchase'}
               </h2>
             </div>
@@ -367,7 +355,11 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
           <button
             id="close-checkout-modal"
             onClick={onClose}
-            className="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition-all cursor-pointer"
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              orderCompleted
+                ? 'bg-amber-100/80 hover:bg-amber-200 text-amber-900 border-amber-300'
+                : 'bg-white hover:bg-neutral-100 text-neutral-700 border-neutral-200'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -420,6 +412,17 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
                 <span className="text-neutral-500">Shipping Address:</span>
                 <span className="font-bold text-neutral-800 text-right truncate max-w-[240px]">
                   {orderCompleted.address}, {orderCompleted.city}, {orderCompleted.pincode}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500">Items Subtotal:</span>
+                <span className="font-bold text-neutral-800">{formatPrice(orderCompleted.subtotal)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-500">Courier Delivery:</span>
+                <span className="font-bold text-emerald-700">
+                  {orderCompleted.deliveryFee === 0 ? 'FREE' : formatPrice(orderCompleted.deliveryFee)}
+                  <span className="text-[10px] text-neutral-500 font-normal ml-1">({orderCompleted.courierZone || 'Bhopal Local'})</span>
                 </span>
               </div>
               <div className="flex justify-between items-center border-t border-dashed border-neutral-200 pt-2.5 font-sans">
@@ -525,8 +528,8 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-3">
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">Street Address / House No. *</label>
                   <input
                     type="text"
@@ -543,9 +546,33 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Mumbai, Pune, Delhi"
+                    placeholder="e.g. Bhopal, Indore, Delhi"
                     value={shippingInfo.city}
-                    onChange={(e) => setShippingInfo(p => ({ ...p, city: e.target.value }))}
+                    onChange={(e) => {
+                      const newCity = e.target.value;
+                      setShippingInfo(p => ({ ...p, city: newCity }));
+                      if (updateShippingLocation) {
+                        updateShippingLocation({ city: newCity, state: shippingInfo.state, pincode: shippingInfo.pincode });
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 mb-1">State *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Madhya Pradesh"
+                    value={shippingInfo.state}
+                    onChange={(e) => {
+                      const newState = e.target.value;
+                      setShippingInfo(p => ({ ...p, state: newState }));
+                      if (updateShippingLocation) {
+                        updateShippingLocation({ city: shippingInfo.city, state: newState, pincode: shippingInfo.pincode });
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
                   />
                 </div>
@@ -555,11 +582,111 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
                   <input
                     type="text"
                     required
-                    placeholder="411001"
+                    placeholder="462036"
                     value={shippingInfo.pincode}
-                    onChange={(e) => setShippingInfo(p => ({ ...p, pincode: e.target.value }))}
-                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+                    onChange={(e) => {
+                      const newPin = e.target.value;
+                      setShippingInfo(p => ({ ...p, pincode: newPin }));
+                      if (updateShippingLocation) {
+                        updateShippingLocation({ city: shippingInfo.city, state: shippingInfo.state, pincode: newPin });
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white font-mono"
                   />
+                </div>
+              </div>
+
+              {/* Quick Location Presets */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mr-1">Quick Select:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const loc = { city: 'Bhopal', state: 'Madhya Pradesh', pincode: '462036' };
+                    setShippingInfo(p => ({ ...p, ...loc }));
+                    if (updateShippingLocation) updateShippingLocation(loc);
+                  }}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all cursor-pointer ${
+                    activeDeliveryInfo.isBhopalLocal
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border-neutral-200'
+                  }`}
+                >
+                  📍 Bhopal (Local - ₹40)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const loc = { city: 'Indore', state: 'Madhya Pradesh', pincode: '452001' };
+                    setShippingInfo(p => ({ ...p, ...loc }));
+                    if (updateShippingLocation) updateShippingLocation(loc);
+                  }}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all cursor-pointer ${
+                    activeDeliveryInfo.zoneId === 'mp_regional'
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border-neutral-200'
+                  }`}
+                >
+                  Indore / MP (₹70)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const loc = { city: 'New Delhi', state: 'Delhi', pincode: '110001' };
+                    setShippingInfo(p => ({ ...p, ...loc }));
+                    if (updateShippingLocation) updateShippingLocation(loc);
+                  }}
+                  className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-all cursor-pointer ${
+                    activeDeliveryInfo.zoneId === 'pan_india'
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border-neutral-200'
+                  }`}
+                >
+                  Delhi / Pan-India (₹110)
+                </button>
+              </div>
+
+              {/* Dynamic Location-Based Courier Charges Badge */}
+              <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs transition-all ${
+                activeDeliveryInfo.isBhopalLocal 
+                  ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                  : 'bg-sky-50/90 border-sky-300 text-sky-950'
+              }`}>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`p-2 rounded-lg shrink-0 ${
+                    activeDeliveryInfo.isBhopalLocal ? 'bg-emerald-600 text-white' : 'bg-sky-600 text-white'
+                  }`}>
+                    <Truck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-black text-xs">{activeDeliveryInfo.shortLabel}</span>
+                      <span className="text-[10px] opacity-75 font-medium">• {activeDeliveryInfo.estimatedDelivery}</span>
+                    </div>
+                    <p className="text-[10px] opacity-80 truncate mt-0.5">
+                      {activeDeliveryInfo.carrier} (Origin: Bhopal facility)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  {activeDeliveryInfo.isFree ? (
+                    <div className="space-y-0.5">
+                      <span className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider block">
+                        FREE Delivery
+                      </span>
+                      <span className="text-[9px] opacity-70 line-through">₹{activeDeliveryInfo.standardFee}</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <span className="font-black text-sm font-mono block">₹{activeDeliveryFee}</span>
+                      {activeDeliveryInfo.amountNeededForFree > 0 && (
+                        <span className="text-[9px] text-amber-800 block font-bold">
+                          Free above ₹{activeDeliveryInfo.freeThreshold}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -571,7 +698,7 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
                 <h3 className="text-xs font-black uppercase tracking-wider text-neutral-900">2. Select Payment Method</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 
                 {/* 1. Direct UPI / QR Code */}
                 <button
@@ -595,29 +722,7 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
                   </div>
                 </button>
 
-                {/* 2. Razorpay Gateway */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('razorpay_gateway')}
-                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                    paymentMethod === 'razorpay_gateway'
-                      ? 'border-emerald-600 bg-emerald-50/70 shadow-xs ring-2 ring-emerald-500/20'
-                      : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <CreditCard className="w-5 h-5 text-blue-600" />
-                    <span className="text-[9px] font-bold text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded">
-                      Cards / NetBanking
-                    </span>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-xs font-black uppercase text-neutral-900 block">Razorpay Gateway</span>
-                    <span className="text-[10px] text-neutral-500">Visa, MasterCard, RuPay & Banks</span>
-                  </div>
-                </button>
-
-                {/* 3. Cash on Delivery */}
+                {/* 2. Cash on Delivery */}
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('cod')}
@@ -721,12 +826,17 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
                 <span>Subtotal: {formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between items-center text-xs text-neutral-300">
-                <span>Shipping Fee</span>
-                <span className="text-emerald-400 font-bold">{deliveryFee === 0 ? 'FREE' : formatPrice(deliveryFee)}</span>
+                <span className="flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Courier Delivery ({activeDeliveryInfo.shortLabel})</span>
+                </span>
+                <span className="text-emerald-400 font-bold">
+                  {activeDeliveryFee === 0 ? 'FREE' : formatPrice(activeDeliveryFee)}
+                </span>
               </div>
               <div className="flex justify-between items-center text-base font-black text-white pt-2 border-t border-neutral-800">
                 <span>Total Payable</span>
-                <span className="text-emerald-400 text-lg">{formatPrice(grandTotal)}</span>
+                <span className="text-emerald-400 text-lg">{formatPrice(activeGrandTotal)}</span>
               </div>
 
               <button
@@ -738,10 +848,8 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
                   <>
                     <span>
                       {paymentMethod === 'direct_upi' 
-                        ? `Submit Order & Verify Payment (${formatPrice(grandTotal)})` 
-                        : paymentMethod === 'cod'
-                        ? `Place Order (Pending Confirmation) (${formatPrice(grandTotal)})`
-                        : `Pay & Submit Order (${formatPrice(grandTotal)})`}
+                        ? `Submit Order & Verify Payment (${formatPrice(activeGrandTotal)})` 
+                        : `Place Order (Cash on Delivery) (${formatPrice(activeGrandTotal)})`}
                     </span>
                     <ArrowRight className="w-4 h-4" />
                   </>
@@ -758,29 +866,6 @@ export const CheckoutModal = ({ isOpen, onClose, formatPrice, onOpenAuth }) => {
         )}
 
       </div>
-
-      {/* Razorpay Test Modal Sandbox */}
-      <RazorpayTestModal
-        isOpen={showTestGateway}
-        onClose={() => setShowTestGateway(false)}
-        amountInRupees={grandTotal}
-        orderId={activeOrderId}
-        customerName={shippingInfo.customerName}
-        phone={shippingInfo.phone}
-        email={shippingInfo.email || currentUser?.email || 'customer@krishikutir.com'}
-        selectedMethod="upi"
-        onSuccess={(res) => {
-          saveFinalOrder({
-            orderId: res.orderId || activeOrderId,
-            paymentId: res.paymentId,
-            paymentMethodName: 'Razorpay Payment Gateway',
-            signature: res.signature
-          });
-        }}
-        onFailure={(errMsg) => {
-          setError(errMsg || 'Payment was unsuccessful.');
-        }}
-      />
     </div>
   );
 };

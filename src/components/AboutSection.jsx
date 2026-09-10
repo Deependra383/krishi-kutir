@@ -1,7 +1,12 @@
 import React from 'react';
-import { Leaf, MapPin, Award, CheckCircle2, Sparkles } from 'lucide-react';
+import { Leaf, MapPin, CheckCircle2 } from 'lucide-react';
+import { useHomepageContent } from '../context/HomepageContentContext';
 
 export const AboutSection = () => {
+  const { founders } = useHomepageContent();
+  const founder1 = founders?.founder1 || {};
+  const founder2 = founders?.founder2 || {};
+
   return (
     <section id="about-philosophy" className="py-20 px-4 sm:px-6 lg:px-8 bg-white border-b border-neutral-200 select-none">
       <div className="max-w-7xl mx-auto space-y-16">
@@ -65,41 +70,41 @@ export const AboutSection = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               
-              {/* Rachna Alok Sharma */}
+              {/* Founder 1 (Founder & Master Grower) */}
               <div className="space-y-3 bg-white p-5 rounded-2xl border border-neutral-200 shadow-sm">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-emerald-500 shadow-sm">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-emerald-500 shadow-sm bg-neutral-100">
                   <img 
-                    src="https://images.unsplash.com/photo-1594744803329-e58b31de215f?auto=format&fit=crop&w=300&h=300&q=80" 
-                    alt="Rachna Alok Sharma" 
+                    src={founder1.image} 
+                    alt={founder1.name || 'Founder & Master Grower'} 
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-neutral-900">Rachna Alok Sharma</h4>
-                  <p className="text-xs font-semibold text-emerald-700">Founder & Master Grower</p>
+                  <h4 className="text-sm font-bold text-neutral-900">{founder1.name}</h4>
+                  <p className="text-xs font-semibold text-emerald-700">{founder1.role}</p>
                 </div>
                 <p className="text-xs text-neutral-500 font-light leading-relaxed">
-                  "Our mission is to bring nutrient-dense living microgreens from our grow tables directly into Indian kitchens, fresh and chemical-free."
+                  "{founder1.quote}"
                 </p>
               </div>
 
-              {/* Janvi Bhaghchandani */}
+              {/* Founder 2 (Chief Administrator) */}
               <div className="space-y-3 bg-white p-5 rounded-2xl border border-neutral-200 shadow-sm">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-emerald-500 shadow-sm">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-emerald-500 shadow-sm bg-neutral-100">
                   <img 
-                    src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&h=300&q=80" 
-                    alt="Janvi Bhaghchandani" 
+                    src={founder2.image} 
+                    alt={founder2.name || 'Chief Administrator'} 
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-neutral-900">Janvi Bhaghchandani</h4>
-                  <p className="text-xs font-semibold text-neutral-700">Chief Administrator</p>
+                  <h4 className="text-sm font-bold text-neutral-900">{founder2.name}</h4>
+                  <p className="text-xs font-semibold text-neutral-700">{founder2.role}</p>
                 </div>
                 <p className="text-xs text-neutral-500 font-light leading-relaxed">
-                  "We ensure seamless cold-chain logistics, strict batch hygiene, and FSSAI statutory compliance across every shipment."
+                  "{founder2.quote}"
                 </p>
               </div>
 

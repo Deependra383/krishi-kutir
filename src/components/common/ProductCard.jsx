@@ -79,7 +79,7 @@ export const ProductCard = ({
             {product.name}
           </h4>
           
-          <p className="text-xs text-neutral-500 font-light line-clamp-2 h-8 leading-relaxed">
+          <p className="text-xs text-neutral-600 font-light line-clamp-2 min-h-[2.75rem] leading-relaxed">
             {product.benefit || 'Pure, nutrient-dense organic harvest.'}
           </p>
           

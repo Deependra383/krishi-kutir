@@ -22,7 +22,6 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { db, doc, getDoc, collection, query, where, getDocs, onSnapshot } from '../firebase';
 import { supabase, isSupabaseConfigured } from '../supabase';
 
 export const MyOrdersSection = ({ activeTheme, formatPrice, onOpenAuth, onOpenCart }) => {
@@ -145,8 +144,9 @@ export const MyOrdersSection = ({ activeTheme, formatPrice, onOpenAuth, onOpenCa
                 state: o.shipping_address?.state || '',
                 pincode: o.shipping_address?.pincode || '',
                 items: o.items || [],
-                subtotal: o.subtotal || o.total_amount,
-                deliveryFee: o.delivery_fee || 0,
+                subtotal: o.subtotal || (o.total_amount - (o.shipping_address?.delivery_fee ?? o.delivery_fee ?? 0)),
+                deliveryFee: o.shipping_address?.delivery_fee ?? o.delivery_fee ?? 0,
+                courierZone: o.shipping_address?.courier_zone || o.courier_zone || '',
                 totalAmount: o.total_amount,
                 paymentMethod: o.payment_method,
                 paymentId: o.payment_id,
@@ -169,91 +169,6 @@ export const MyOrdersSection = ({ activeTheme, formatPrice, onOpenAuth, onOpenCa
         }
       } catch (sbErr) {
         console.warn('Supabase fetch error:', sbErr);
-      }
-    }
-
-    // 3. Check Firestore for user orders (by userId and by userEmail)
-    if (db) {
-      try {
-        const firestoreOrdersMap = new Map();
-
-        // 3a. Query by userId
-        if (uid) {
-          try {
-            const qUid = query(
-              collection(db, 'orders'),
-              where('userId', '==', uid)
-            );
-            const snapUid = await getDocs(qUid);
-            snapUid.forEach(docSnap => {
-              firestoreOrdersMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-            });
-          } catch (e1) {
-            console.warn('Firestore query by userId notice:', e1);
-          }
-        }
-
-        // 3b. Query by userEmail (exact match)
-        if (currentUser.email) {
-          try {
-            const qEmail1 = query(
-              collection(db, 'orders'),
-              where('userEmail', '==', currentUser.email)
-            );
-            const snapEmail1 = await getDocs(qEmail1);
-            snapEmail1.forEach(docSnap => {
-              firestoreOrdersMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-            });
-          } catch (e2) {
-            console.warn('Firestore query by userEmail notice:', e2);
-          }
-
-          // Also check lowercase email if different
-          if (email !== currentUser.email) {
-            try {
-              const qEmail2 = query(
-                collection(db, 'orders'),
-                where('userEmail', '==', email)
-              );
-              const snapEmail2 = await getDocs(qEmail2);
-              snapEmail2.forEach(docSnap => {
-                firestoreOrdersMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-              });
-            } catch (e3) {
-              console.warn('Firestore query by lowercase email notice:', e3);
-            }
-          }
-        }
-
-        // 3c. Query by customerEmail
-        if (currentUser.email) {
-          try {
-            const qCust = query(
-              collection(db, 'orders'),
-              where('customerEmail', '==', currentUser.email)
-            );
-            const snapCust = await getDocs(qCust);
-            snapCust.forEach(docSnap => {
-              firestoreOrdersMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-            });
-          } catch (e4) {
-            // customerEmail might not be indexed, safe to ignore
-          }
-        }
-
-        // Merge Firestore orders with strict ownership verification
-        firestoreOrdersMap.forEach((orderObj) => {
-          if (doesOrderBelongToCurrentUser(orderObj)) {
-            const index = combined.findIndex(c => c.id === orderObj.id);
-            if (index !== -1) {
-              combined[index] = { ...combined[index], ...orderObj };
-            } else {
-              combined.unshift(orderObj);
-            }
-          }
-        });
-      } catch (fsErr) {
-        console.warn('Firestore user orders notice:', fsErr);
       }
     }
 
@@ -303,24 +218,7 @@ export const MyOrdersSection = ({ activeTheme, formatPrice, onOpenAuth, onOpenCa
       return;
     }
 
-    // 2. Search Firestore by Document ID
-    try {
-      if (db) {
-        const docRef = doc(db, 'orders', queryTerm.toUpperCase());
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const found = { id: docSnap.id, ...docSnap.data() };
-          setSearchedOrder(found);
-          setExpandedOrderId(found.id);
-          setSearching(false);
-          return;
-        }
-      }
-    } catch (fsErr) {
-      console.warn('Firestore search notice:', fsErr);
-    }
-
-    // 3. Search Supabase by ID, phone or email
+    // 2. Search Supabase by ID, phone or email
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
@@ -795,8 +693,12 @@ export const MyOrdersSection = ({ activeTheme, formatPrice, onOpenAuth, onOpenCa
                           <span className="font-mono font-bold">{formatPrice ? formatPrice(order.subtotal || order.totalAmount) : `₹${order.subtotal || order.totalAmount}`}</span>
                         </div>
                         <div className="flex justify-between text-neutral-600">
-                          <span>Shipping & Cold-Chain Delivery</span>
-                          <span className="text-emerald-700 font-bold">FREE (₹0)</span>
+                          <span>Courier Delivery {order.courierZone ? `(${order.courierZone})` : ''}</span>
+                          <span className="text-emerald-700 font-bold font-mono">
+                            {order.deliveryFee === 0 || (!order.deliveryFee && order.subtotal === order.totalAmount)
+                              ? 'FREE (₹0)'
+                              : (formatPrice ? formatPrice(order.deliveryFee || 0) : `₹${order.deliveryFee}`)}
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm font-black text-neutral-900 pt-2 border-t border-dashed border-neutral-200">
                           <span>Grand Total</span>

@@ -10,32 +10,29 @@ export const UsersTab = ({
   return (
     <div className="space-y-6">
       
-      {/* Database Sync Status Card */}
-      <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* Registered Customer Accounts Header Card */}
+      <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-emerald-950/80 text-emerald-400 rounded-xl border border-emerald-800/40">
-            <Database className="w-6 h-6" />
+          <div className="p-3.5 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-200">
+            <Users className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-black uppercase text-white">Firestore Cloud Database</h3>
-              <span className="bg-emerald-950 text-emerald-400 border border-emerald-800/60 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Real-Time Active
+              <h3 className="text-base font-black uppercase text-neutral-900">Registered Customer Accounts</h3>
+              <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Active Directory
               </span>
             </div>
-            <p className="text-xs text-neutral-400 mt-1 font-mono">
-              DB ID: <strong className="text-neutral-200">ai-studio-krishikutir-364aa0cd-f3b5-4e82-846b-891195186a33</strong>
-            </p>
-            <p className="text-[11px] text-neutral-500 mt-0.5">
-              Synced Collections: <code className="text-amber-400">users</code>, <code className="text-amber-400">orders</code>, <code className="text-amber-400">products</code>, <code className="text-amber-400">partner_inquiries</code>, <code className="text-amber-400">training_inquiries</code>
+            <p className="text-xs text-neutral-500 mt-1">
+              Customer accounts, contact information, and registration details for order management.
             </p>
           </div>
         </div>
 
         <div className="text-right">
-          <span className="text-[10px] font-bold uppercase text-neutral-400 block">Total Registered Customers</span>
-          <span className="text-2xl font-black text-white">{registeredUsers.length} Users</span>
+          <span className="text-[10px] font-bold uppercase text-neutral-500 block">Total Registered Customers</span>
+          <span className="text-2xl font-black text-neutral-900">{registeredUsers.length} Users</span>
         </div>
       </div>
 
@@ -55,7 +52,7 @@ export const UsersTab = ({
       {loadingUsers ? (
         <div className="p-16 text-center text-neutral-400 text-xs">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-500" />
-          Querying users collection from Firestore...
+          Loading registered customer accounts...
         </div>
       ) : registeredUsers.length === 0 ? (
         <div className="bg-neutral-950 p-16 rounded-2xl border border-neutral-800 text-center space-y-3">

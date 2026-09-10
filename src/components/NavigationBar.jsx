@@ -16,9 +16,9 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 
 const NAV_TABS = [
-  { id: 'home', label: 'Home', badge: '4', sectionId: '' },
-  { id: 'products', label: 'Products', badge: null, sectionId: 'microgreens-section' },
+  { id: 'home', label: 'Home', badge: null, sectionId: '' },
   { id: 'about', label: 'About', badge: null, sectionId: 'about-philosophy' },
+  { id: 'products', label: 'Products', badge: null, sectionId: 'microgreens-section' },
   { id: 'training', label: 'Training', badge: null, sectionId: 'training-academy' },
   { id: 'partner', label: 'Partner With Us', badge: null, sectionId: 'partner-with-us' },
 ];
@@ -130,11 +130,16 @@ export const NavigationBar = ({
   }, []);
 
   const handleTabClick = (tab) => {
-    // 1. Immediately update active tab so slider pill glides instantly
+    // 1. If currently on a different view (admin or cart), reset hash to store
+    if (typeof window !== 'undefined' && (window.location.hash === '#admin' || window.location.hash === '#cart' || window.location.hash === '#bag')) {
+      window.location.hash = '';
+    }
+
+    // 2. Immediately update active tab so slider pill glides instantly
     setActiveTab(tab.id);
     setIsMobileMenuOpen(false);
 
-    // 2. Lock scroll spy during smooth travel so it cannot revert or flicker
+    // 3. Lock scroll spy during smooth travel so it cannot revert or flicker
     isManualScrollRef.current = true;
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
@@ -143,7 +148,7 @@ export const NavigationBar = ({
       isManualScrollRef.current = false;
     }, 1100);
 
-    // 3. Scroll to the exact position with comfortable header offset
+    // 4. Scroll smoothly to target section or top
     if (!tab.sectionId) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -151,9 +156,7 @@ export const NavigationBar = ({
 
     const el = document.getElementById(tab.sectionId);
     if (el) {
-      const rect = el.getBoundingClientRect();
-      const targetY = rect.top + window.scrollY - 85;
-      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 

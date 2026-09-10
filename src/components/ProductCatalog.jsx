@@ -1,14 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Globe, Leaf, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
-import { CURRENCIES } from '../data';
+import { Search, Leaf, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { ProductCard } from './common/ProductCard';
 
 export const ProductCatalog = ({
   activeTheme,
-  activeCurrency,
-  setActiveCurrency,
   setSelectedMicroscopeItem,
   hoverCoords = {},
   hoverState = {},
@@ -131,23 +128,6 @@ export const ProductCatalog = ({
                 <option value="name">Name: A to Z</option>
               </select>
             </div>
-
-            {/* Currency Selector */}
-            {setActiveCurrency && (
-              <div className="flex items-center gap-2 bg-neutral-50 px-3 py-2 rounded-2xl border border-neutral-200 text-xs font-bold">
-                <Globe className="w-3.5 h-3.5 text-emerald-600" />
-                <select 
-                  id="currency-switch-catalog"
-                  value={activeCurrency} 
-                  onChange={(e) => setActiveCurrency(e.target.value)}
-                  className="bg-transparent text-emerald-700 border-none outline-none font-black cursor-pointer text-xs"
-                >
-                  {Object.keys(CURRENCIES).map((c) => (
-                    <option key={c} value={c} className="text-black font-semibold">{c}</option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
 
         </div>

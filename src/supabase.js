@@ -116,6 +116,73 @@ function createSafeSupabaseClient() {
 export const supabase = createSafeSupabaseClient();
 
 /**
+ * Upload a product image file directly to Supabase Storage Bucket ('products')
+ * Falls back to 'product-images' if needed.
+ * Returns { success: true, url, bucket, path }
+ */
+export async function uploadProductImage(file) {
+  if (!file) {
+    throw new Error('No file provided for upload.');
+  }
+
+  if (!supabase || !isSupabaseConfigured) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  // Create clean, unique file path: catalog/filename-timestamp.ext
+  const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const cleanBaseName = file.name
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[^a-zA-Z0-9]/g, '-')
+    .toLowerCase()
+    .slice(0, 30);
+  const fileName = `${cleanBaseName}-${Date.now()}.${fileExt}`;
+  const filePath = `catalog/${fileName}`;
+
+  // Preferred buckets in order
+  const candidateBuckets = ['products', 'product-images', 'images', 'public'];
+  let lastError = null;
+
+  for (const bucket of candidateBuckets) {
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type || 'image/jpeg'
+        });
+
+      if (error) {
+        lastError = error;
+        continue;
+      }
+
+      if (data) {
+        // Fetch public CDN URL
+        const { data: publicUrlData } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(filePath);
+
+        return {
+          success: true,
+          url: publicUrlData.publicUrl,
+          bucket: bucket,
+          path: filePath
+        };
+      }
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw new Error(
+    lastError?.message || 
+    "Could not upload to Supabase storage. Please create a public bucket named 'products' in your Supabase dashboard."
+  );
+}
+
+/**
  * Full PostgreSQL Schema for Supabase SQL Editor
  */
 export const SUPABASE_SQL_SCHEMA = `-- Krishi Kutir Supabase Database Schema
@@ -222,4 +289,37 @@ CREATE POLICY "Allow public insert on training_inquiries" ON public.training_inq
 CREATE POLICY "Allow public read on training_inquiries" ON public.training_inquiries FOR SELECT USING (true);
 
 CREATE POLICY "Allow public all on users" ON public.users FOR ALL USING (true);
+
+-- 8. Storage Bucket 'products' for Product Photos
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('products', 'products', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Storage Policies for public read and upload
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Public Access to Products Bucket'
+  ) THEN
+    CREATE POLICY "Public Access to Products Bucket"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'products');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Allow Public Uploads to Products Bucket'
+  ) THEN
+    CREATE POLICY "Allow Public Uploads to Products Bucket"
+    ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'products');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Allow Public Updates to Products Bucket'
+  ) THEN
+    CREATE POLICY "Allow Public Updates to Products Bucket"
+    ON storage.objects FOR UPDATE
+    USING (bucket_id = 'products');
+  END IF;
+END $$;
 `;

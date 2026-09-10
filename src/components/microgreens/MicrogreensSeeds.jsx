@@ -96,7 +96,7 @@ export const MicrogreensSeeds = ({
                     MOQ: {seed.moq || '100 GM'}
                   </span>
                 </div>
-                <p className="text-[10px] text-neutral-500 font-light mt-1 line-clamp-2">{seed.benefit}</p>
+                <p className="text-[10px] text-neutral-500 font-light mt-1 line-clamp-2 min-h-[2rem] leading-relaxed">{seed.benefit}</p>
                 
                 <div className="mt-2.5 pt-2 border-t border-neutral-100 flex items-center justify-between">
                   <div>
