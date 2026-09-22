@@ -1,219 +1,306 @@
-import React, { useState } from 'react';
-import { GraduationCap, Send, CheckCircle2, PhoneCall, MessageCircle, Mail, BookOpen, Sun } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Sprout, Send, CheckCircle2, PhoneCall, MessageCircle, Mail, Sparkles, Clock, ShieldCheck } from 'lucide-react';
+import { motion, useScroll, useTransform, useSpring } from 'motion/react';
 import { supabase, isSupabaseConfigured } from '../../supabase';
+import { LeafCotyledon, LeafBasil, LeafAmaranth, FruitWildBerry } from '../common/FloatingLeavesBackground';
 
 export const MicrogreensTraining = () => {
-  const [trainingForm, setTrainingForm] = useState({
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"]
+  });
+
+  const springConfig = { stiffness: 45, damping: 18 };
+  const leaf1Y = useSpring(useTransform(scrollYProgress, [0, 1], [-40, 50]), springConfig);
+  const leaf1Rotate = useSpring(useTransform(scrollYProgress, [0, 1], [-20, 30]), springConfig);
+  const leaf2Y = useSpring(useTransform(scrollYProgress, [0, 1], [50, -40]), springConfig);
+  const leaf2Rotate = useSpring(useTransform(scrollYProgress, [0, 1], [30, -15]), springConfig);
+  const berryY = useSpring(useTransform(scrollYProgress, [0, 1], [-30, 40]), springConfig);
+
+  const [form, setForm] = useState({
     fullName: '',
-    email: '',
     phone: '',
-    experienceLevel: 'Beginner / Home Grower',
-    trainingMode: 'Online Masterclass',
+    email: '',
+    variety: 'Broccoli & Radish Sango Duo',
+    batchType: 'Living Root Trays (Longest Shelf Life)',
+    deliveryArea: 'Bhopal City Delivery',
     message: ''
   });
-  const [trainingSubmitting, setTrainingSubmitting] = useState(false);
-  const [trainingSuccess, setTrainingSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const handleTrainingSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setTrainingSubmitting(true);
+    setSubmitting(true);
     try {
       if (isSupabaseConfigured && supabase) {
         try {
           await supabase.from('training_inquiries').insert([{
-            applicant_name: trainingForm.fullName,
-            email: trainingForm.email,
-            phone: trainingForm.phone,
-            workshop_type: trainingForm.trainingMode,
-            batch_preference: trainingForm.experienceLevel,
-            questions: trainingForm.message,
-            status: 'New Inquiry'
+            applicant_name: form.fullName,
+            email: form.email,
+            phone: form.phone,
+            workshop_type: form.batchType,
+            batch_preference: form.variety,
+            questions: `${form.deliveryArea} - ${form.message}`,
+            status: 'Next Batch Inquiry'
           }]);
         } catch (sbErr) {
-          console.warn('Supabase training inquiry notice:', sbErr);
+          console.warn('Supabase next batch inquiry notice:', sbErr);
         }
       }
 
-      const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
-      local.push({ ...trainingForm, id: Date.now().toString(), createdAt: new Date().toISOString(), status: 'New Inquiry' });
-      localStorage.setItem('kk_training_inquiries', JSON.stringify(local));
-      setTrainingSuccess(true);
+      const local = JSON.parse(localStorage.getItem('kk_microgreens_batch_inquiries') || '[]');
+      local.push({ 
+        ...form, 
+        id: Date.now().toString(), 
+        createdAt: new Date().toISOString(), 
+        status: 'Next Batch Reserved' 
+      });
+      localStorage.setItem('kk_microgreens_batch_inquiries', JSON.stringify(local));
+      setSubmitted(true);
     } catch (err) {
-      console.error('Error saving training inquiry:', err);
-      const local = JSON.parse(localStorage.getItem('kk_training_inquiries') || '[]');
-      local.push({ ...trainingForm, id: Date.now().toString(), createdAt: new Date().toISOString(), status: 'New Inquiry' });
-      localStorage.setItem('kk_training_inquiries', JSON.stringify(local));
-      setTrainingSuccess(true);
+      console.error('Error saving batch inquiry:', err);
+      setSubmitted(true);
     } finally {
-      setTrainingSubmitting(false);
+      setSubmitting(false);
     }
   };
 
+  const handleWhatsAppInstant = () => {
+    const text = encodeURIComponent(
+      `Hi Krishi Kutir! I would like to inquire/reserve for the next microgreens batch:\n` +
+      `• Name: ${form.fullName || 'Customer'}\n` +
+      `• Variety: ${form.variety}\n` +
+      `• Format: ${form.batchType}\n` +
+      `• Location: ${form.deliveryArea || 'Bhopal'}\n` +
+      `Please let me know the harvest day & availability.`
+    );
+    window.open(`https://wa.me/919009911030?text=${text}`, '_blank');
+  };
+
   return (
-    <div id="training-academy" className="pt-4 select-none">
-      <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-emerald-50/90 via-white to-emerald-50/60 text-neutral-900 border border-emerald-200/90 shadow-xl relative overflow-hidden">
+    <div ref={containerRef} id="microgreens-batch-inquiry" className="pt-6 select-none font-sans relative">
+      <div className="p-8 sm:p-10 md:p-12 rounded-3xl bg-gradient-to-br from-emerald-50 via-white to-emerald-50/70 text-neutral-900 border border-emerald-200/90 shadow-xl relative overflow-hidden">
         
-        {/* Subtle background glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-200/40 rounded-full blur-3xl pointer-events-none"></div>
+        {/* Decorative soft glow */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative z-10">
+        {/* Scroll-Reactive Leaves & Fruits positioned strictly in background */}
+        <div className="absolute inset-0 pointer-events-none -z-10 overflow-hidden select-none" aria-hidden="true">
+          <motion.div 
+            style={{ y: leaf1Y, rotate: leaf1Rotate }}
+            className="absolute -top-3 right-6 filter drop-shadow-sm opacity-70 hidden sm:block"
+          >
+            <LeafBasil className="w-12 h-12 text-emerald-700" />
+          </motion.div>
+
+          <motion.div 
+            style={{ y: berryY }}
+            className="absolute top-1/3 right-4 filter drop-shadow-sm opacity-80 hidden md:block"
+          >
+            <FruitWildBerry className="w-9 h-9" />
+          </motion.div>
+
+          <motion.div 
+            style={{ y: leaf2Y, rotate: leaf2Rotate }}
+            className="absolute -bottom-4 left-6 filter drop-shadow-sm opacity-80"
+          >
+            <LeafCotyledon className="w-14 h-14 text-emerald-600" />
+          </motion.div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch relative z-10">
           
-          {/* Left: Program Overview */}
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider border border-emerald-200">
-              <GraduationCap className="w-4 h-4 text-emerald-700" />
-              <span>Krishi Kutir Microgreens Academy</span>
-            </div>
-            
-            <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-neutral-900">
-              Learn Commercial & Kitchen Microgreen Farming
-            </h3>
-            
-            <p className="text-neutral-600 text-sm font-normal leading-relaxed">
-              Master step-by-step seed soaking, blackout incubation, high-aeration coir hydration, natural fungal prevention, harvest sanitization, and farm monetization.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="p-4 rounded-2xl bg-white border border-emerald-100 shadow-sm">
-                <BookOpen className="w-5 h-5 text-emerald-700 mb-1.5" />
-                <h4 className="text-xs font-bold text-neutral-900 uppercase">Complete SOP Manuals</h4>
-                <p className="text-[10px] text-neutral-500 font-normal mt-0.5">Seed-to-harvest data charts</p>
+          {/* Left: Next Batch Overview & Benefits */}
+          <div className="lg:col-span-6 flex flex-col justify-between space-y-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider border border-emerald-200">
+                <Sprout className="w-4 h-4 text-emerald-700" />
+                <span>Fresh Harvest Reservation • Bhopal Hydroponic Facility</span>
               </div>
-              <div className="p-4 rounded-2xl bg-white border border-emerald-100 shadow-sm">
-                <Sun className="w-5 h-5 text-amber-600 mb-1.5" />
-                <h4 className="text-xs font-bold text-neutral-900 uppercase">1-on-1 Agronomist Guidance</h4>
-                <p className="text-[10px] text-neutral-500 font-normal mt-0.5">Troubleshoot grow issues live</p>
+              
+              <h3 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-neutral-900">
+                Inquire for Next Batch
+              </h3>
+              
+              <p className="text-neutral-600 text-sm sm:text-base font-normal leading-relaxed">
+                We sow fresh seed trays every 48 hours inside our Bhopal climate-controlled vertical farm. Reserve your live trays or freshly harvested boxes before tray germination cutoff for peak cellular vitality.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="p-4 rounded-2xl bg-white border border-emerald-100/90 shadow-2xs">
+                  <Clock className="w-5 h-5 text-emerald-700 mb-1.5" />
+                  <h4 className="text-xs font-bold text-neutral-900 uppercase">Cut at Sunrise</h4>
+                  <p className="text-[11px] text-neutral-500 font-normal mt-0.5">Harvested 5:00 AM – 7:00 AM on delivery day</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-emerald-100/90 shadow-2xs">
+                  <ShieldCheck className="w-5 h-5 text-emerald-700 mb-1.5" />
+                  <h4 className="text-xs font-bold text-neutral-900 uppercase">100% Pesticide Free</h4>
+                  <p className="text-[11px] text-neutral-500 font-normal mt-0.5">Pure RO water hydration, zero synthetic inputs</p>
+                </div>
               </div>
             </div>
 
             {/* Direct Contact Links */}
-            <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-neutral-600 font-medium">
-              <a href="tel:+919876543210" className="flex items-center gap-1.5 hover:text-emerald-700 transition-colors">
-                <PhoneCall className="w-3.5 h-3.5 text-emerald-700" />
-                <span>+91 98765 43210</span>
-              </a>
-              <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-emerald-700 transition-colors">
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-700" />
-                <span>WhatsApp Academy</span>
-              </a>
-              <a href="mailto:training@krishikutir.com" className="flex items-center gap-1.5 hover:text-emerald-700 transition-colors">
-                <Mail className="w-3.5 h-3.5 text-emerald-700" />
-                <span>training@krishikutir.com</span>
-              </a>
+            <div className="pt-4 border-t border-emerald-200/70 space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                Direct Farm Desk Reservations:
+              </span>
+              <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-700 font-semibold">
+                <a 
+                  href="https://wa.me/919009911030?text=Hi%20Krishi%20Kutir,%20I%20would%20like%20to%20inquire%20for%20the%20next%20microgreens%20batch."
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                  <span>WhatsApp Reservation (+91 90099 11030)</span>
+                </a>
+                <a 
+                  href="tel:+919009911030" 
+                  className="flex items-center gap-1.5 text-neutral-700 hover:text-emerald-700 transition-colors"
+                >
+                  <PhoneCall className="w-4 h-4 text-emerald-600" />
+                  <span>+91 90099 11030</span>
+                </a>
+              </div>
             </div>
           </div>
 
-          {/* Right: Contact Inquiry Form */}
-          <div className="bg-white border border-neutral-200/90 p-6 md:p-8 rounded-3xl shadow-xl">
-            {trainingSuccess ? (
-              <div className="text-center py-8 space-y-4">
-                <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8" />
+          {/* Right: Next Batch Inquiry Form */}
+          <div className="lg:col-span-6 bg-white border border-neutral-200/90 p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col justify-between">
+            {submitted ? (
+              <div className="text-center py-10 space-y-4">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center">
+                  <CheckCircle2 className="w-9 h-9" />
                 </div>
-                <h4 className="text-xl font-black uppercase text-neutral-900">Inquiry Received!</h4>
-                <p className="text-xs text-neutral-600 max-w-sm mx-auto leading-relaxed">
-                  Thank you for your interest. Our master agronomist will contact you via WhatsApp or Email within 24 hours with syllabus and schedule details.
+                <h4 className="text-2xl font-black uppercase text-neutral-900">Batch Reservation Received!</h4>
+                <p className="text-xs sm:text-sm text-neutral-600 max-w-sm mx-auto leading-relaxed">
+                  Thank you, <strong className="font-bold">{form.fullName}</strong>. We have placed your reservation for the next batch of <strong className="font-bold">{form.variety}</strong>. Our farm manager will confirm the harvest schedule with you directly.
                 </p>
-                <button
-                  onClick={() => setTrainingSuccess(false)}
-                  className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold uppercase transition-all shadow-md shadow-emerald-700/20 cursor-pointer"
-                >
-                  Send Another Inquiry
-                </button>
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <button
+                    onClick={handleWhatsAppInstant}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Send via WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={() => setSubmitted(false)}
+                    className="w-full sm:w-auto px-5 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 rounded-xl text-xs font-bold uppercase transition-all cursor-pointer"
+                  >
+                    Reserve Another Batch
+                  </button>
+                </div>
               </div>
             ) : (
-              <form onSubmit={handleTrainingSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <h4 className="text-lg font-black uppercase text-neutral-900">Inquire for Next Batch</h4>
-                  <p className="text-xs text-neutral-500 font-normal mt-0.5">Fill in your details to receive syllabus & batch schedules.</p>
+                  <h4 className="text-lg font-black uppercase text-neutral-900">Reserve Next Harvest Batch</h4>
+                  <p className="text-xs text-neutral-500 font-normal mt-0.5">Specify your preferred microgreens variety and harvest quantity below.</p>
                 </div>
 
                 <div className="space-y-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={trainingForm.fullName}
-                      onChange={(e) => setTrainingForm(prev => ({ ...prev, fullName: e.target.value }))}
-                      placeholder="e.g. Ramesh Kumar"
-                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-2xs"
-                    />
-                  </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Your Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={form.fullName}
+                        onChange={(e) => setForm(prev => ({ ...prev, fullName: e.target.value }))}
+                        placeholder=""
+                        className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-2xs"
+                      />
+                    </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Phone / WhatsApp *</label>
                       <input
                         type="tel"
                         required
-                        value={trainingForm.phone}
-                        onChange={(e) => setTrainingForm(prev => ({ ...prev, phone: e.target.value }))}
-                        placeholder="+91 98765 43210"
-                        className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-2xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Email Address *</label>
-                      <input
-                        type="email"
-                        required
-                        value={trainingForm.email}
-                        onChange={(e) => setTrainingForm(prev => ({ ...prev, email: e.target.value }))}
-                        placeholder="yourname@gmail.com"
-                        className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-2xs"
+                        value={form.phone}
+                        onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder=""
+                        className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-2xs"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Experience Level</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Microgreen Variety *</label>
                       <select
-                        value={trainingForm.experienceLevel}
-                        onChange={(e) => setTrainingForm(prev => ({ ...prev, experienceLevel: e.target.value }))}
+                        value={form.variety}
+                        onChange={(e) => setForm(prev => ({ ...prev, variety: e.target.value }))}
                         className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-2xs"
                       >
-                        <option value="Beginner / Home Grower">Beginner / Home Grower</option>
-                        <option value="Commercial Startup Aspirant">Commercial Startup Aspirant</option>
-                        <option value="Chef / Restaurant Professional">Chef / Restaurant Professional</option>
-                        <option value="Commercial Urban Farmer">Commercial Urban Farmer</option>
+                        <option value="Broccoli & Radish Sango Duo">Broccoli & Radish Sango Duo</option>
+                        <option value="Living Sunflower Shoots">Living Sunflower Shoots</option>
+                        <option value="Crispy Pea Shoots">Crispy Pea Shoots</option>
+                        <option value="Alfalfa & Red Amaranth">Alfalfa & Red Amaranth</option>
+                        <option value="Fresh Cut Wheatgrass">Fresh Cut Wheatgrass</option>
+                        <option value="Spicy Mustard & Fenugreek">Spicy Mustard & Fenugreek</option>
+                        <option value="Gourmet Salad Chef Blend">Gourmet Salad Chef Blend</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Preferred Mode</label>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Harvest Format *</label>
                       <select
-                        value={trainingForm.trainingMode}
-                        onChange={(e) => setTrainingForm(prev => ({ ...prev, trainingMode: e.target.value }))}
+                        value={form.batchType}
+                        onChange={(e) => setForm(prev => ({ ...prev, batchType: e.target.value }))}
                         className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-2xs"
                       >
-                        <option value="Online Masterclass (Interactive)">Online Masterclass (Live)</option>
-                        <option value="On-Farm Hands-on Workshop">On-Farm Hands-on Workshop</option>
-                        <option value="Commercial Farm Setup Consulting">Commercial Setup Consulting</option>
+                        <option value="Living Root Trays (Longest Shelf Life)">Living Root Trays (Longest Shelf Life)</option>
+                        <option value="Harvested Cut Packs (100g / 250g)">Harvested Cut Packs (100g / 250g)</option>
+                        <option value="Weekly Recurring Subscription (3 Trays)">Weekly Recurring Subscription (3 Trays)</option>
+                        <option value="Commercial HORECA Batch (5kg+)">Commercial HORECA Batch (5kg+)</option>
                       </select>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Special Requirements (Optional)</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Delivery City / Area in Bhopal</label>
+                    <input
+                      type="text"
+                      value={form.deliveryArea}
+                      onChange={(e) => setForm(prev => ({ ...prev, deliveryArea: e.target.value }))}
+                      placeholder=""
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all shadow-2xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-700 mb-1">Special Notes or Target Delivery Date</label>
                     <textarea
                       rows={2}
-                      value={trainingForm.message}
-                      onChange={(e) => setTrainingForm(prev => ({ ...prev, message: e.target.value }))}
-                      placeholder="Tell us about your growing space or goals..."
-                      className="w-full px-3.5 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-emerald-600 focus:bg-white resize-none transition-all shadow-2xs"
+                      value={form.message}
+                      onChange={(e) => setForm(prev => ({ ...prev, message: e.target.value }))}
+                      placeholder=""
+                      className="w-full px-3.5 py-2 bg-neutral-50 border border-neutral-300 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-emerald-600 focus:bg-white resize-none transition-all shadow-2xs"
                     />
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={trainingSubmitting}
-                  className="w-full py-3.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-700/20 disabled:opacity-50"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>{trainingSubmitting ? 'Submitting Inquiry...' : 'Submit Training Inquiry'}</span>
-                </button>
+                <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-3.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-700/20 disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>{submitting ? 'Submitting Reservation...' : 'Inquire for Next Batch'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleWhatsAppInstant}
+                    className="py-3.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                    <span>WhatsApp</span>
+                  </button>
+                </div>
               </form>
             )}
           </div>

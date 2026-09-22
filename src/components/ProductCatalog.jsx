@@ -3,6 +3,7 @@ import { Search, Leaf, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { ProductCard } from './common/ProductCard';
+import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 
 export const ProductCatalog = ({
   activeTheme,
@@ -78,8 +79,11 @@ export const ProductCatalog = ({
   };
 
   return (
-    <section id="full-catalogue-section" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto font-sans space-y-10">
-      
+    <section id="full-catalogue-section" className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
+      {/* Background Colorful Botanical Decor */}
+      <BotanicalSectionBackdrop variant="catalog" />
+
+      <div className="max-w-7xl mx-auto relative z-10 space-y-10">
       {/* Catalog Showcase Header */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
@@ -165,8 +169,8 @@ export const ProductCatalog = ({
         )}
       </div>
 
-      {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {/* Products Grid - 2 columns on mobile */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
         {filteredProducts.map(product => (
           <ProductCard
             key={product.id}
@@ -198,6 +202,7 @@ export const ProductCatalog = ({
           </button>
         </div>
       )}
+      </div>
     </section>
   );
 };

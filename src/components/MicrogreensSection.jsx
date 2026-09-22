@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { MicrogreensOverview } from './microgreens/MicrogreensOverview';
 import { HarvestedMicrogreens } from './microgreens/HarvestedMicrogreens';
 import { LiveMicrogreens } from './microgreens/LiveMicrogreens';
 import { MicrogreensSeeds } from './microgreens/MicrogreensSeeds';
 import { MicrogreensTraining } from './microgreens/MicrogreensTraining';
 import { useCart } from '../context/CartContext';
+import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 
 export const MicrogreensSection = ({
   activeTheme,
@@ -36,11 +36,12 @@ export const MicrogreensSection = ({
   };
 
   return (
-    <section id="microgreens-section" className="py-16 px-4 sm:px-6 max-w-7xl mx-auto space-y-24 font-sans">
-      {/* 1. Microgreens Nutritional Profile & Description Bento */}
-      <MicrogreensOverview />
+    <section id="microgreens-section" className="w-full py-16 px-4 sm:px-6 lg:px-8 space-y-24 font-sans relative overflow-hidden">
+      {/* Botanical Background Decor */}
+      <BotanicalSectionBackdrop variant="microgreens" />
 
-      {/* 2. Harvested Microgreens Sub-section */}
+      <div className="max-w-7xl mx-auto relative z-10 space-y-24">
+      {/* 1. Harvested Microgreens Sub-section */}
       <HarvestedMicrogreens 
         activeTheme={activeTheme}
         formatPrice={formatPrice}
@@ -75,14 +76,13 @@ export const MicrogreensSection = ({
       {/* 4. Microgreens Seeds Sub-section */}
       <MicrogreensSeeds 
         formatPrice={formatPrice}
-        onAddToCart={handleAddToCart}
-        onBuyNow={handleBuyNow}
-        addedItemEffect={addedItemEffect}
-        hoverState={hoverState}
+        onOpenAdmin={onOpenAdmin}
       />
 
       {/* 5. Microgreens Training & Masterclass Contact Section */}
       <MicrogreensTraining />
+      </div>
     </section>
   );
 };
+

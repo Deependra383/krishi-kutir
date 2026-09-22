@@ -2,6 +2,7 @@ import React from 'react';
 import { Sparkles, ArrowRight, ShieldCheck, Leaf, Award, CheckCircle2 } from 'lucide-react';
 import { HOME_3D_ASSETS } from '../data';
 import { useHomepageContent } from '../context/HomepageContentContext';
+import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 
 export const ProductDivisionsGrid = () => {
   const { divisionCards, defaultDivisionCards } = useHomepageContent();
@@ -16,8 +17,11 @@ export const ProductDivisionsGrid = () => {
   };
 
   return (
-    <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12 select-none">
+    <section className="w-full py-16 px-4 sm:px-6 lg:px-8 select-none relative overflow-hidden">
+      {/* Background Botanical Decor */}
+      <BotanicalSectionBackdrop variant="divisions" />
       
+      <div className="max-w-7xl mx-auto relative z-10 space-y-12">
       {/* Header with Venkatesh Naturals inspiration */}
       <div className="text-center space-y-3 max-w-3xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-black uppercase tracking-widest">
@@ -102,6 +106,7 @@ export const ProductDivisionsGrid = () => {
             </div>
           );
         })}
+      </div>
       </div>
 
     </section>

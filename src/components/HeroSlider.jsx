@@ -1,231 +1,134 @@
 import React, { useEffect } from 'react';
-import { ArrowLeft, ArrowRight, ShieldCheck, Leaf, Award, CheckCircle2, ChevronRight, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
+import { ChevronRight, Sparkles, Leaf, Flame } from 'lucide-react';
 import { CAROUSEL_ITEMS } from '../data';
 import { useHomepageContent } from '../context/HomepageContentContext';
+import defaultBotanicalBanner from '../assets/images/botanical_hero_banner.jpg';
 
 export const HeroSlider = ({ 
   carouselIndex, 
   setCarouselIndex 
 }) => {
-  const { homeImages } = useHomepageContent();
-  const currentSlide = CAROUSEL_ITEMS[carouselIndex] || CAROUSEL_ITEMS[0];
+  const { heroSlides } = useHomepageContent();
+  const slides = (heroSlides && heroSlides.length > 0) ? heroSlides : CAROUSEL_ITEMS;
+  const currentSlide = slides[carouselIndex] || slides[0];
 
-  const getSlideImage = (index, fallbackImage) => {
-    if (!homeImages) return fallbackImage;
-    if (index === 0 && homeImages.microgreens?.url) return homeImages.microgreens.url;
-    if (index === 1 && homeImages.spices?.url) return homeImages.spices.url;
-    if (index === 2 && homeImages.verticalFarm?.url) return homeImages.verticalFarm.url;
-    if (index === 3 && homeImages.botanicalPowders?.url) return homeImages.botanicalPowders.url;
-    return fallbackImage;
-  };
+  const activeSlideImage = currentSlide?.image || defaultBotanicalBanner;
 
-  const activeSlideImage = getSlideImage(carouselIndex, currentSlide.image);
-
-  // Optional subtle auto-play
+  // Auto-play when multiple slides exist
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
-      setCarouselIndex(prev => (prev === CAROUSEL_ITEMS.length - 1 ? 0 : prev + 1));
-    }, 6000);
+      setCarouselIndex(prev => (prev >= slides.length - 1 ? 0 : prev + 1));
+    }, 7000);
     return () => clearInterval(timer);
-  }, [setCarouselIndex]);
-
-  const handleNext = (e) => {
-    e?.stopPropagation();
-    setCarouselIndex(prev => (prev === CAROUSEL_ITEMS.length - 1 ? 0 : prev + 1));
-  };
-
-  const handlePrev = (e) => {
-    e?.stopPropagation();
-    setCarouselIndex(prev => (prev === 0 ? CAROUSEL_ITEMS.length - 1 : prev - 1));
-  };
+  }, [slides.length, setCarouselIndex]);
 
   return (
     <section 
       id="hero-banner" 
-      className="relative bg-gradient-to-b from-emerald-50/50 via-white to-white border-b border-neutral-200/80 pt-8 pb-16 px-4 sm:px-6 lg:px-12 select-none"
+      className="relative bg-[#faf9f6] border-b border-neutral-200/80 overflow-hidden select-none"
     >
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-          
-          {/* Left Column: Core Value Proposition */}
-          <div className="lg:col-span-6 space-y-6">
+      {/* ================= HERO PANORAMIC CANVAS (Full Viewport Fill) ================= */}
+      <div className="relative min-h-[calc(100vh-68px)] lg:min-h-[calc(100vh-74px)] flex items-center justify-between">
+        
+        {/* Full-bleed background image with subtle natural light blend */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src={activeSlideImage} 
+            alt={currentSlide?.heading || "Bringing Out The Beauty In You"}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover object-right sm:object-right md:object-center transform scale-100 hover:scale-102 transition-transform duration-1000 ease-out"
+          />
+          {/* Subtle soft white gradient overlay on the left to ensure crisp, accessible typography contrast */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/95 sm:via-white/85 to-transparent lg:w-[64%] pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-transparent to-transparent sm:hidden pointer-events-none" />
+        </div>
+
+        {/* Hero Content Container */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-14 py-12 sm:py-16 lg:py-24">
+          <div className="max-w-xl lg:max-w-2xl">
             
-            {/* Origin & Purity Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-black uppercase tracking-widest shadow-2xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping"></span>
-              <span>{currentSlide.tag || 'Living Harvest'}</span>
-              <span className="text-emerald-300">•</span>
-              <span className="text-emerald-700 font-semibold">Vertical Farm in Bhopal</span>
-            </div>
-            
-            {/* Main Headline */}
-            <div className="space-y-3">
-              <span className="text-xs font-black uppercase tracking-widest text-emerald-700 block">
-                {currentSlide.title}
+            {/* Live Harvest Status Pill */}
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50/90 border border-emerald-200/90 backdrop-blur-xs shadow-2xs mb-4"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
               </span>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase text-neutral-900 tracking-tight leading-[1.12]">
-                {currentSlide.heading}
-              </h1>
-            </div>
-            
-            {/* Narrative description */}
-            <p className="text-neutral-600 text-base sm:text-lg font-light leading-relaxed max-w-xl">
-              {currentSlide.description}
+              <span className="text-[11px] font-bold text-emerald-800 tracking-wide uppercase font-sans">
+                {currentSlide?.tag || "Pure Botanical & Hydroponic Farm • Bhopal"}
+              </span>
+            </motion.div>
+
+            {/* Editorial Display Heading */}
+            <h1 className="font-serif-hero text-4xl sm:text-5xl md:text-6xl lg:text-[68px] text-neutral-900 leading-[1.1] tracking-tight font-semibold">
+              {currentSlide?.heading || "Bringing Out The Beauty In You"}
+            </h1>
+
+            {/* Subtitle / Narrative Copy */}
+            <p className="mt-4 sm:mt-5 mb-7 sm:mb-8 text-neutral-600 text-sm sm:text-base md:text-lg leading-relaxed max-w-lg font-sans">
+              {currentSlide?.description || "Nurtured with zero pesticides in our Bhopal vertical farm and botanical reserve. From antioxidant-rich living microgreens to pure sun-cured powders and restorative herbal wellness, experience nature's freshest vitality crafted to nourish your skin and vitality."}
             </p>
 
-            {/* Signature Varieties Tag */}
-            {currentSlide.accent && (
-              <div className="p-3.5 rounded-2xl bg-white border border-emerald-100 shadow-sm flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-                  <Leaf className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                    Featured Farm Lot
-                  </span>
-                  <span className="text-sm font-bold text-neutral-800 truncate block">
-                    {currentSlide.accent}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Action CTAs */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-4">
               <a 
-                href="#full-catalogue-section" 
-                className="px-8 py-4 text-sm font-black uppercase tracking-wider text-white bg-emerald-700 hover:bg-emerald-800 rounded-full transition-all shadow-lg shadow-emerald-700/25 flex items-center gap-2 cursor-pointer hover:scale-102"
+                href={currentSlide?.target || "#full-catalogue-section"}
+                id="hero-shop-now-btn"
+                className="inline-flex items-center justify-center px-8 sm:px-10 py-3.5 sm:py-4 bg-emerald-700 hover:bg-emerald-800 text-white text-sm sm:text-base font-semibold rounded-full shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer active:scale-98"
               >
                 <span>Shop Catalogue</span>
-                <ChevronRight className="w-4 h-4" />
               </a>
 
               <a 
-                href="#partner-with-us" 
-                className="px-7 py-4 text-sm font-bold uppercase tracking-wider text-neutral-800 bg-white hover:bg-neutral-50 border border-neutral-300 rounded-full transition-all flex items-center gap-2 cursor-pointer shadow-xs hover:border-neutral-400"
+                href="#partner-with-us"
+                id="hero-explore-division-btn"
+                className="inline-flex items-center justify-center px-6 sm:px-8 py-3.5 sm:py-4 bg-white/90 hover:bg-white text-neutral-800 text-sm sm:text-base font-semibold rounded-full border border-neutral-300 shadow-2xs hover:border-neutral-400 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
               >
-                <span>HoReCa & Bulk Supply</span>
-              </a>
-
-              <a 
-                href="#my-orders-section" 
-                className="text-xs font-black uppercase tracking-wider text-neutral-600 hover:text-emerald-700 transition-colors px-3 py-2"
-              >
-                Track Order →
+                <span>B2B & Wholesale</span>
+                <ChevronRight className="w-4 h-4 ml-1 text-neutral-500" />
               </a>
             </div>
 
-            {/* 4 Pillars Trust Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-neutral-200">
-              <div className="flex items-center gap-2 text-neutral-700">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-tight">100% Residue Free</span>
-              </div>
-              <div className="flex items-center gap-2 text-neutral-700">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-tight">FSSAI Certified</span>
-              </div>
-              <div className="flex items-center gap-2 text-neutral-700">
-                <Award className="w-4 h-4 text-amber-600 shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-tight">Low-Temp Dried</span>
-              </div>
-              <div className="flex items-center gap-2 text-neutral-700">
-                <Leaf className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-xs font-bold uppercase tracking-tight">Untreated Seeds</span>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Right Column: Visual Photographic Card Showcase */}
-          <div className="lg:col-span-6 space-y-4">
-            
-            <div className="w-full h-[380px] sm:h-[440px] md:h-[480px] rounded-3xl overflow-hidden relative shadow-2xl border border-neutral-200/90 bg-neutral-900 group">
-              <img 
-                src={activeSlideImage} 
-                alt={currentSlide.heading}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-              />
-
-              {/* Top tag */}
-              <div className="absolute top-5 left-5 right-5 flex items-center justify-between pointer-events-none">
-                <span className="px-3.5 py-1.5 rounded-full bg-neutral-900/85 backdrop-blur-md text-white text-xs font-bold uppercase tracking-wider border border-white/10 shadow-sm flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Krishi Kutir • 3D Visual Lot</span>
-                </span>
-                <span className="px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-md text-neutral-900 text-xs font-black uppercase tracking-wider shadow-sm">
-                  {currentSlide.tag}
-                </span>
-              </div>
+            {/* Interactive Category Jump Chips */}
+            <div className="mt-8 sm:mt-10 pt-6 border-t border-neutral-200/80 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-neutral-500 mr-1 hidden sm:inline">Explore:</span>
               
-              {/* Bottom Caption Overlay */}
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-neutral-950/90 via-neutral-950/50 to-transparent p-6 sm:p-8 text-white">
-                <div className="flex items-end justify-between gap-4">
-                  <div className="space-y-1.5 min-w-0">
-                    <p className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-semibold flex items-center gap-1.5">
-                      <span>Leaf Lounge Vertical Farm</span>
-                      <span>•</span>
-                      <span className="text-white/80">3D Rendered Profile</span>
-                    </p>
-                    <h3 className="text-xl sm:text-2xl font-black uppercase text-white truncate">
-                      {currentSlide.heading}
-                    </h3>
-                  </div>
-                  
-                  {/* Slider Arrows */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button 
-                      id="hero-prev-btn"
-                      onClick={handlePrev}
-                      className="p-3 bg-white/20 hover:bg-white text-white hover:text-neutral-900 rounded-full backdrop-blur-md transition-all cursor-pointer hover:scale-105"
-                      title="Previous slide"
-                      aria-label="Previous slide"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                    </button>
-                    <button 
-                      id="hero-next-btn"
-                      onClick={handleNext}
-                      className="p-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full transition-all cursor-pointer shadow-md hover:scale-105"
-                      title="Next slide"
-                      aria-label="Next slide"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <a 
+                href="#full-catalogue-section" 
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-emerald-700 hover:text-white border border-neutral-200/90 text-xs font-semibold text-neutral-700 transition-all duration-200 shadow-2xs hover:-translate-y-0.5 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>All Farm Produce</span>
+              </a>
 
-            {/* Slide Navigation indicators */}
-            <div className="flex items-center justify-between gap-3 px-2 pt-1">
-              <div className="flex items-center gap-2">
-                {CAROUSEL_ITEMS.map((item, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCarouselIndex(i)}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${
-                      carouselIndex === i 
-                        ? 'w-10 bg-emerald-700' 
-                        : 'w-3 bg-neutral-300 hover:bg-neutral-400'
-                    }`}
-                    title={item.heading}
-                    aria-label={`Slide ${i + 1}`}
-                  />
-                ))}
-              </div>
+              <a 
+                href="#powders-spices-section" 
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-emerald-700 hover:text-white border border-neutral-200/90 text-xs font-semibold text-neutral-700 transition-all duration-200 shadow-2xs hover:-translate-y-0.5 cursor-pointer"
+              >
+                <Flame className="w-3.5 h-3.5 text-rose-500" />
+                <span>Herbal Powders & Spices</span>
+              </a>
 
-              <span className="text-xs text-neutral-500 font-mono font-bold">
-                0{carouselIndex + 1} / 0{CAROUSEL_ITEMS.length}
-              </span>
+              <a 
+                href="#microgreens-section" 
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-emerald-700 hover:text-white border border-neutral-200/90 text-xs font-semibold text-neutral-700 transition-all duration-200 shadow-2xs hover:-translate-y-0.5 cursor-pointer"
+              >
+                <Leaf className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Microgreens</span>
+              </a>
             </div>
 
           </div>
-
         </div>
 
       </div>
+
     </section>
   );
 };

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { THEMES } from './data';
 
 // Context Providers
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProductProvider } from './context/ProductContext';
 import { CartProvider, useCart } from './context/CartContext';
@@ -22,14 +22,13 @@ import { AboutSection } from './components/AboutSection';
 import { MicrogreensSection } from './components/MicrogreensSection';
 import { PowdersAndSpicesSection } from './components/PowdersAndSpicesSection';
 import { ProductCatalog } from './components/ProductCatalog';
+import { ProductInquirySection } from './components/ProductInquirySection';
+import { TrainingAcademy } from './components/TrainingAcademy';
 import { PartnerWithUsSection } from './components/PartnerWithUsSection';
-import { MyOrdersSection } from './components/MyOrdersSection';
-import { MicroscopeOverlay } from './components/MicroscopeOverlay';
 import { Certifications } from './components/Certifications';
 import { ProductDivisionsGrid } from './components/ProductDivisionsGrid';
-import { VenkateshQualityPillars } from './components/VenkateshQualityPillars';
 import { Footer } from './components/Footer';
-import { FloatingThemeToggle } from './components/common/FloatingThemeToggle';
+import { FloatingWhatsAppButton } from './components/common/FloatingWhatsAppButton';
 
 // Modals & Drawers
 import { AuthModal } from './components/AuthModal';
@@ -38,11 +37,33 @@ import { CartDrawer } from './components/CartDrawer';
 import { FullPageCart } from './components/FullPageCart';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AdminDashboard } from './components/AdminDashboard';
+import Lenis from 'lenis';
 
 function MainAppContent() {
   const { currentUser, isAdmin } = useAuth();
   const { isCheckoutOpen, setIsCheckoutOpen, isCartOpen, setIsCartOpen } = useCart();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+
+  // Initialize Lenis Smooth Scrolling
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      touchMultiplier: 1.5,
+    });
+
+    let rafId;
+    function raf(time) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, []);
 
   // Page View State: 'store' | 'admin' | 'cart'
   const [currentView, setCurrentView] = useState(() => {
@@ -70,7 +91,15 @@ function MainAppContent() {
   useEffect(() => {
     const handleHashChange = () => {
       if (window.location.hash === '#admin') {
-        setCurrentView('admin');
+        const isStrictAdmin = isAdmin && (currentUser?.email || '').trim().toLowerCase() === 'krishi345@gmail.com';
+        if (isStrictAdmin) {
+          setCurrentView('admin');
+        } else {
+          setCurrentView('store');
+          window.location.hash = '';
+          setAuthInitialTab('login');
+          setIsAuthModalOpen(true);
+        }
         setIsCartOpen(false);
       } else if (window.location.hash === '#cart' || window.location.hash === '#bag') {
         setCurrentView('cart');
@@ -82,7 +111,7 @@ function MainAppContent() {
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [setIsCartOpen]);
+  }, [setIsCartOpen, isAdmin, currentUser]);
 
   // Active Theme (Clean Modern Default)
   const [activeTheme, setActiveTheme] = useState(THEMES[0]);
@@ -135,12 +164,13 @@ function MainAppContent() {
   };
 
   const handleOpenAdmin = () => {
-    if (isAdmin) {
+    const isStrictAdmin = isAdmin && (currentUser?.email || '').trim().toLowerCase() === 'krishi345@gmail.com';
+    if (isStrictAdmin) {
       setCurrentView('admin');
       window.location.hash = 'admin';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      setAuthInitialTab('admin');
+      setAuthInitialTab('login');
       setIsAuthModalOpen(true);
     }
   };
@@ -175,22 +205,13 @@ function MainAppContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className={`min-h-screen font-sans transition-colors duration-200 ${
-              isDarkMode ? 'bg-neutral-950 text-neutral-100' : 'bg-[#f8fcf9] text-neutral-900'
-            }`}
+            className="min-h-screen font-sans bg-[#f8fcf9] text-neutral-900"
           >
             <FullPageCart 
               onBackToStore={handleBackToStore}
               formatPrice={formatPrice}
               onProceedToCheckout={() => setIsCheckoutOpen(true)}
               onOpenAuth={handleOpenAuth}
-              onOpenOrders={() => {
-                handleBackToStore();
-                setTimeout(() => {
-                  const el = document.getElementById('my-orders-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }, 250);
-              }}
             />
           </motion.div>
         ) : (
@@ -200,17 +221,8 @@ function MainAppContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className={`min-h-screen transition-all duration-300 font-sans ${
-              isDarkMode ? 'bg-[#0b110e] text-neutral-100' : `${activeTheme.bodyClass}`
-            }`}
+            className={`min-h-screen transition-all duration-300 font-sans ${activeTheme.bodyClass}`}
           >
-            {/* ================= BACKGROUND DECORATIVE FLOATING ELEMENTS ================= */}
-            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
-              <div className="absolute top-[10%] left-[5%] w-72 h-72 bg-emerald-200/20 rounded-full blur-3xl animate-pulse"></div>
-              <div className="absolute bottom-[15%] right-[5%] w-96 h-96 bg-[#be123c]/5 rounded-full blur-3xl"></div>
-              <div className="absolute top-[50%] left-[80%] w-60 h-60 bg-amber-200/15 rounded-full blur-3xl"></div>
-            </div>
-
       {/* ================= PRIMARY NAVIGATION BAR ================= */}
       <NavigationBar 
         activeTheme={activeTheme} 
@@ -235,41 +247,12 @@ function MainAppContent() {
       {/* ================= PRODUCT DIVISIONS SHOWCASE (Venkatesh Naturals style) ================= */}
       <ProductDivisionsGrid />
 
-      {/* ================= PURITY & QUALITY PILLARS (Venkatesh Naturals style) ================= */}
-      <VenkateshQualityPillars />
-
       {/* ================= MEET THE FOUNDERS & OUR STORY ================= */}
       <AboutSection 
         activeTheme={activeTheme} 
       />
 
-      {/* ================= 1. MICROGREENS DIVISION (Description -> Harvested -> Live -> Seeds -> Training Contact) ================= */}
-      <MicrogreensSection 
-        activeTheme={activeTheme}
-        formatPrice={formatPrice}
-        setSelectedMicroscopeItem={setSelectedMicroscopeItem}
-        hoverCoords={hoverCoords}
-        hoverState={hoverState}
-        handleCardMouseMove={handleCardMouseMove}
-        handleCardMouseEnter={handleCardMouseEnter}
-        handleCardMouseLeave={handleCardMouseLeave}
-        onOpenAdmin={handleOpenAdmin}
-      />
-
-      {/* ================= 2. HERBAL POWDERS, SPICES & SEASONING (Dairy Alternatives -> Fruits & Veg -> Spices) ================= */}
-      <PowdersAndSpicesSection 
-        activeTheme={activeTheme}
-        formatPrice={formatPrice}
-        setSelectedMicroscopeItem={setSelectedMicroscopeItem}
-        hoverCoords={hoverCoords}
-        hoverState={hoverState}
-        handleCardMouseMove={handleCardMouseMove}
-        handleCardMouseEnter={handleCardMouseEnter}
-        handleCardMouseLeave={handleCardMouseLeave}
-        onOpenAdmin={handleOpenAdmin}
-      />
-
-      {/* ================= FULL PAGE ALL PRODUCTS CATALOGUE (Shows all added products across all categories) ================= */}
+      {/* ================= 1. ALL PRODUCTS & FARM PRODUCE CATALOGUE ================= */}
       <ProductCatalog
         activeTheme={activeTheme}
         setSelectedMicroscopeItem={setSelectedMicroscopeItem}
@@ -282,30 +265,45 @@ function MainAppContent() {
         onOpenAdmin={handleOpenAdmin}
       />
 
+      {/* ================= 2. HERBAL POWDERS, SPICES & SEASONING ================= */}
+      <PowdersAndSpicesSection 
+        activeTheme={activeTheme}
+        formatPrice={formatPrice}
+        setSelectedMicroscopeItem={setSelectedMicroscopeItem}
+        hoverCoords={hoverCoords}
+        hoverState={hoverState}
+        handleCardMouseMove={handleCardMouseMove}
+        handleCardMouseEnter={handleCardMouseEnter}
+        handleCardMouseLeave={handleCardMouseLeave}
+        onOpenAdmin={handleOpenAdmin}
+      />
+
+      {/* ================= 3. MICROGREENS DIVISION & INQUIRE FOR NEXT BATCH ================= */}
+      <MicrogreensSection 
+        activeTheme={activeTheme}
+        formatPrice={formatPrice}
+        setSelectedMicroscopeItem={setSelectedMicroscopeItem}
+        hoverCoords={hoverCoords}
+        hoverState={hoverState}
+        handleCardMouseMove={handleCardMouseMove}
+        handleCardMouseEnter={handleCardMouseEnter}
+        handleCardMouseLeave={handleCardMouseLeave}
+        onOpenAdmin={handleOpenAdmin}
+      />
+
+      {/* ================= DEDICATED WHATSAPP & PRODUCT PURCHASE INQUIRY SECTION ================= */}
+      <ProductInquirySection 
+        activeTheme={activeTheme}
+      />
+
+      {/* ================= 4. TRAINING & GROW ACADEMY ================= */}
+      <TrainingAcademy 
+        activeTheme={activeTheme}
+      />
+
       {/* ================= 3. PARTNER WITH US (Inquiry Form -> Images & Description) ================= */}
       <PartnerWithUsSection 
         activeTheme={activeTheme}
-      />
-
-      {/* ================= 4. MY ORDERS & LIVE ORDER TRACKING ================= */}
-      <MyOrdersSection 
-        activeTheme={activeTheme}
-        formatPrice={formatPrice}
-        onOpenAuth={handleOpenAuth}
-        onOpenCart={() => {
-          setIsCartOpen(true);
-          setCurrentView('cart');
-          window.location.hash = 'cart';
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-      />
-
-      {/* ================= EXPLORE BEHIND THE SEED MICROSCOPE OVERLAY ================= */}
-      <MicroscopeOverlay 
-        selectedMicroscopeItem={selectedMicroscopeItem} 
-        setSelectedMicroscopeItem={setSelectedMicroscopeItem} 
-        activeTheme={activeTheme} 
-        formatPrice={formatPrice} 
       />
 
       {/* ================= GLOBAL CERTIFICATIONS & BIO-SECURITY ================= */}
@@ -320,10 +318,7 @@ function MainAppContent() {
       />
 
       {/* ================= DETAILED FOOTER ================= */}
-      <Footer 
-        onOpenAuth={handleOpenAuth}
-        onOpenAdmin={handleOpenAdmin}
-      />
+      <Footer />
           </motion.div>
         )}
       </AnimatePresence>
@@ -357,8 +352,8 @@ function MainAppContent() {
         formatPrice={formatPrice}
       />
 
-      {/* Global Floating Quick Theme Switcher */}
-      <FloatingThemeToggle />
+      {/* Global Floating Quick WhatsApp Contact Desk */}
+      <FloatingWhatsAppButton />
 
     </div>
   );

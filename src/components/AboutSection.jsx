@@ -1,6 +1,7 @@
 import React from 'react';
 import { Leaf, MapPin, CheckCircle2 } from 'lucide-react';
 import { useHomepageContent } from '../context/HomepageContentContext';
+import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 
 export const AboutSection = () => {
   const { founders } = useHomepageContent();
@@ -8,15 +9,22 @@ export const AboutSection = () => {
   const founder2 = founders?.founder2 || {};
 
   return (
-    <section id="about-philosophy" className="py-20 px-4 sm:px-6 lg:px-8 bg-white border-b border-neutral-200 select-none">
-      <div className="max-w-7xl mx-auto space-y-16">
+    <section 
+      id="about-philosophy" 
+      className="py-20 px-4 sm:px-6 lg:px-8 bg-white border-b border-neutral-200 select-none relative overflow-hidden"
+    >
+      {/* ================= BACKGROUND BOTANICALS LAYER (STRICTLY IN BACKGROUND Z-0) ================= */}
+      <BotanicalSectionBackdrop variant="about" showSoftGlows={true} />
+
+      {/* ================= FOREGROUND CONTENT LAYER (ALWAYS STRICTLY IN FOREGROUND Z-10) ================= */}
+      <div className="max-w-7xl mx-auto space-y-16 relative z-10">
         
         {/* Story & Philosophy Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
           
           {/* Left Column: Origin Narrative */}
-          <div className="lg:col-span-6 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-black uppercase tracking-widest">
+          <div className="lg:col-span-6 space-y-6 bg-white/90 backdrop-blur-xs p-2 sm:p-4 rounded-3xl">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-black uppercase tracking-widest shadow-2xs">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" />
               <span>Bhopal, MP • Established 2025</span>
             </div>
@@ -39,7 +47,7 @@ export const AboutSection = () => {
 
             {/* Farm Guarantees */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-neutral-100">
-              <div className="flex items-start gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100">
+              <div className="flex items-start gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-200/80 shadow-2xs">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
@@ -49,7 +57,7 @@ export const AboutSection = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100">
+              <div className="flex items-start gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-200/80 shadow-2xs">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
                   <Leaf className="w-4 h-4" />
                 </div>
@@ -62,7 +70,7 @@ export const AboutSection = () => {
           </div>
 
           {/* Right Column: Founders */}
-          <div className="lg:col-span-6 space-y-6 bg-neutral-50 p-8 sm:p-10 rounded-3xl border border-neutral-200/90 shadow-sm">
+          <div className="lg:col-span-6 space-y-6 bg-neutral-50/95 backdrop-blur-xs p-8 sm:p-10 rounded-3xl border border-neutral-200/90 shadow-sm relative z-10">
             <div className="space-y-2">
               <span className="text-xs font-black uppercase tracking-widest text-emerald-700">The People Behind Krishi Kutir</span>
               <h3 className="text-2xl font-black uppercase text-neutral-900">Meet Our Founders</h3>

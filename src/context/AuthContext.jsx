@@ -9,9 +9,22 @@ export const useAuth = () => {
   return context;
 };
 
-// Default Admin Master Key / Pin & Admin Email
-export const ADMIN_MASTER_KEY = 'krishi2026';
-export const ADMIN_EMAIL = 'admin@krishikutir.com';
+// Strict Admin Credentials - Only this specific email and password have Admin access
+export const ADMIN_MASTER_KEY = 'krishi123';
+export const ADMIN_EMAIL = 'krishi345@gmail.com';
+export const ADMIN_PHONE = '9009911030';
+
+// Helper to check if string strictly matches the single authorized admin email
+export const isMatchAdminEmail = (emailStr) => {
+  if (!emailStr) return false;
+  return emailStr.trim().toLowerCase() === 'krishi345@gmail.com';
+};
+
+// Helper to check if string strictly matches the single authorized admin password
+export const isMatchAdminPassword = (pwStr) => {
+  if (!pwStr) return false;
+  return pwStr.trim() === 'krishi123';
+};
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -24,13 +37,22 @@ export const AuthProvider = ({ children }) => {
     if (!supabaseUser) {
       setUserProfile(null);
       setIsAdmin(false);
+      localStorage.removeItem('krishi_admin_session');
       return null;
     }
 
     const uid = supabaseUser.id;
     const email = (supabaseUser.email || '').trim().toLowerCase();
-    const isAdminEmail = email === ADMIN_EMAIL.toLowerCase();
-    const hasAdminSession = localStorage.getItem('krishi_admin_session') === 'true';
+    const isStrictAdmin = isMatchAdminEmail(email);
+
+    if (!isStrictAdmin) {
+      // Strictly non-admin user
+      setIsAdmin(false);
+      localStorage.removeItem('krishi_admin_session');
+    } else {
+      setIsAdmin(true);
+      localStorage.setItem('krishi_admin_session', 'true');
+    }
 
     try {
       const { data, error } = await supabase
@@ -41,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
       if (data && !error) {
         setUserProfile(data);
-        setIsAdmin(data.role === 'admin' || isAdminEmail || hasAdminSession);
+        setIsAdmin(isStrictAdmin);
         return data;
       } else {
         // Automatically create user profile entry in Supabase 'users' table
@@ -50,11 +72,11 @@ export const AuthProvider = ({ children }) => {
           email: email,
           display_name: supabaseUser.user_metadata?.display_name || email.split('@')[0] || 'Krishi Customer',
           phone: supabaseUser.user_metadata?.phone || '',
-          role: isAdminEmail ? 'admin' : 'user'
+          role: isStrictAdmin ? 'admin' : 'user'
         };
         await supabase.from('users').upsert(newProfile);
         setUserProfile(newProfile);
-        setIsAdmin(isAdminEmail || hasAdminSession);
+        setIsAdmin(isStrictAdmin);
         return newProfile;
       }
     } catch (err) {
@@ -63,35 +85,59 @@ export const AuthProvider = ({ children }) => {
         id: uid,
         email: email,
         display_name: supabaseUser.user_metadata?.display_name || email.split('@')[0] || 'Customer',
-        role: isAdminEmail ? 'admin' : 'user'
+        role: isStrictAdmin ? 'admin' : 'user'
       };
       setUserProfile(fallback);
-      setIsAdmin(isAdminEmail || hasAdminSession);
+      setIsAdmin(isStrictAdmin);
       return fallback;
     }
   };
 
   useEffect(() => {
-    const adminSession = localStorage.getItem('krishi_admin_session') === 'true';
-    if (adminSession) {
-      setIsAdmin(true);
-    }
-
     // 1. Initial Session Check with Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        const email = (session.user.email || '').trim().toLowerCase();
+        const isStrictAdmin = isMatchAdminEmail(email);
         const u = {
           uid: session.user.id,
           id: session.user.id,
           email: session.user.email,
-          displayName: session.user.user_metadata?.display_name || session.user.email?.split('@')[0]
+          displayName: session.user.user_metadata?.display_name || session.user.email?.split('@')[0],
+          isAdmin: isStrictAdmin,
+          role: isStrictAdmin ? 'admin' : 'user'
         };
         setCurrentUser(u);
+        setIsAdmin(isStrictAdmin);
+        if (isStrictAdmin) {
+          localStorage.setItem('krishi_admin_session', 'true');
+        } else {
+          localStorage.removeItem('krishi_admin_session');
+        }
         fetchUserProfile(session.user);
       } else {
-        setCurrentUser(null);
-        setUserProfile(null);
-        if (!adminSession) setIsAdmin(false);
+        // If not logged in with Supabase, check if admin user is simulated in localStorage
+        const storedAdminSession = localStorage.getItem('krishi_admin_session') === 'true';
+        const storedAdminEmail = localStorage.getItem('krishi_admin_email');
+        if (storedAdminSession && storedAdminEmail === 'krishi345@gmail.com') {
+          setIsAdmin(true);
+          const adminUser = {
+            uid: 'admin-krishi-super',
+            id: 'admin-krishi-super',
+            email: 'krishi345@gmail.com',
+            displayName: 'Krishi Kutir Administrator',
+            role: 'admin',
+            isAdmin: true
+          };
+          setCurrentUser(adminUser);
+          setUserProfile(adminUser);
+        } else {
+          setCurrentUser(null);
+          setUserProfile(null);
+          setIsAdmin(false);
+          localStorage.removeItem('krishi_admin_session');
+          localStorage.removeItem('krishi_admin_email');
+        }
       }
       setLoading(false);
     }).catch(err => {
@@ -173,12 +219,38 @@ export const AuthProvider = ({ children }) => {
     return null;
   };
 
-  // Email Login with Supabase
-  const login = async (email, password) => {
-    const cleanEmail = email.trim();
+  // Email / Admin ID Login
+  const login = async (identifier, password) => {
+    const cleanId = (identifier || '').trim().toLowerCase();
+    const cleanPw = (password || '').trim();
+
+    // 1. Strict Admin Authentication Check: ONLY krishi345@gmail.com with krishi123
+    if (cleanId === 'krishi345@gmail.com' && cleanPw === 'krishi123') {
+      setIsAdmin(true);
+      localStorage.setItem('krishi_admin_session', 'true');
+      localStorage.setItem('krishi_admin_email', 'krishi345@gmail.com');
+      const adminUser = {
+        uid: 'admin-krishi-super',
+        id: 'admin-krishi-super',
+        email: 'krishi345@gmail.com',
+        displayName: 'Krishi Kutir Administrator',
+        role: 'admin',
+        isAdmin: true
+      };
+      setCurrentUser(adminUser);
+      setUserProfile(adminUser);
+      return adminUser;
+    }
+
+    // Strictly ensure non-admin users cannot inherit any leftover admin privileges
+    setIsAdmin(false);
+    localStorage.removeItem('krishi_admin_session');
+    localStorage.removeItem('krishi_admin_email');
+
+    // 2. Standard Supabase Email/Password Login for customers
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: cleanEmail,
-      password: password
+      email: cleanId,
+      password: cleanPw
     });
 
     if (error) {
@@ -187,15 +259,27 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (data?.user) {
+      const isUserAdmin = isMatchAdminEmail(data.user.email);
       const u = {
         uid: data.user.id,
         id: data.user.id,
-        email: cleanEmail,
-        displayName: data.user.user_metadata?.display_name || cleanEmail.split('@')[0]
+        email: cleanId,
+        displayName: data.user.user_metadata?.display_name || cleanId.split('@')[0],
+        role: isUserAdmin ? 'admin' : 'user',
+        isAdmin: isUserAdmin
       };
+      if (isUserAdmin) {
+        setIsAdmin(true);
+        localStorage.setItem('krishi_admin_session', 'true');
+        localStorage.setItem('krishi_admin_email', 'krishi345@gmail.com');
+      } else {
+        setIsAdmin(false);
+        localStorage.removeItem('krishi_admin_session');
+        localStorage.removeItem('krishi_admin_email');
+      }
       setCurrentUser(u);
       await fetchUserProfile(data.user);
-      return data.user;
+      return u;
     }
   };
 
@@ -211,19 +295,31 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  // Admin Login with Master Password
+  // Admin Login with Master Password or ID
   const loginAsAdmin = async (secretKeyOrPassword) => {
-    if (secretKeyOrPassword === ADMIN_MASTER_KEY || secretKeyOrPassword === 'admin123') {
+    if (secretKeyOrPassword === 'krishi123') {
       setIsAdmin(true);
       localStorage.setItem('krishi_admin_session', 'true');
+      localStorage.setItem('krishi_admin_email', 'krishi345@gmail.com');
+      const adminUser = {
+        uid: 'admin-krishi-super',
+        id: 'admin-krishi-super',
+        email: ADMIN_EMAIL,
+        displayName: 'Krishi Kutir Administrator',
+        role: 'admin',
+        isAdmin: true
+      };
+      setCurrentUser(adminUser);
+      setUserProfile(adminUser);
       return true;
     }
-    throw new Error('Invalid Admin Secret Key. Please use the authorized master passkey.');
+    throw new Error('Invalid Admin Secret Key or Password.');
   };
 
   // Logout from Supabase
   const logout = async () => {
     localStorage.removeItem('krishi_admin_session');
+    localStorage.removeItem('krishi_admin_email');
     setIsAdmin(false);
     try {
       await supabase.auth.signOut();

@@ -14,22 +14,18 @@ import {
   CheckCircle2, 
   Leaf, 
   Clock, 
-  CreditCard,
-  MessageSquare,
-  Moon,
-  Sun
+  MessageSquare
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { useTheme } from '../context/ThemeContext';
 import { AnimatedLogo } from './AnimatedLogo';
 
 export const FullPageCart = ({
   onBackToStore,
   formatPrice,
   onProceedToCheckout,
-  onOpenAuth,
-  onOpenOrders
+  onOpenAuth
 }) => {
+  const isDarkMode = false;
   const { 
     cartItems, 
     updateQuantity, 
@@ -43,8 +39,6 @@ export const FullPageCart = ({
     shippingLocation,
     updateShippingLocation
   } = useCart();
-
-  const { isDarkMode, toggleDarkMode } = useTheme();
 
   const handleClearCart = () => {
     if (window.confirm('Are you sure you want to remove all items from your shopping bag?')) {
@@ -130,46 +124,6 @@ export const FullPageCart = ({
                   <strong className={isDarkMode ? 'text-white' : 'text-neutral-900'}>{totalItemsCount}</strong> {totalItemsCount === 1 ? 'item' : 'items'}
                 </span>
               </div>
-
-              {/* Night / Dark Mode Toggle Button */}
-              <button
-                id="cart-theme-toggle-btn"
-                type="button"
-                onClick={toggleDarkMode}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isDarkMode
-                    ? 'bg-neutral-800 hover:bg-neutral-700 text-amber-400 border-neutral-700'
-                    : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 hover:text-neutral-950 border-neutral-200'
-                }`}
-                title={isDarkMode ? 'Switch to Day / Light Mode' : 'Switch to Night / Dark Mode'}
-              >
-                {isDarkMode ? (
-                  <>
-                    <Sun className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="hidden sm:inline text-amber-300">Day</span>
-                  </>
-                ) : (
-                  <>
-                    <Moon className="w-3.5 h-3.5 text-indigo-600" />
-                    <span className="hidden sm:inline">Night</span>
-                  </>
-                )}
-              </button>
-
-              {/* Quick Link to My Orders */}
-              {onOpenOrders && (
-                <button
-                  onClick={onOpenOrders}
-                  className={`hidden md:flex px-3 py-2 rounded-xl border text-xs font-bold uppercase items-center gap-1.5 transition-all cursor-pointer ${
-                    isDarkMode 
-                      ? 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white border-neutral-700' 
-                      : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 hover:text-neutral-950 border-neutral-200'
-                  }`}
-                >
-                  <Package className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>My Orders</span>
-                </button>
-              )}
 
               {/* Continue Shopping Button */}
               <button
@@ -710,66 +664,23 @@ export const FullPageCart = ({
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
-                  {/* Payment Methods Info */}
-                  <div className={`p-3.5 rounded-xl border space-y-2 ${
-                    isDarkMode 
-                      ? 'bg-neutral-800/90 border-neutral-700 text-neutral-300' 
-                      : 'bg-neutral-50 border-neutral-200 text-neutral-700'
-                  }`}>
-                    <div className={`flex items-center gap-2 text-[11px] font-bold ${
-                      isDarkMode ? 'text-neutral-300' : 'text-neutral-800'
-                    }`}>
-                      <CreditCard className={`w-3.5 h-3.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                      <span>Multiple Payment Options Available</span>
+                  {/* Harvest Dispatch Guarantee */}
+                  <div className="p-3.5 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-700 space-y-2">
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-neutral-800">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Farm-Direct Dispatch Guarantee</span>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 text-[10px] font-mono">
-                      <span className={`px-2 py-0.5 rounded border ${
-                        isDarkMode 
-                          ? 'bg-neutral-700 text-neutral-200 border-neutral-600' 
-                          : 'bg-white text-neutral-800 border-neutral-200'
-                      }`}>
-                        Razorpay
-                      </span>
-                      <span className={`px-2 py-0.5 rounded border ${
-                        isDarkMode 
-                          ? 'bg-neutral-700 text-neutral-200 border-neutral-600' 
-                          : 'bg-white text-neutral-800 border-neutral-200'
-                      }`}>
-                        UPI / QR
-                      </span>
-                      <span className={`px-2 py-0.5 rounded border ${
-                        isDarkMode 
-                          ? 'bg-neutral-700 text-neutral-200 border-neutral-600' 
-                          : 'bg-white text-neutral-800 border-neutral-200'
-                      }`}>
-                        Cards
-                      </span>
-                      <span className={`px-2 py-0.5 rounded border ${
-                        isDarkMode 
-                          ? 'bg-neutral-700 text-neutral-200 border-neutral-600' 
-                          : 'bg-white text-neutral-800 border-neutral-200'
-                      }`}>
-                        NetBanking
-                      </span>
-                      <span className={`px-2 py-0.5 rounded border ${
-                        isDarkMode 
-                          ? 'bg-neutral-700 text-neutral-200 border-neutral-600' 
-                          : 'bg-white text-neutral-800 border-neutral-200'
-                      }`}>
-                        COD
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Security Notice */}
-                  <div className={`flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider pt-1 ${
-                    isDarkMode ? 'text-neutral-400' : 'text-neutral-500'
-                  }`}>
-                    <ShieldCheck className={`w-3.5 h-3.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                    <span>256-Bit SSL Encrypted & Verified Checkout</span>
+                    <p className="text-[11px] text-neutral-500 leading-relaxed font-light">
+                      Freshly harvested and packed under sterile conditions at our Bhopal hydroponic vertical farm.
+                    </p>
                   </div>
                 </div>
 
+                {/* Security Notice */}
+                <div className="flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider pt-1 text-neutral-500">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>256-Bit SSL Encrypted & Verified Checkout</span>
+                </div>
               </div>
 
               {/* Direct WhatsApp Farm Help Desk */}

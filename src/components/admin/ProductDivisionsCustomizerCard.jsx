@@ -1,18 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Sparkles, 
+  Leaf, 
   Upload, 
   RotateCcw, 
   CheckCircle2, 
   Save, 
+  Sparkles, 
   Link as LinkIcon, 
   RefreshCw, 
-  Eye, 
-  Leaf, 
-  FileText, 
   Tag, 
-  Award,
-  Layers
+  FileText,
+  Plus,
+  Trash2,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useHomepageContent } from '../../context/HomepageContentContext';
 import { uploadProductImage, isSupabaseConfigured } from '../../supabase';
@@ -22,6 +24,8 @@ export const ProductDivisionsCustomizerCard = () => {
     divisionCards, 
     saveDivisionCards, 
     resetDivisionCards, 
+    addDivisionCard,
+    deleteDivisionCard,
     defaultDivisionCards 
   } = useHomepageContent();
 
@@ -32,8 +36,11 @@ export const ProductDivisionsCustomizerCard = () => {
   });
 
   const [uploadingIndex, setUploadingIndex] = useState(null);
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
   const fileInputRefs = useRef([]);
 
@@ -77,7 +84,7 @@ export const ProductDivisionsCustomizerCard = () => {
           const res = await uploadProductImage(file);
           if (res?.url) {
             handleFieldChange(index, 'image', res.url);
-            setSuccessMsg(`Division Card #${index + 1} image uploaded to cloud storage successfully!`);
+            setSuccessMsg(`Division #${index + 1} image uploaded to cloud storage successfully!`);
             setTimeout(() => setSuccessMsg(''), 3000);
             setUploadingIndex(null);
             return;
@@ -92,7 +99,7 @@ export const ProductDivisionsCustomizerCard = () => {
       reader.onload = () => {
         const dataUrl = reader.result;
         handleFieldChange(index, 'image', dataUrl);
-        setSuccessMsg(`Division Card #${index + 1} image processed locally! Click "Save All 5 Divisions" to publish.`);
+        setSuccessMsg(`Division #${index + 1} image processed locally! Click "Save All Divisions" to publish.`);
         setTimeout(() => setSuccessMsg(''), 3000);
         setUploadingIndex(null);
       };
@@ -108,80 +115,158 @@ export const ProductDivisionsCustomizerCard = () => {
     }
   };
 
+  const handleAddNewDivision = () => {
+    const newIdx = divisionsList.length + 1;
+    const newDivision = {
+      id: `div-${Date.now()}`,
+      name: `Specialty Crop Division #${newIdx}`,
+      tag: 'Living Division',
+      subtitle: 'Premium Hydroponic Harvest',
+      description: 'Cultivated in sterile indoor vertical farms under precision spectrum LED lighting.',
+      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+      badge: 'Farm Fresh Lot',
+      target: '#microgreens-section'
+    };
+
+    setDivisionsList(prev => [...prev, newDivision]);
+    addDivisionCard(newDivision);
+    setSuccessMsg(`Added new Product Division #${newIdx}! You can now edit its photography and details.`);
+    setTimeout(() => setSuccessMsg(''), 3500);
+  };
+
+  const handleDeleteDivision = (index) => {
+    if (divisionsList.length <= 1) {
+      setErrorMsg('You must maintain at least one product division.');
+      setTimeout(() => setErrorMsg(''), 3000);
+      return;
+    }
+
+    if (confirmDeleteIdx !== index) {
+      setConfirmDeleteIdx(index);
+      return;
+    }
+
+    setDivisionsList(prev => prev.filter((_, i) => i !== index));
+    deleteDivisionCard(index);
+    setConfirmDeleteIdx(null);
+    setSuccessMsg(`Division #${index + 1} removed successfully.`);
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
   const handleSaveAll = () => {
     saveDivisionCards(divisionsList);
-    setSuccessMsg('All 5 Botanical & Superfood division cards updated and published live!');
+    setSuccessMsg(`All ${divisionsList.length} Core Product Divisions updated and published live!`);
     setTimeout(() => setSuccessMsg(''), 3500);
   };
 
   const handleResetToDefaults = () => {
-    if (window.confirm('Reset all 5 Botanical Ingredients & Living Superfood cards back to default images and descriptions?')) {
-      resetDivisionCards();
-      setDivisionsList(defaultDivisionCards);
-      setSuccessMsg('Reset all division cards to original defaults.');
-      setTimeout(() => setSuccessMsg(''), 3500);
+    if (!confirmReset) {
+      setConfirmReset(true);
+      setTimeout(() => setConfirmReset(false), 4000);
+      return;
     }
+    resetDivisionCards();
+    setDivisionsList(defaultDivisionCards);
+    setConfirmReset(false);
+    setSuccessMsg('Reset all division cards to original defaults.');
+    setTimeout(() => setSuccessMsg(''), 3500);
   };
 
   return (
-    <div className="bg-neutral-950 rounded-3xl border border-neutral-800/80 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden">
-      {/* Top Accent Gradient */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-rose-400 to-amber-400"></div>
-
+    <div id="product-divisions-customizer-card" className="bg-white rounded-3xl border border-neutral-200 p-6 sm:p-8 space-y-6 shadow-sm relative overflow-hidden">
+      
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-900 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <span className="p-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200">
               <Leaf className="w-5 h-5" />
             </span>
-            <span className="text-xs uppercase font-black tracking-widest text-rose-400">Core Product Divisions</span>
+            <span className="text-xs uppercase font-black tracking-widest text-rose-700">Core Product Divisions</span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white flex items-center gap-2">
-            Pure Botanical Ingredients & Living Superfoods (5 Cards)
-          </h3>
-          <p className="text-neutral-400 text-xs max-w-2xl leading-relaxed">
-            Upload custom photos and customize the title, subtitle, description, and tags for each of the 5 core divisions appearing under "Pure Botanical Ingredients & Living Superfoods".
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-black uppercase tracking-tight text-neutral-900">
+              Pure Botanical Ingredients & Living Superfoods
+            </h3>
+            <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-bold">
+              {divisionsList.length} Divisions Active
+            </span>
+          </div>
+          <p className="text-neutral-500 text-xs max-w-2xl leading-relaxed">
+            Customize the images, titles, subtitles, and descriptions for each division in the storefront. You can add more product divisions at any time.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowGuide(prev => !prev)}
+            className="p-2.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-neutral-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-rose-700" />
+            <span>Guide</span>
+            {showGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAddNewDivision}
+            className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add More Images</span>
+          </button>
+
           <button
             type="button"
             onClick={handleResetToDefaults}
             title="Reset cards to original defaults"
-            className="p-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            className="p-2.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-neutral-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Reset Defaults</span>
+            <span className="hidden md:inline">Reset</span>
           </button>
 
           <button
             type="button"
             onClick={handleSaveAll}
-            className="px-5 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-neutral-950 text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-rose-900/30 ml-auto sm:ml-0"
+            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-md shadow-rose-700/20 ml-auto sm:ml-0"
           >
             <Save className="w-4 h-4" />
-            <span>Save All 5 Divisions</span>
+            <span>Save All Divisions</span>
           </button>
         </div>
       </div>
 
+      {/* Guide Banner */}
+      {showGuide && (
+        <div className="p-4 bg-rose-50/70 border border-rose-200/80 rounded-2xl text-xs text-neutral-700 space-y-1.5 animate-in fade-in">
+          <p className="font-bold text-rose-900">How to manage Core Product Divisions:</p>
+          <ul className="list-disc list-inside space-y-1 pl-1">
+            <li>Click <strong>"+ Add More Images"</strong> to create a new category or product division card.</li>
+            <li>Click <strong>"Upload Photo File"</strong> to select a photo from your computer or phone.</li>
+            <li>Or paste an online image URL in the URL input box.</li>
+            <li>Edit the division title, tag, subtitle, and description to match your catalog.</li>
+            <li>Click <strong>"Save All Divisions"</strong> to update the live storefront instantly.</li>
+          </ul>
+        </div>
+      )}
+
       {/* Status Messages */}
       {successMsg && (
-        <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-800 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-3.5 rounded-2xl bg-red-950/70 border border-red-800 text-red-300 text-xs font-medium animate-in fade-in duration-200">
+        <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium animate-in fade-in duration-200">
           {errorMsg}
         </div>
       )}
 
-      {/* Grid of the 5 Divisions */}
+      {/* Grid of Divisions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {divisionsList.map((item, idx) => {
           const isUploading = uploadingIndex === idx;
@@ -189,164 +274,168 @@ export const ProductDivisionsCustomizerCard = () => {
           return (
             <div 
               key={item.id || idx}
-              className={`bg-neutral-900/70 rounded-2xl border border-neutral-800/90 p-5 space-y-4 flex flex-col hover:border-neutral-700 transition-all group justify-between ${
-                idx === 0 ? 'md:col-span-2 lg:col-span-1' : ''
-              }`}
+              className="bg-neutral-50/80 hover:bg-neutral-50 rounded-2xl border border-neutral-200 p-5 space-y-4 flex flex-col transition-all group justify-between"
             >
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Header Badge */}
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                  <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-white text-rose-800 border border-neutral-200 shadow-2xs">
                     Division #{idx + 1}
                   </span>
-                  <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
-                    {item.badge || `Division ${idx + 1}`}
-                  </span>
+
+                  {divisionsList.length > 1 && (
+                    confirmDeleteIdx === idx ? (
+                      <div className="flex items-center gap-1 animate-in fade-in">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDivision(idx)}
+                          className="px-2 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs"
+                        >
+                          Confirm?
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteIdx(null)}
+                          className="px-1.5 py-1 rounded-lg bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-[11px] font-bold transition-all cursor-pointer"
+                          title="Cancel"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteIdx(idx)}
+                        className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
+                        title={`Remove Division #${idx + 1}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )
+                  )}
                 </div>
 
-                {/* Image Preview */}
-                <div className="relative aspect-16/10 w-full rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 group-hover:border-rose-500/40 transition-all">
+                {/* Image Preview Box */}
+                <div className="relative aspect-16/10 w-full rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 group-hover:border-rose-500/50 transition-all shadow-xs">
                   {item.image ? (
                     <img
                       src={item.image}
                       alt={item.name || `Division ${idx + 1}`}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80';
+                      }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-neutral-600">
-                      <Leaf className="w-8 h-8 opacity-40" />
+                    <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 text-xs">
+                      <Leaf className="w-6 h-6 mb-1 text-neutral-300" />
+                      <span>No image set</span>
                     </div>
                   )}
 
-                  {/* Uploading Overlay */}
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center text-rose-400 gap-2">
-                      <RefreshCw className="w-6 h-6 animate-spin" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Uploading photo...</span>
-                    </div>
-                  )}
-
-                  {/* Quick View Button */}
-                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a
-                      href={item.image}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg bg-black/70 text-white hover:bg-neutral-900 transition-colors inline-flex"
-                      title="View Full Resolution"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </a>
+                  {/* Light Image Badge */}
+                  <div className="absolute top-2 left-2">
+                    <span className="px-2 py-0.5 rounded-md bg-white/95 backdrop-blur-xs text-neutral-900 border border-neutral-200 text-[10px] font-black uppercase tracking-wider shadow-2xs">
+                      Image #{idx + 1}
+                    </span>
                   </div>
                 </div>
 
-                {/* Upload Button & URL input */}
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={(el) => (fileInputRefs.current[idx] = el)}
-                    onChange={(e) => handleFileUpload(e, idx)}
-                    className="hidden"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRefs.current[idx]?.click()}
-                    disabled={isUploading}
-                    className="w-full py-2 px-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Image</span>
-                  </button>
-
-                  <div className="relative">
-                    <LinkIcon className="w-3 h-3 text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="url"
-                      value={item.image || ''}
-                      onChange={(e) => handleFieldChange(idx, 'image', e.target.value)}
-                      placeholder="Or paste image URL"
-                      className="w-full pl-8 pr-2 py-1.5 text-[11px] bg-neutral-950 border border-neutral-800 rounded-xl text-neutral-300 outline-none focus:ring-1 focus:ring-rose-500 font-mono"
-                    />
-                  </div>
-                </div>
-
-                {/* Text Fields: Subtitle, Title / Name, Description, Badge, Quality Tag */}
-                <div className="space-y-3 pt-1">
+                {/* Edit Form Inputs */}
+                <div className="space-y-2.5 pt-1">
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                      <Tag className="w-3 h-3 text-emerald-400" />
-                      Subtitle / Eyebrow
-                    </label>
-                    <input
-                      type="text"
-                      value={item.subtitle || ''}
-                      onChange={(e) => handleFieldChange(idx, 'subtitle', e.target.value)}
-                      placeholder="e.g. Living Superfoods with 40x Nutrient Density"
-                      className="w-full px-3 py-2 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-rose-500 font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                      <FileText className="w-3 h-3 text-rose-400" />
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 block mb-1">
                       Division Name
                     </label>
                     <input
                       type="text"
                       value={item.name || ''}
                       onChange={(e) => handleFieldChange(idx, 'name', e.target.value)}
-                      placeholder="e.g. Living Microgreens & Trays"
-                      className="w-full px-3 py-2 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-rose-500 font-bold"
+                      placeholder="e.g. Living Microgreens"
+                      className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl text-neutral-900 outline-none focus:ring-2 focus:ring-rose-500 font-bold"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                      <FileText className="w-3 h-3 text-amber-400" />
-                      Description
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 block mb-1">
+                      Tag / Division Category
                     </label>
-                    <textarea
-                      rows={3}
-                      value={item.description || ''}
-                      onChange={(e) => handleFieldChange(idx, 'description', e.target.value)}
-                      placeholder="Enter division description..."
-                      className="w-full px-3 py-2 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-neutral-200 outline-none focus:ring-2 focus:ring-rose-500 font-normal leading-relaxed resize-none"
+                    <input
+                      type="text"
+                      value={item.tag || ''}
+                      onChange={(e) => handleFieldChange(idx, 'tag', e.target.value)}
+                      placeholder="e.g. Living Greens Division"
+                      className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl text-neutral-900 outline-none focus:ring-2 focus:ring-rose-500 font-medium"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                        <Award className="w-3 h-3 text-cyan-400" />
-                        Badge Pill
-                      </label>
-                      <input
-                        type="text"
-                        value={item.badge || ''}
-                        onChange={(e) => handleFieldChange(idx, 'badge', e.target.value)}
-                        placeholder="e.g. 3D Living Harvest"
-                        className="w-full px-2.5 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-rose-500 font-medium"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                        <Sparkles className="w-3 h-3 text-teal-400" />
-                        Quality Tag
-                      </label>
-                      <input
-                        type="text"
-                        value={item.tag || ''}
-                        onChange={(e) => handleFieldChange(idx, 'tag', e.target.value)}
-                        placeholder="e.g. 0 Chemical Residue"
-                        className="w-full px-2.5 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-rose-500 font-medium"
-                      />
-                    </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 block mb-1">
+                      Subtitle
+                    </label>
+                    <input
+                      type="text"
+                      value={item.subtitle || ''}
+                      onChange={(e) => handleFieldChange(idx, 'subtitle', e.target.value)}
+                      placeholder="e.g. Harvested Same-Day on Delivery"
+                      className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl text-neutral-800 outline-none focus:ring-2 focus:ring-rose-500 text-xs"
+                    />
                   </div>
 
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 block mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={item.description || ''}
+                      onChange={(e) => handleFieldChange(idx, 'description', e.target.value)}
+                      placeholder="e.g. Nutrient-dense living trays harvested fresh."
+                      className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl text-neutral-800 outline-none focus:ring-2 focus:ring-rose-500 font-normal leading-relaxed resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Upload & Link Controls */}
+              <div className="space-y-2 pt-3 border-t border-neutral-200">
+                <input
+                  type="file"
+                  ref={el => fileInputRefs.current[idx] = el}
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, idx)}
+                  className="hidden"
+                  id={`division-file-${idx}`}
+                />
+
+                <label
+                  htmlFor={`division-file-${idx}`}
+                  className="w-full py-2 px-3 bg-white hover:bg-rose-50 text-rose-800 border border-rose-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs hover:border-rose-500"
+                >
+                  {isUploading ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-rose-600" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Upload Photo File</span>
+                    </>
+                  )}
+                </label>
+
+                <div className="relative">
+                  <LinkIcon className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="url"
+                    value={item.image || ''}
+                    onChange={(e) => handleFieldChange(idx, 'image', e.target.value)}
+                    placeholder="Or paste image URL (https://...)"
+                    className="w-full pl-8 pr-2 py-1.5 text-[11px] bg-white border border-neutral-200 rounded-xl text-neutral-900 outline-none focus:ring-1 focus:ring-rose-500 font-mono"
+                  />
                 </div>
               </div>
 
@@ -355,18 +444,24 @@ export const ProductDivisionsCustomizerCard = () => {
         })}
       </div>
 
-      {/* Bottom Save Action Bar */}
-      <div className="bg-neutral-900/50 rounded-2xl p-4 border border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-400">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>Updates to these 5 cards appear immediately under "Pure Botanical Ingredients & Living Superfoods" on the homepage.</span>
-        </div>
+      {/* Bottom Action */}
+      <div className="pt-4 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={handleAddNewDivision}
+          className="w-full sm:w-auto px-5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Add Another Division Card</span>
+        </button>
+
         <button
           type="button"
           onClick={handleSaveAll}
-          className="px-5 py-2 bg-rose-500 hover:bg-rose-400 text-neutral-950 font-black uppercase tracking-wider rounded-xl text-xs transition-all cursor-pointer shrink-0 shadow-md"
+          className="w-full sm:w-auto px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-rose-700/20 cursor-pointer"
         >
-          Save All 5 Divisions
+          <Save className="w-4 h-4" />
+          <span>Save All {divisionsList.length} Divisions</span>
         </button>
       </div>
 

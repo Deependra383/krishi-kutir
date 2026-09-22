@@ -1,6 +1,5 @@
 import React from 'react';
-import { X, Leaf, ShoppingBag, Zap } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { X, Leaf, MessageCircle, PhoneCall } from 'lucide-react';
 
 export const MicroscopeOverlay = ({
   selectedMicroscopeItem,
@@ -8,21 +7,10 @@ export const MicroscopeOverlay = ({
   activeTheme,
   formatPrice
 }) => {
-  const { addToCart, setIsCartOpen, setIsCheckoutOpen } = useCart();
-
   if (!selectedMicroscopeItem) return null;
 
-  const handleAddAndClose = () => {
-    addToCart(selectedMicroscopeItem, 1);
-    setSelectedMicroscopeItem(null);
-    setIsCartOpen(true);
-  };
-
-  const handleBuyNow = () => {
-    addToCart(selectedMicroscopeItem, 1);
-    setSelectedMicroscopeItem(null);
-    setIsCheckoutOpen(true);
-  };
+  const inquiryMsg = `Hi Krishi Kutir! I am inquiring about ordering *${selectedMicroscopeItem.name}* (${formatPrice ? formatPrice(selectedMicroscopeItem.price) : `₹${selectedMicroscopeItem.price}`} • ${selectedMicroscopeItem.unit || 'Pack'}). Please provide availability and ordering details.`;
+  const whatsappUrl = `https://wa.me/919009911030?text=${encodeURIComponent(inquiryMsg)}`;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6 font-sans">
@@ -103,23 +91,25 @@ export const MicroscopeOverlay = ({
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button 
-              id="microscope-add-bag"
-              onClick={handleAddAndClose}
-              className="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            <a 
+              id="microscope-call-btn"
+              href="tel:+919009911030"
+              className="flex-1 sm:flex-none px-4 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-200 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Add To Bag</span>
-            </button>
+              <PhoneCall className="w-4 h-4 text-emerald-700" />
+              <span>Call: 90099 11030</span>
+            </a>
 
-            <button 
-              id="microscope-buy-now"
-              onClick={handleBuyNow}
-              className="flex-1 sm:flex-none px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md"
+            <a 
+              id="microscope-inquire-whatsapp"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 sm:flex-none px-5 py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
             >
-              <Zap className="w-4 h-4" />
-              <span>Buy with Razorpay</span>
-            </button>
+              <MessageCircle className="w-4 h-4 fill-white/20" />
+              <span>Inquire on WhatsApp</span>
+            </a>
           </div>
         </div>
       </div>

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useScroll } from 'motion/react';
 import { Milk, Apple, Flame, Search } from 'lucide-react';
 import { PowdersOverview } from './powders/PowdersOverview';
 import { PowdersTabContent } from './powders/PowdersTabContent';
 import { useCart } from '../context/CartContext';
+import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 
 export const PowdersAndSpicesSection = ({
   activeTheme,
@@ -15,6 +17,12 @@ export const PowdersAndSpicesSection = ({
   handleCardMouseLeave,
   onOpenAdmin
 }) => {
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"]
+  });
+
   const { addToCart, setIsCheckoutOpen } = useCart();
   const [activeTab, setActiveTab] = useState('dairy'); // 'dairy' | 'fruits-veg' | 'spices'
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,7 +44,15 @@ export const PowdersAndSpicesSection = ({
   };
 
   return (
-    <section id="powders-spices-section" className="py-20 px-4 sm:px-6 max-w-7xl mx-auto space-y-12 font-sans">
+    <section 
+      id="powders-spices-section" 
+      ref={sectionRef}
+      className="w-full py-20 px-4 sm:px-6 lg:px-8 space-y-12 font-sans relative overflow-hidden"
+    >
+      {/* Background Botanical Decor */}
+      <BotanicalSectionBackdrop variant="powders" scrollYProgress={scrollYProgress} />
+
+      <div className="max-w-7xl mx-auto relative z-10 space-y-12">
       {/* 1. Header Overview */}
       <PowdersOverview />
 
@@ -117,6 +133,7 @@ export const PowdersAndSpicesSection = ({
         handleCardMouseLeave={handleCardMouseLeave}
         onOpenAdmin={onOpenAdmin}
       />
+      </div>
     </section>
   );
 };

@@ -12,11 +12,11 @@ import { AdminHeader } from './admin/AdminHeader';
 import { AdminKpiBar } from './admin/AdminKpiBar';
 import { ProductsTab } from './admin/ProductsTab';
 import { ProductFormModal } from './admin/ProductFormModal';
-import { OrdersTab } from './admin/OrdersTab';
 import { PartnerInquiriesTab } from './admin/PartnerInquiriesTab';
 import { TrainingInquiriesTab } from './admin/TrainingInquiriesTab';
 import { UsersTab } from './admin/UsersTab';
 import { StoreSettingsTab } from './admin/StoreSettingsTab';
+import { LogoCustomizerCard } from './admin/LogoCustomizerCard';
 import { HomepageImagesCard } from './admin/HomepageImagesCard';
 import { FoundersCustomizerCard } from './admin/FoundersCustomizerCard';
 import { EventsWorkshopsCard } from './admin/EventsWorkshopsCard';
@@ -25,7 +25,15 @@ import { ProductDivisionsCustomizerCard } from './admin/ProductDivisionsCustomiz
 
 export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   const { products, addProduct, updateProduct, deleteProduct, resetToDefaultCatalog } = useProducts();
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, isAdmin } = useAuth();
+  const isStrictAdmin = isAdmin && (currentUser?.email || '').trim().toLowerCase() === 'krishi345@gmail.com';
+
+  useEffect(() => {
+    if (!isStrictAdmin) {
+      onBackToStore();
+    }
+  }, [isStrictAdmin, onBackToStore]);
+
   const [activeTab, setActiveTab] = useState('products'); // 'products' | 'orders' | 'partners' | 'training' | 'users' | 'settings'
 
   // Admin Theme Mode: connected to global useTheme
@@ -94,6 +102,7 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
 
   // Subscribe to all orders, users, partner inquiries, training inquiries
   useEffect(() => {
+    if (!isStrictAdmin) return;
     let unsubscribeOrders = null;
     let unsubscribeUsers = null;
     let unsubscribePartners = null;
@@ -262,7 +271,7 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
       if (sbTrainingsChan && supabase) supabase.removeChannel(sbTrainingsChan);
       if (sbUsersChan && supabase) supabase.removeChannel(sbUsersChan);
     };
-  }, []);
+  }, [isStrictAdmin]);
 
   // Filtered Products
   const filteredProducts = (products || []).filter(p => {
@@ -290,12 +299,6 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   const pendingOrdersCount = orders.filter(
     o => (o.status || 'Pending Verification') === 'Pending Verification' || o.status === 'Placed'
   ).length;
-
-  // Calculate gross sales
-  const grossRevenue = orders.reduce((sum, o) => {
-    if (o.status === 'Cancelled') return sum;
-    return sum + (Number(o.totalAmount) || 0);
-  }, 0);
 
   // New Inquiries counts
   const newPartnerCount = partnerInquiries.filter(p => !p.status || p.status === 'New Lead' || p.status === 'New Partner Inquiry').length;
@@ -466,15 +469,33 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
     }
   };
 
+  if (!isStrictAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-50 text-neutral-900 p-6">
+        <div className="text-center space-y-4 max-w-md bg-white p-8 rounded-3xl border border-neutral-200 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 border border-red-200 mx-auto flex items-center justify-center font-bold">
+            !
+          </div>
+          <h2 className="text-lg font-bold">Access Restricted</h2>
+          <p className="text-xs text-neutral-500">
+            Only the authorized administrator account (<span className="text-emerald-700 font-mono font-bold">krishi345@gmail.com</span>) can access the store management console.
+          </p>
+          <button
+            onClick={onBackToStore}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer"
+          >
+            Back to Store
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       id="admin-dashboard-root"
       style={{ fontFamily: "'Cereal', 'Airbnb Cereal App', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" }}
-      className={`min-h-screen admin-dashboard flex flex-col antialiased transition-colors duration-200 ${
-        isDarkMode 
-          ? 'admin-dark-mode bg-neutral-900 text-neutral-100' 
-          : 'admin-light-mode bg-slate-100 text-slate-800'
-      }`}
+      className="min-h-screen admin-dashboard flex flex-col antialiased admin-light-mode bg-neutral-100 text-neutral-900"
     >
       
       {/* 1. Modular Admin Header */}
@@ -494,16 +515,11 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
         logout={logout}
         onOpenAdd={handleOpenAdd}
         onResetCatalog={handleResetCatalog}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={handleToggleDarkMode}
       />
 
       {/* 2. Modular KPI Metric Counters Bar */}
       <AdminKpiBar
         productsCount={products?.length || 0}
-        ordersCount={orders.length}
-        grossRevenue={grossRevenue}
-        formatPrice={formatPrice}
         partnerInquiriesCount={partnerInquiries.length}
         trainingInquiriesCount={trainingInquiries.length}
         registeredUsersCount={registeredUsers.length}
@@ -538,21 +554,7 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
           />
         )}
 
-        {/* TAB 2: LIVE ORDERS */}
-        {activeTab === 'orders' && (
-          <OrdersTab
-            orders={orders}
-            filteredOrders={filteredOrders}
-            loadingOrders={loadingOrders}
-            orderStatusFilter={orderStatusFilter}
-            setOrderStatusFilter={setOrderStatusFilter}
-            formatPrice={formatPrice}
-            handleUpdateOrderStatus={handleUpdateOrderStatus}
-            isDarkMode={isDarkMode}
-          />
-        )}
-
-        {/* TAB 3: B2B PARTNER INQUIRIES */}
+        {/* TAB 2: B2B PARTNER INQUIRIES */}
         {activeTab === 'partners' && (
           <PartnerInquiriesTab 
             inquiries={partnerInquiries} 
@@ -581,10 +583,11 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
         {/* TAB 6: HOMEPAGE, FOUNDERS & EVENTS MEDIA CUSTOMIZER */}
         {activeTab === 'media' && (
           <div className="max-w-6xl mx-auto space-y-8">
-            <InfrastructureCustomizerCard />
-            <ProductDivisionsCustomizerCard />
-            <EventsWorkshopsCard />
+            <LogoCustomizerCard />
             <HomepageImagesCard />
+            <ProductDivisionsCustomizerCard />
+            <InfrastructureCustomizerCard />
+            <EventsWorkshopsCard />
             <FoundersCustomizerCard />
           </div>
         )}
@@ -616,34 +619,22 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
 
       {/* Product Delete Confirmation Modal */}
       {productToDelete && (
-        <div className={`fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 ${!isDarkMode ? 'admin-light-mode' : 'admin-dark-mode'}`}>
-          <div className={`${
-            isDarkMode 
-              ? 'bg-neutral-950 text-white border-neutral-800' 
-              : 'bg-white text-neutral-900 border-neutral-200'
-          } rounded-3xl p-6 sm:p-7 max-w-sm w-full space-y-4 shadow-2xl border animate-in fade-in zoom-in-95 duration-150`}>
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-inner ${
-              isDarkMode 
-                ? 'bg-red-950 text-red-400 border border-red-800/40' 
-                : 'bg-red-50 text-red-600 border border-red-200'
-            }`}>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 admin-light-mode">
+          <div className="bg-white text-neutral-900 border border-neutral-200 rounded-3xl p-6 sm:p-7 max-w-sm w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto bg-red-50 text-red-600 border border-red-200">
               <Trash2 className="w-6 h-6" />
             </div>
             <div className="text-center space-y-1">
-              <h3 className={`text-base font-black uppercase ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>Remove from Catalog?</h3>
-              <p className={`text-xs leading-relaxed ${isDarkMode ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                Are you sure you want to permanently delete <strong className={`font-bold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>"{productToDelete.name}"</strong>? This will remove it from all store visitors immediately.
+              <h3 className="text-base font-black uppercase text-neutral-900">Remove from Catalog?</h3>
+              <p className="text-xs leading-relaxed text-neutral-600">
+                Are you sure you want to permanently delete <strong className="font-bold text-neutral-900">"{productToDelete.name}"</strong>? This will remove it from all store visitors immediately.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setProductToDelete(null)}
-                className={`py-2.5 px-4 rounded-xl border text-xs font-bold uppercase transition-all cursor-pointer ${
-                  isDarkMode 
-                    ? 'border-neutral-800 text-neutral-300 hover:bg-neutral-900' 
-                    : 'border-neutral-200 text-neutral-700 hover:bg-neutral-100'
-                }`}
+                className="py-2.5 px-4 rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-100 text-xs font-bold uppercase transition-all cursor-pointer"
               >
                 Cancel
               </button>

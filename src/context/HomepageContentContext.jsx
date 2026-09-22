@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HOME_3D_ASSETS } from '../data';
 import defaultRachnaImg from '../assets/images/founder_portrait_1788864054548.jpg';
+import botanicalHeroBanner from '../assets/images/botanical_hero_banner.jpg';
 
 const DEFAULT_FOUNDERS = {
   founder1: {
@@ -19,13 +20,68 @@ const DEFAULT_FOUNDERS = {
   }
 };
 
+export const DEFAULT_HERO_SLIDES = [
+  {
+    id: 'slide-1',
+    title: "Skin Care & Botanical Harvest",
+    heading: "Bringing Out The Beauty In You",
+    description: "Nurtured with zero pesticides in our Bhopal vertical farm and botanical gardens. Experience living microgreens, pure sun-cured botanical powders, and restorative herbal wellness crafted to nourish your skin, body, and vitality.",
+    image: botanicalHeroBanner,
+    accent: "Living Microgreens, Pure Herbal Clays & Botanical Infusions",
+    tag: "Skin Care Product",
+    badge: "Krishi Kutir • Pure Botanical Harvest",
+    overlaySub: "Bhopal Botanical & Vertical Farm",
+    overlayCap: "100% Pure Organic Vitality",
+    target: "#full-catalogue-section"
+  },
+  {
+    id: 'slide-2',
+    title: "100% Pure. Plant Powered.",
+    heading: "Herbal Powders, Pure Extracts & Spices",
+    description: "Dehydrated superfoods, dairy-free milk powders, organic vegetable powders, and fragrant whole spices processed under ISO 22000 and FSSAI hygienic standards.",
+    image: HOME_3D_ASSETS.spices,
+    accent: "Lakadong Turmeric, Moringa, Beetroot & Amla",
+    tag: "Natural Nutrition & Extracts",
+    badge: "Krishi Kutir • Ayurvedic Potency",
+    overlaySub: "Leaf Lounge Processing Unit",
+    overlayCap: "Pure Plant Concentrates",
+    target: "#powders-spices-section"
+  },
+  {
+    id: 'slide-3',
+    title: "Grow Together. Supply Chain Excellence.",
+    heading: "Partner With Krishi Kutir - B2B & Wholesale",
+    description: "Reliable commercial supply for restaurants, cafes, supermarkets, wellness brands, and international distributors with customized bulk pricing and cold-chain dispatch.",
+    image: HOME_3D_ASSETS.verticalFarm,
+    accent: "HoReCa Supply, Contract Farming & Export Shipments",
+    tag: "B2B & Institutional",
+    badge: "Krishi Kutir • Commercial Grade",
+    overlaySub: "Bhopal Vertical Facility",
+    overlayCap: "Commercial Grow Racks",
+    target: "#partner-with-us"
+  },
+  {
+    id: 'slide-4',
+    title: "Natural Food Solutions. 100% Traceable.",
+    heading: "Cryo-Dehydrated Fruit & Vegetable Powders",
+    description: "Serving taste with purity: retain over 95% of native active enzymes and natural colors without chemical additives, carriers, or artificial preservatives.",
+    image: HOME_3D_ASSETS.botanicalPowders,
+    accent: "Tomato Umami, Mint, Spinach & Green Mango",
+    tag: "Botanical Ingredients",
+    badge: "Krishi Kutir • Cryo Processed",
+    overlaySub: "Zero Additives Laboratory",
+    overlayCap: "Active Enzymes Certified",
+    target: "#powders-spices-section"
+  }
+];
+
 const DEFAULT_HOME_IMAGES = {
   microgreens: {
     id: 'microgreens',
-    title: 'Living Microgreens Tray',
-    label: 'Image 1: Living Microgreens & Harvest Trays',
-    description: 'Displayed in Hero Slider (Slide 1) and Product Divisions Grid (Living Microgreens)',
-    url: HOME_3D_ASSETS.microgreens
+    title: 'Skin Care & Botanical Wellness',
+    label: 'Image 1: Botanical Hero & Wellness',
+    description: 'Displayed in Hero Slider (Slide 1) and Botanical Wellness Showcase',
+    url: botanicalHeroBanner
   },
   botanicalPowders: {
     id: 'botanicalPowders',
@@ -201,12 +257,14 @@ export const useHomepageContent = () => {
   if (!context) {
     return {
       founders: DEFAULT_FOUNDERS,
+      heroSlides: DEFAULT_HERO_SLIDES,
       homeImages: DEFAULT_HOME_IMAGES,
       footerImages: DEFAULT_FOOTER_IMAGES,
       eventsWorkshops: DEFAULT_EVENTS_WORKSHOPS,
       infrastructureCards: DEFAULT_INFRASTRUCTURE_CARDS,
       divisionCards: DEFAULT_DIVISION_CARDS,
       defaultFounders: DEFAULT_FOUNDERS,
+      defaultHeroSlides: DEFAULT_HERO_SLIDES,
       defaultHomeImages: DEFAULT_HOME_IMAGES,
       defaultFooterImages: DEFAULT_FOOTER_IMAGES,
       defaultEventsWorkshops: DEFAULT_EVENTS_WORKSHOPS,
@@ -215,21 +273,34 @@ export const useHomepageContent = () => {
       updateFounder: () => {},
       saveFounders: () => {},
       resetFounders: () => {},
+      updateHeroSlide: () => {},
+      saveHeroSlides: () => {},
+      resetHeroSlides: () => {},
+      addHeroSlide: () => {},
+      deleteHeroSlide: () => {},
       updateHomeImage: () => {},
       saveHomeImages: () => {},
       resetHomeImages: () => {},
       updateFooterImage: () => {},
       saveFooterImages: () => {},
       resetFooterImages: () => {},
+      addFooterImage: () => {},
+      deleteFooterImage: () => {},
       updateEventWorkshop: () => {},
       saveEventsWorkshops: () => {},
       resetEventsWorkshops: () => {},
+      addEventWorkshop: () => {},
+      deleteEventWorkshop: () => {},
       updateInfrastructureCard: () => {},
       saveInfrastructureCards: () => {},
       resetInfrastructureCards: () => {},
+      addInfrastructureCard: () => {},
+      deleteInfrastructureCard: () => {},
       updateDivisionCard: () => {},
       saveDivisionCards: () => {},
       resetDivisionCards: () => {},
+      addDivisionCard: () => {},
+      deleteDivisionCard: () => {},
       savedSuccess: false
     };
   }
@@ -264,7 +335,32 @@ export const HomepageContentProvider = ({ children }) => {
     return DEFAULT_FOUNDERS;
   });
 
-  // 2. Home Images State
+  // 1b. Hero Slides State (Dynamic Home Carousel with Editable Text & Images)
+  const [heroSlides, setHeroSlides] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('krishi_hero_slides_config');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Auto-upgrade slide-1 to the new botanical hero if it has the older title
+            const upgraded = parsed.map((s, idx) => {
+              if (idx === 0 && (!s.heading || s.heading.includes('Fresh Microgreens & Live Growing Trays'))) {
+                return { ...s, ...DEFAULT_HERO_SLIDES[0] };
+              }
+              return s;
+            });
+            return upgraded;
+          }
+        }
+      } catch (e) {
+        console.warn('Error reading hero slides config from localStorage:', e);
+      }
+    }
+    return DEFAULT_HERO_SLIDES;
+  });
+
+  // 2. Home Images State (kept synced for legacy callers)
   const [homeImages, setHomeImages] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -371,6 +467,14 @@ export const HomepageContentProvider = ({ children }) => {
           });
         } catch {}
       }
+      if (e.key === 'krishi_hero_slides_config' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setHeroSlides(parsed);
+          }
+        } catch {}
+      }
       if (e.key === 'krishi_home_images_config' && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
@@ -463,6 +567,85 @@ export const HomepageContentProvider = ({ children }) => {
     }
   };
 
+  // HERO SLIDES METHODS
+  const updateHeroSlide = (index, field, value) => {
+    setHeroSlides(prev => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], [field]: value };
+      }
+      try {
+        localStorage.setItem('krishi_hero_slides_config', JSON.stringify(updated));
+      } catch (err) {
+        console.warn('Error persisting hero slides config:', err);
+      }
+      return updated;
+    });
+  };
+
+  const saveHeroSlides = (newSlides) => {
+    setHeroSlides(newSlides);
+    try {
+      localStorage.setItem('krishi_hero_slides_config', JSON.stringify(newSlides));
+      // Also update homeImages for backward compatibility
+      if (newSlides[0]?.image) updateHomeImage('microgreens', newSlides[0].image);
+      if (newSlides[1]?.image) updateHomeImage('spices', newSlides[1].image);
+      if (newSlides[2]?.image) updateHomeImage('verticalFarm', newSlides[2].image);
+      if (newSlides[3]?.image) updateHomeImage('botanicalPowders', newSlides[3].image);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      console.warn('Error saving hero slides config:', err);
+    }
+  };
+
+  const resetHeroSlides = () => {
+    setHeroSlides(DEFAULT_HERO_SLIDES);
+    try {
+      localStorage.removeItem('krishi_hero_slides_config');
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      console.warn('Error resetting hero slides config:', err);
+    }
+  };
+
+  const addHeroSlide = (newSlide) => {
+    setHeroSlides(prev => {
+      const slideId = `slide-${Date.now()}`;
+      const defaultNew = {
+        id: slideId,
+        title: "Krishi Kutir Harvest",
+        heading: "New Living Harvest Showcase",
+        description: "Freshly cultivated in our automated Bhopal facility with 100% natural, chemical-free standards.",
+        image: HOME_3D_ASSETS.microgreens,
+        accent: "Featured Farm Lot",
+        tag: "Fresh Harvest",
+        badge: "Krishi Kutir • Live Batch",
+        overlaySub: "Leaf Lounge Vertical Farm",
+        overlayCap: "Hydroponic Facility",
+        target: "#microgreens-section",
+        ...(newSlide || {})
+      };
+      const updated = [...prev, defaultNew];
+      try {
+        localStorage.setItem('krishi_hero_slides_config', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+  };
+
+  const deleteHeroSlide = (index) => {
+    setHeroSlides(prev => {
+      if (prev.length <= 1) return prev;
+      const updated = prev.filter((_, i) => i !== index);
+      try {
+        localStorage.setItem('krishi_hero_slides_config', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
+  };
+
   // Update single home image
   const updateHomeImage = (imageKey, newUrl) => {
     setHomeImages(prev => {
@@ -549,6 +732,34 @@ export const HomepageContentProvider = ({ children }) => {
     }
   };
 
+  const addFooterImage = (newImg) => {
+    setFooterImages(prev => {
+      const defaultNew = {
+        id: `footer-img-${Date.now()}`,
+        title: 'Krishi Kutir Live Facility',
+        subtitle: 'Harvest Snapshot',
+        url: 'https://images.unsplash.com/photo-1592417817098-8f3d69106093?auto=format&fit=crop&w=600&q=80',
+        ...(newImg || {})
+      };
+      const updated = [...prev, defaultNew];
+      try {
+        localStorage.setItem('krishi_footer_images_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const deleteFooterImage = (index) => {
+    setFooterImages(prev => {
+      if (prev.length <= 1) return prev;
+      const updated = prev.filter((_, i) => i !== index);
+      try {
+        localStorage.setItem('krishi_footer_images_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
   // Update single event / workshop field
   const updateEventWorkshop = (index, field, value) => {
     setEventsWorkshops(prev => {
@@ -590,6 +801,35 @@ export const HomepageContentProvider = ({ children }) => {
     } catch (err) {
       console.warn('Error resetting events workshops config:', err);
     }
+  };
+
+  const addEventWorkshop = (newEvent) => {
+    setEventsWorkshops(prev => {
+      const defaultNew = {
+        id: `event-${Date.now()}`,
+        title: 'New Workshop / Farm Session',
+        location: 'Bhopal Chapter',
+        desc: 'Interactive workshop on vertical microgreen cultivation and clean superfoods.',
+        image: 'https://images.unsplash.com/photo-1544535830-9d5a6724cd31?auto=format&fit=crop&w=500&q=80',
+        ...(newEvent || {})
+      };
+      const updated = [...prev, defaultNew];
+      try {
+        localStorage.setItem('krishi_events_workshops_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const deleteEventWorkshop = (index) => {
+    setEventsWorkshops(prev => {
+      if (prev.length <= 1) return prev;
+      const updated = prev.filter((_, i) => i !== index);
+      try {
+        localStorage.setItem('krishi_events_workshops_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
   // Update single infrastructure card field
@@ -635,6 +875,36 @@ export const HomepageContentProvider = ({ children }) => {
     }
   };
 
+  const addInfrastructureCard = (newCard) => {
+    setInfrastructureCards(prev => {
+      const defaultNew = {
+        id: `infra-${Date.now()}`,
+        category: 'Supply Facility',
+        title: 'New Infrastructure Unit',
+        desc: 'Advanced automated climate-controlled racks and cold-chain distribution center.',
+        badge: '100% Quality Inspected',
+        image: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80',
+        ...(newCard || {})
+      };
+      const updated = [...prev, defaultNew];
+      try {
+        localStorage.setItem('krishi_infrastructure_cards_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const deleteInfrastructureCard = (index) => {
+    setInfrastructureCards(prev => {
+      if (prev.length <= 1) return prev;
+      const updated = prev.filter((_, i) => i !== index);
+      try {
+        localStorage.setItem('krishi_infrastructure_cards_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
   // Update single division card field
   const updateDivisionCard = (index, field, value) => {
     setDivisionCards(prev => {
@@ -678,16 +948,51 @@ export const HomepageContentProvider = ({ children }) => {
     }
   };
 
+  const addDivisionCard = (newCard) => {
+    setDivisionCards(prev => {
+      const defaultNew = {
+        id: `div-${Date.now()}`,
+        name: 'New Botanical Product Division',
+        subtitle: 'Natural Living Harvest & Superfoods',
+        description: 'Cultivated and produced under clean room and natural organic farming conditions.',
+        image: HOME_3D_ASSETS.microgreens,
+        badge: 'Pure Botanical',
+        badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+        tag: '100% Traceable',
+        target: '#full-catalogue-section',
+        ...(newCard || {})
+      };
+      const updated = [...prev, defaultNew];
+      try {
+        localStorage.setItem('krishi_division_cards_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const deleteDivisionCard = (index) => {
+    setDivisionCards(prev => {
+      if (prev.length <= 1) return prev;
+      const updated = prev.filter((_, i) => i !== index);
+      try {
+        localStorage.setItem('krishi_division_cards_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
   return (
     <HomepageContentContext.Provider
       value={{
         founders,
+        heroSlides,
         homeImages,
         footerImages,
         eventsWorkshops,
         infrastructureCards,
         divisionCards,
         defaultFounders: DEFAULT_FOUNDERS,
+        defaultHeroSlides: DEFAULT_HERO_SLIDES,
         defaultHomeImages: DEFAULT_HOME_IMAGES,
         defaultFooterImages: DEFAULT_FOOTER_IMAGES,
         defaultEventsWorkshops: DEFAULT_EVENTS_WORKSHOPS,
@@ -696,21 +1001,34 @@ export const HomepageContentProvider = ({ children }) => {
         updateFounder,
         saveFounders,
         resetFounders,
+        updateHeroSlide,
+        saveHeroSlides,
+        resetHeroSlides,
+        addHeroSlide,
+        deleteHeroSlide,
         updateHomeImage,
         saveHomeImages,
         resetHomeImages,
         updateFooterImage,
         saveFooterImages,
         resetFooterImages,
+        addFooterImage,
+        deleteFooterImage,
         updateEventWorkshop,
         saveEventsWorkshops,
         resetEventsWorkshops,
+        addEventWorkshop,
+        deleteEventWorkshop,
         updateInfrastructureCard,
         saveInfrastructureCards,
         resetInfrastructureCards,
+        addInfrastructureCard,
+        deleteInfrastructureCard,
         updateDivisionCard,
         saveDivisionCards,
         resetDivisionCards,
+        addDivisionCard,
+        deleteDivisionCard,
         savedSuccess
       }}
     >

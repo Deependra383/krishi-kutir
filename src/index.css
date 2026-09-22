@@ -3,12 +3,33 @@
 
 /* Global Smooth Scrolling and Anchor Offset */
 html {
-  scroll-behavior: smooth !important;
+  scroll-behavior: smooth;
   scroll-padding-top: 5.5rem;
+}
+
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
 }
 
 body {
   overflow-x: hidden;
+}
+
+/* Editorial Serif for Luxury Botanical Hero */
+.font-serif-hero {
+  font-family: 'Playfair Display', Georgia, Cambria, 'Times New Roman', Times, serif;
 }
 
 /* ==========================================================================

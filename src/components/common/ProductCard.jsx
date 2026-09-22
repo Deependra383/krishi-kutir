@@ -1,132 +1,87 @@
 import React from 'react';
-import { ShoppingBag, ZoomIn, ShieldCheck, Check } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getCategoryFallbackImage } from '../../utils/categoryImages';
 
 export const ProductCard = ({
   product,
   formatPrice,
-  onAddToCart,
-  onBuyNow,
-  isAdded,
-  onInspect,
   onOpenAdmin,
-  badgeText,
-  badgeColor = 'bg-neutral-900 text-white'
+  badgeText
 }) => {
   const { isAdmin } = useAuth();
   const fallbackImg = getCategoryFallbackImage(product.category, product.name);
 
+  const formattedPrice = formatPrice ? formatPrice(product.price) : `₹${product.price}`;
+
   return (
     <div
       id={`product-card-${product.id}`}
-      className="bg-white border border-neutral-200/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between group transition-all duration-300 hover:border-emerald-300 hover:shadow-xl select-none"
+      className="relative z-10 bg-white border border-neutral-200/90 rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col justify-between group transition-all duration-300 hover:border-emerald-300 hover:shadow-xl hover:-translate-y-1 select-none"
     >
-      <div>
-        {/* Product Image Container - Clean without text written on top of image */}
-        <div className="h-48 sm:h-52 rounded-xl overflow-hidden relative mb-4 bg-neutral-100">
-          <img
-            src={product.image || fallbackImg}
-            alt={product.name}
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = fallbackImg;
-            }}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-
-          {/* Quick Inspect Button */}
-          {onInspect && (
-            <button
-              onClick={() => onInspect(product)}
-              title="View product details & lab specs"
-              className="absolute bottom-3 right-3 p-2.5 bg-white/90 hover:bg-white text-neutral-800 rounded-xl opacity-0 group-hover:opacity-100 transition-all cursor-pointer shadow-md hover:scale-105"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Admin Quick Action */}
-          {isAdmin && onOpenAdmin && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenAdmin();
+      <div className="flex flex-col h-full justify-between">
+        <div>
+          {/* ================= FULL COVER IMAGE ABOVE DETAILS ================= */}
+          <div className="relative w-full h-40 sm:h-52 md:h-56 overflow-hidden bg-neutral-100">
+            <img
+              src={product.image || fallbackImg}
+              alt={product.name}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = fallbackImg;
               }}
-              className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-amber-400 text-neutral-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" /> Edit
-            </button>
-          )}
-        </div>
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
 
-        {/* Product Details */}
-        <div className="space-y-2">
-          {/* Subtitle / Category Pill */}
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-              {badgeText || product.category || 'Krishi Kutir'}
-            </span>
-            {product.moq && (
-              <span className="text-neutral-500 text-[10px] font-mono shrink-0">
-                MOQ: {product.moq}
-              </span>
-            )}
-          </div>
-
-          <h4 className="font-bold text-neutral-900 text-sm sm:text-base leading-snug group-hover:text-emerald-700 transition-colors">
-            {product.name}
-          </h4>
-          
-          <p className="text-xs text-neutral-600 font-light line-clamp-2 min-h-[2.75rem] leading-relaxed">
-            {product.benefit || 'Pure, nutrient-dense organic harvest.'}
-          </p>
-          
-          <div className="pt-2 border-t border-neutral-100 flex items-baseline justify-between">
-            <div>
-              <span className="text-lg font-black text-neutral-900">
-                {formatPrice(product.price)}
-              </span>
-              <span className="text-xs text-neutral-500 font-normal">
-                {' '}• {product.unit || 'Pack'}
-              </span>
-            </div>
-
-            {onInspect && (
+            {/* Admin Quick Edit Button */}
+            {isAdmin && onOpenAdmin && (
               <button
-                onClick={() => onInspect(product)}
-                className="text-xs text-emerald-700 hover:text-emerald-800 font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenAdmin();
+                }}
+                className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-amber-400 text-neutral-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md opacity-90 hover:opacity-100 transition-all cursor-pointer z-10"
               >
-                Details
+                <ShieldCheck className="w-3.5 h-3.5" /> Edit
               </button>
             )}
           </div>
+
+          {/* ================= CARD DETAILS ================= */}
+          <div className="p-3.5 sm:p-4 md:p-5 space-y-2 pb-4 sm:pb-5">
+            {/* Title and Price */}
+            <div className="flex items-baseline justify-between gap-1.5">
+              <h4 
+                className="font-bold text-neutral-900 text-xs sm:text-base leading-snug line-clamp-1 group-hover:text-emerald-700 transition-colors"
+                title={product.name}
+              >
+                {product.name}
+              </h4>
+              <span className="font-extrabold text-emerald-800 text-xs sm:text-base tracking-tight shrink-0 font-sans">
+                {formattedPrice}
+              </span>
+            </div>
+
+            {/* Category / Unit Subtitle */}
+            <div className="flex items-center justify-between gap-1 -mt-0.5">
+              <span className="text-[10px] sm:text-xs text-neutral-400 font-medium capitalize line-clamp-1">
+                {badgeText || product.category || 'Organic Farm Produce'}
+              </span>
+              {product.unit && (
+                <span className="text-[9px] sm:text-[10px] text-neutral-400 font-mono shrink-0">
+                  • {product.unit}
+                </span>
+              )}
+            </div>
+
+            {/* Description matching home page text style */}
+            <p className="text-xs sm:text-sm text-neutral-600 font-light leading-relaxed pt-1 line-clamp-3 sm:line-clamp-4">
+              {product.benefit || product.description || 'Pure, nutrient-dense organic harvest cultivated with zero chemical pesticides in our Bhopal vertical farm and botanical reserve.'}
+            </p>
+          </div>
         </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="mt-4 pt-3 border-t border-neutral-100 grid grid-cols-2 gap-2">
-        <button
-          id={`add-cart-${product.id}`}
-          onClick={(e) => onAddToCart(e, product)}
-          className={`py-2.5 px-2 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 border shadow-2xs ${
-            isAdded
-              ? 'bg-emerald-700 text-white border-emerald-700'
-              : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
-          }`}
-        >
-          {isAdded ? <Check className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
-          <span>{isAdded ? 'Added' : 'Add to Bag'}</span>
-        </button>
-
-        <button
-          id={`buy-now-${product.id}`}
-          onClick={(e) => onBuyNow(e, product)}
-          className="py-2.5 px-2 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white transition-all cursor-pointer flex items-center justify-center shadow-md shadow-emerald-700/20"
-        >
-          <span>Buy Now</span>
-        </button>
       </div>
     </div>
   );

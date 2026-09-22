@@ -8,11 +8,14 @@ import {
   Sparkles, 
   Link as LinkIcon, 
   RefreshCw, 
-  Eye, 
   Tag, 
   FileText, 
   ShieldCheck,
-  Award
+  Plus,
+  Trash2,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useHomepageContent } from '../../context/HomepageContentContext';
 import { uploadProductImage, isSupabaseConfigured } from '../../supabase';
@@ -22,6 +25,8 @@ export const InfrastructureCustomizerCard = () => {
     infrastructureCards, 
     saveInfrastructureCards, 
     resetInfrastructureCards, 
+    addInfrastructureCard,
+    deleteInfrastructureCard,
     defaultInfrastructureCards 
   } = useHomepageContent();
 
@@ -32,8 +37,11 @@ export const InfrastructureCustomizerCard = () => {
   });
 
   const [uploadingIndex, setUploadingIndex] = useState(null);
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
   // Refs for each card's file input
   const fileInputRefs = useRef([]);
@@ -109,80 +117,155 @@ export const InfrastructureCustomizerCard = () => {
     }
   };
 
+  const handleAddNewCard = () => {
+    const newIdx = cardsList.length + 1;
+    const newCard = {
+      id: `infra-${Date.now()}`,
+      category: 'Facility & Logistics',
+      title: `Facility Logistics & Cold Chain #${newIdx}`,
+      desc: 'Active climate-monitored vertical farming with ISO-aligned sterile packing and rapid dispatch.',
+      image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80',
+      badge: 'Certified Clean Lot'
+    };
+
+    setCardsList(prev => [...prev, newCard]);
+    addInfrastructureCard(newCard);
+    setSuccessMsg(`Added new Infrastructure & Partner Card #${newIdx}! You can now edit its photography and details.`);
+    setTimeout(() => setSuccessMsg(''), 3500);
+  };
+
+  const handleDeleteCard = (index) => {
+    if (cardsList.length <= 1) {
+      setErrorMsg('You must maintain at least one card in this section.');
+      setTimeout(() => setErrorMsg(''), 3000);
+      return;
+    }
+
+    if (confirmDeleteIdx !== index) {
+      setConfirmDeleteIdx(index);
+      return;
+    }
+
+    setCardsList(prev => prev.filter((_, i) => i !== index));
+    deleteInfrastructureCard(index);
+    setConfirmDeleteIdx(null);
+    setSuccessMsg(`Card #${index + 1} removed successfully.`);
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
   const handleSaveAll = () => {
     saveInfrastructureCards(cardsList);
-    setSuccessMsg('All 4 Infrastructure & Supply Guarantee cards updated and published live!');
+    setSuccessMsg(`All ${cardsList.length} Collaborate & Partner Section infrastructure cards updated and published live!`);
     setTimeout(() => setSuccessMsg(''), 3500);
   };
 
   const handleResetToDefaults = () => {
-    if (window.confirm('Reset all 4 Infrastructure & Supply Guarantee cards back to default photos and text?')) {
-      resetInfrastructureCards();
-      setCardsList(defaultInfrastructureCards);
-      setSuccessMsg('Reset all 4 infrastructure cards to original defaults.');
-      setTimeout(() => setSuccessMsg(''), 3500);
+    if (!confirmReset) {
+      setConfirmReset(true);
+      setTimeout(() => setConfirmReset(false), 4000);
+      return;
     }
+    resetInfrastructureCards();
+    setCardsList(defaultInfrastructureCards);
+    setConfirmReset(false);
+    setSuccessMsg('Reset all infrastructure cards to original defaults.');
+    setTimeout(() => setSuccessMsg(''), 3500);
   };
 
   return (
-    <div className="bg-neutral-950 rounded-3xl border border-neutral-800/80 p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden">
-      {/* Top Accent Gradient */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500"></div>
-
+    <div id="infrastructure-customizer-card" className="bg-white rounded-3xl border border-neutral-200 p-6 sm:p-8 space-y-6 shadow-sm relative overflow-hidden">
+      
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-900 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
               <Building2 className="w-5 h-5" />
             </span>
-            <span className="text-xs uppercase font-black tracking-widest text-emerald-400">Collaborate & Partner Section</span>
+            <span className="text-xs uppercase font-black tracking-widest text-emerald-700">Collaborate & Partner Section</span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white flex items-center gap-2">
-            Our Infrastructure & Supply Guarantee (4 Cards)
-          </h3>
-          <p className="text-neutral-400 text-xs max-w-2xl leading-relaxed">
-            Upload custom photos and edit the category, title, description, and guarantee badge for each of the 4 cards in "Our Infrastructure & Supply Guarantee".
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-black uppercase tracking-tight text-neutral-900">
+              Our Infrastructure & Supply Guarantee
+            </h3>
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+              {cardsList.length} Cards Active
+            </span>
+          </div>
+          <p className="text-neutral-500 text-xs max-w-2xl leading-relaxed">
+            Customize the photography, division title, and supply guarantees in the "Collaborate & Partner" storefront section. You can add more cards as needed.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowGuide(prev => !prev)}
+            className="p-2.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-neutral-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Guide</span>
+            {showGuide ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAddNewCard}
+            className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add More Images</span>
+          </button>
+
           <button
             type="button"
             onClick={handleResetToDefaults}
             title="Reset cards to original defaults"
-            className="p-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            className="p-2.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 text-neutral-600 border border-neutral-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Reset Defaults</span>
+            <span className="hidden md:inline">Reset</span>
           </button>
 
           <button
             type="button"
             onClick={handleSaveAll}
-            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-emerald-900/30 ml-auto sm:ml-0"
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-md shadow-emerald-700/20 ml-auto sm:ml-0"
           >
             <Save className="w-4 h-4" />
-            <span>Save All 4 Cards</span>
+            <span>Save All Cards</span>
           </button>
         </div>
       </div>
 
+      {/* Guide */}
+      {showGuide && (
+        <div className="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl text-xs text-neutral-700 space-y-1.5 animate-in fade-in">
+          <p className="font-bold text-emerald-900">How to manage Collaborate & Partner Section Cards:</p>
+          <ul className="list-disc list-inside space-y-1 pl-1">
+            <li>Click <strong>"+ Add More Images"</strong> to append a new card to the infrastructure grid.</li>
+            <li>Use <strong>"Upload File"</strong> or paste an image URL to replace any card photo.</li>
+            <li>Update the Category, Title, and Description to showcase your facilities or certifications.</li>
+            <li>Click <strong>"Save All Cards"</strong> to publish your changes live to the website.</li>
+          </ul>
+        </div>
+      )}
+
       {/* Status Messages */}
       {successMsg && (
-        <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-800 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-3.5 rounded-2xl bg-red-950/70 border border-red-800 text-red-300 text-xs font-medium animate-in fade-in duration-200">
+        <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium animate-in fade-in duration-200">
           {errorMsg}
         </div>
       )}
 
-      {/* Grid of the 4 Infrastructure Cards */}
+      {/* Grid of the Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {cardsList.map((item, idx) => {
           const isUploading = uploadingIndex === idx;
@@ -190,25 +273,53 @@ export const InfrastructureCustomizerCard = () => {
           return (
             <div 
               key={item.id || idx}
-              className="bg-neutral-900/70 rounded-2xl border border-neutral-800/90 p-5 space-y-4 flex flex-col hover:border-neutral-700 transition-all group justify-between"
+              className="bg-neutral-50/80 hover:bg-neutral-50 rounded-2xl border border-neutral-200 p-5 space-y-4 flex flex-col transition-all group justify-between"
             >
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Header Badge */}
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-white text-emerald-800 border border-neutral-200 shadow-2xs">
                     Card #{idx + 1}
                   </span>
-                  <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
-                    {item.category || `Category ${idx + 1}`}
-                  </span>
+
+                  {cardsList.length > 1 && (
+                    confirmDeleteIdx === idx ? (
+                      <div className="flex items-center gap-1 animate-in fade-in">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCard(idx)}
+                          className="px-2 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs"
+                        >
+                          Confirm?
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteIdx(null)}
+                          className="px-1.5 py-1 rounded-lg bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-[11px] font-bold transition-all cursor-pointer"
+                          title="Cancel"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteIdx(idx)}
+                        className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all cursor-pointer"
+                        title={`Remove Card #${idx + 1}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )
+                  )}
                 </div>
 
-                {/* Image Preview */}
-                <div className="relative aspect-16/10 w-full rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 group-hover:border-emerald-500/40 transition-all">
+                {/* Image Preview Box */}
+                <div className="relative aspect-16/10 w-full rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 group-hover:border-emerald-500/50 transition-all shadow-xs">
                   {item.image ? (
                     <img
                       src={item.image}
-                      alt={item.title || `Infrastructure ${idx + 1}`}
+                      alt={item.title || `Infrastructure Card ${idx + 1}`}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       onError={(e) => {
@@ -217,122 +328,100 @@ export const InfrastructureCustomizerCard = () => {
                       }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-neutral-600">
-                      <Building2 className="w-8 h-8 opacity-40" />
+                    <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 text-xs">
+                      <Building2 className="w-6 h-6 mb-1 text-neutral-300" />
+                      <span>No image set</span>
                     </div>
                   )}
 
-                  {/* Uploading Overlay */}
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center text-emerald-400 gap-2">
-                      <RefreshCw className="w-6 h-6 animate-spin" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Uploading photo...</span>
-                    </div>
-                  )}
-
-                  {/* Quick View Button */}
-                  <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a
-                      href={item.image}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg bg-black/70 text-white hover:bg-neutral-900 transition-colors inline-flex"
-                      title="View Full Resolution"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </a>
+                  {/* Light Image Badge */}
+                  <div className="absolute top-2 left-2">
+                    <span className="px-2 py-0.5 rounded-md bg-white/95 backdrop-blur-xs text-neutral-900 border border-neutral-200 text-[10px] font-black uppercase tracking-wider shadow-2xs">
+                      Card #{idx + 1}
+                    </span>
                   </div>
                 </div>
 
-                {/* Upload Button & URL input */}
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={(el) => (fileInputRefs.current[idx] = el)}
-                    onChange={(e) => handleFileUpload(e, idx)}
-                    className="hidden"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRefs.current[idx]?.click()}
-                    disabled={isUploading}
-                    className="w-full py-2 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Image</span>
-                  </button>
-
-                  <div className="relative">
-                    <LinkIcon className="w-3 h-3 text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="url"
-                      value={item.image || ''}
-                      onChange={(e) => handleFieldChange(idx, 'image', e.target.value)}
-                      placeholder="Or paste image URL"
-                      className="w-full pl-8 pr-2 py-1.5 text-[11px] bg-neutral-950 border border-neutral-800 rounded-xl text-neutral-300 outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
-                    />
-                  </div>
-                </div>
-
-                {/* Text Fields: Category, Title, Description, Guarantee Badge */}
-                <div className="space-y-3 pt-1">
+                {/* Edit Form Inputs */}
+                <div className="space-y-2.5 pt-1">
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                      <Tag className="w-3 h-3 text-emerald-400" />
-                      Category / Subtitle
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 block mb-1">
+                      Category Tag
                     </label>
                     <input
                       type="text"
                       value={item.category || ''}
                       onChange={(e) => handleFieldChange(idx, 'category', e.target.value)}
-                      placeholder="e.g. Farm Infrastructure, Culinary Partners..."
-                      className="w-full px-3 py-2 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                      placeholder="e.g. Farm Infrastructure"
+                      className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl text-neutral-900 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                      <FileText className="w-3 h-3 text-cyan-400" />
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 block mb-1">
                       Card Title
                     </label>
                     <input
                       type="text"
                       value={item.title || ''}
                       onChange={(e) => handleFieldChange(idx, 'title', e.target.value)}
-                      placeholder="e.g. Controlled Vertical Racks"
-                      className="w-full px-3 py-2 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                      placeholder="e.g. Sterile Controlled Vertical Racks"
+                      className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl text-neutral-900 outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                      <FileText className="w-3 h-3 text-teal-400" />
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 block mb-1">
                       Description
                     </label>
                     <textarea
                       rows={3}
                       value={item.desc || ''}
                       onChange={(e) => handleFieldChange(idx, 'desc', e.target.value)}
-                      placeholder="Enter description of the infrastructure or service..."
-                      className="w-full px-3 py-2 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-neutral-200 outline-none focus:ring-2 focus:ring-emerald-500 font-normal leading-relaxed resize-none"
+                      placeholder="e.g. Medical-grade airflow and zero-touch grow protocols."
+                      className="w-full px-3 py-2 text-xs bg-white border border-neutral-200 rounded-xl text-neutral-800 outline-none focus:ring-2 focus:ring-emerald-500 font-normal leading-relaxed resize-none"
                     />
                   </div>
+                </div>
+              </div>
 
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-neutral-400 tracking-wider flex items-center gap-1 mb-1">
-                      <ShieldCheck className="w-3 h-3 text-amber-400" />
-                      Supply Guarantee Badge
-                    </label>
-                    <input
-                      type="text"
-                      value={item.badge || ''}
-                      onChange={(e) => handleFieldChange(idx, 'badge', e.target.value)}
-                      placeholder="e.g. 100% Crop Continuity"
-                      className="w-full px-3 py-2 text-xs bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
-                    />
-                  </div>
+              {/* Upload & Link Controls */}
+              <div className="space-y-2 pt-3 border-t border-neutral-200">
+                <input
+                  type="file"
+                  ref={el => fileInputRefs.current[idx] = el}
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, idx)}
+                  className="hidden"
+                  id={`infra-file-${idx}`}
+                />
+
+                <label
+                  htmlFor={`infra-file-${idx}`}
+                  className="w-full py-2 px-3 bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-2xs hover:border-emerald-500"
+                >
+                  {isUploading ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Upload Photo File</span>
+                    </>
+                  )}
+                </label>
+
+                <div className="relative">
+                  <LinkIcon className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="url"
+                    value={item.image || ''}
+                    onChange={(e) => handleFieldChange(idx, 'image', e.target.value)}
+                    placeholder="Or paste image URL (https://...)"
+                    className="w-full pl-8 pr-2 py-1.5 text-[11px] bg-white border border-neutral-200 rounded-xl text-neutral-900 outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                  />
                 </div>
               </div>
 
@@ -341,18 +430,24 @@ export const InfrastructureCustomizerCard = () => {
         })}
       </div>
 
-      {/* Bottom Save Action Bar */}
-      <div className="bg-neutral-900/50 rounded-2xl p-4 border border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-400">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>Updates to these 4 cards appear immediately under "Our Infrastructure & Supply Guarantee" on the live storefront.</span>
-        </div>
+      {/* Bottom Action */}
+      <div className="pt-4 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={handleAddNewCard}
+          className="w-full sm:w-auto px-5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Add Another Infrastructure Card</span>
+        </button>
+
         <button
           type="button"
           onClick={handleSaveAll}
-          className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black uppercase tracking-wider rounded-xl text-xs transition-all cursor-pointer shrink-0 shadow-md"
+          className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-700/20 cursor-pointer"
         >
-          Save All 4 Cards
+          <Save className="w-4 h-4" />
+          <span>Save All {cardsList.length} Cards</span>
         </button>
       </div>
 
