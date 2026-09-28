@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useScroll } from 'motion/react';
 import { HarvestedMicrogreens } from './microgreens/HarvestedMicrogreens';
 import { LiveMicrogreens } from './microgreens/LiveMicrogreens';
 import { MicrogreensSeeds } from './microgreens/MicrogreensSeeds';
@@ -17,6 +18,12 @@ export const MicrogreensSection = ({
   handleCardMouseLeave,
   onOpenAdmin
 }) => {
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"]
+  });
+
   const { addToCart, setIsCheckoutOpen } = useCart();
   const [addedItemEffect, setAddedItemEffect] = useState({});
 
@@ -36,9 +43,13 @@ export const MicrogreensSection = ({
   };
 
   return (
-    <section id="microgreens-section" className="w-full py-16 px-4 sm:px-6 lg:px-8 space-y-24 font-sans relative overflow-hidden">
-      {/* Botanical Background Decor */}
-      <BotanicalSectionBackdrop variant="microgreens" />
+    <section 
+      ref={sectionRef}
+      id="microgreens-section" 
+      className="w-full py-16 px-4 sm:px-6 lg:px-8 space-y-24 font-sans relative overflow-hidden"
+    >
+      {/* Botanical Background Decor with Parallax */}
+      <BotanicalSectionBackdrop variant="microgreens" scrollYProgress={scrollYProgress} />
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-24">
       {/* 1. Harvested Microgreens Sub-section */}

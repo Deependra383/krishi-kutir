@@ -11,39 +11,107 @@ import {
   FruitCitrus,
   FruitJamunBerry,
   FruitCherry,
+  FruitSeaBuckthorn,
+  FruitBlueberries,
+  FruitLimeSlice,
+  FruitBabyTomato,
   FruitPhoto,
   FRUIT_PHOTOS
 } from './FloatingLeavesBackground';
 
 // Re-export for any existing consumers
-export { FruitPhoto, FRUIT_PHOTOS };
+export {
+  FruitSeaBuckthorn,
+  FruitBlueberries,
+  FruitLimeSlice,
+  FruitBabyTomato,
+  FruitPhoto,
+  FRUIT_PHOTOS
+};
 
 /**
- * Reusable individual floating botanical or fruit photo
- * - Compact, organic size (w-7 to w-9, ~28px to 36px)
- * - Sits strictly in background layer (z-0) with pointer-events-none
- * - High-responsiveness spring physics (stiffness: 90, damping: 20, mass: 0.4) for smooth, noticeable scroll motion
- * - Organic soft drop shadow
+ * Speed presets for multi-tier parallax scrolling using Framer Motion.
+ * Allows fruits and leaves to glide at distinctly different speeds than the page scroll,
+ * creating an authentic 3D botanical depth behind the main cards.
+ */
+const SPEED_PRESETS = {
+  // Fast / Foreground layer: moves noticeably faster than normal scroll rate
+  fast: {
+    y: [-125, 145],
+    x: [-14, 16],
+    rot: [-24, 26],
+    spring: { stiffness: 75, damping: 16, mass: 0.3 }
+  },
+  // Medium / Midground layer: steady, balanced parallax travel
+  medium: {
+    y: [-65, 80],
+    x: [-8, 10],
+    rot: [-15, 17],
+    spring: { stiffness: 60, damping: 18, mass: 0.35 }
+  },
+  // Slow / Deep background layer: subtle, distant floating effect
+  slow: {
+    y: [-28, 36],
+    x: [-4, 4],
+    rot: [-9, 10],
+    spring: { stiffness: 45, damping: 20, mass: 0.4 }
+  },
+  // Counter-parallax: glides in opposite vertical direction for high visual contrast
+  counter: {
+    y: [65, -75],
+    x: [12, -12],
+    rot: [18, -18],
+    spring: { stiffness: 65, damping: 17, mass: 0.35 }
+  },
+  // Drift: 2D lateral sway combined with vertical translation
+  drift: {
+    y: [-90, 105],
+    x: [-26, 28],
+    rot: [-20, 22],
+    spring: { stiffness: 55, damping: 18, mass: 0.35 }
+  }
+};
+
+/**
+ * Reusable individual floating botanical leaf or fruit
+ * - Multi-speed Parallax Scrolling using Framer Motion (useScroll, useTransform, useSpring)
+ * - Supports depth tiers ('fast', 'medium', 'slow', 'counter', 'drift') or custom ranges
+ * - Strict layering: sits behind all card components (z-0) with pointer-events-none
+ * - Organic gentle ambient breathing when idle
  */
 const FloatingBotanical = ({
   children,
   className = "",
   scrollYProgress,
-  yRange = [-22, 28],
-  rotRange = [-14, 16],
-  ambientDuration = 4.8,
-  ambientY = 2.5,
-  springConfig = { stiffness: 90, damping: 20, mass: 0.4 }
+  speed = "medium",
+  yRange,
+  xRange,
+  rotRange,
+  ambientDuration = 5.0,
+  ambientY = 3.0,
+  springConfig
 }) => {
-  const rawY = useTransform(scrollYProgress, [0, 1], yRange);
-  const rawRot = useTransform(scrollYProgress, [0, 1], rotRange);
-  const y = useSpring(rawY, springConfig);
-  const rot = useSpring(rawRot, springConfig);
+  const preset = SPEED_PRESETS[speed] || SPEED_PRESETS.medium;
+  const effectiveY = yRange || preset.y;
+  const effectiveX = xRange || preset.x;
+  const effectiveRot = rotRange || preset.rot;
+  const effectiveSpring = springConfig || preset.spring;
+
+  const windowScroll = useScroll();
+  const activeProgress = scrollYProgress || windowScroll.scrollYProgress;
+
+  const rawY = useTransform(activeProgress, [0, 1], effectiveY);
+  const rawX = useTransform(activeProgress, [0, 1], effectiveX);
+  const rawRot = useTransform(activeProgress, [0, 1], effectiveRot);
+
+  const y = useSpring(rawY, effectiveSpring);
+  const x = useSpring(rawX, effectiveSpring);
+  const rotate = useSpring(rawRot, effectiveSpring);
 
   return (
     <motion.div
-      style={{ y, rotate: rot }}
-      className={`absolute pointer-events-none select-none z-0 filter drop-shadow-sm ${className}`}
+      style={{ y, x, rotate }}
+      className={`absolute z-0 pointer-events-none select-none filter drop-shadow-sm ${className}`}
     >
       <motion.div
         animate={{ y: [-ambientY, ambientY, -ambientY] }}
@@ -58,13 +126,14 @@ const FloatingBotanical = ({
 /**
  * BotanicalSectionBackdrop
  * 
- * Injects realistic fruit photos and colourful leaves in the background gutters & open corridors
- * across main sections, moving dynamically with page scroll while guaranteeing ZERO card overlap.
+ * Scattered background botanicals and authentic fruits positioned in organic, non-linear constellations
+ * behind section cards. Supports parallax speeds and zero card overlap.
  */
-export const BotanicalSectionBackdrop = ({
-  variant = "general",
+export const BotanicalSectionBackdrop = ({ 
+  variant = "general", 
   showSoftGlows = true,
-  scrollYProgress: externalScrollYProgress
+  scrollYProgress: externalScrollYProgress,
+  className = "" 
 }) => {
   const backdropRef = useRef(null);
   const internalScroll = useScroll({
@@ -76,432 +145,624 @@ export const BotanicalSectionBackdrop = ({
 
   return (
     <div 
-      ref={backdropRef} 
-      className="absolute inset-0 pointer-events-none select-none z-0 overflow-hidden" 
+      ref={backdropRef}
+      className={`absolute inset-0 pointer-events-none select-none z-0 overflow-hidden ${className}`}
       aria-hidden="true"
     >
-      {/* Soft atmospheric watercolor background glows */}
+      {/* Soft Ambient Radial Tint Glows */}
       {showSoftGlows && (
         <>
-          <div className="absolute top-10 left-4 sm:left-12 w-96 h-96 bg-emerald-100/35 rounded-full blur-3xl pointer-events-none -z-10" />
-          <div className="absolute bottom-10 right-4 sm:right-12 w-96 h-96 bg-rose-100/30 rounded-full blur-3xl pointer-events-none -z-10" />
-          <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-amber-100/25 rounded-full blur-3xl pointer-events-none -z-10" />
+          <div className="absolute top-[10%] -left-32 w-96 h-96 rounded-full bg-emerald-100/35 blur-3xl pointer-events-none" />
+          <div className="absolute top-[50%] -right-32 w-96 h-96 rounded-full bg-amber-100/30 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-[10%] left-1/3 w-96 h-96 rounded-full bg-rose-100/20 blur-3xl pointer-events-none" />
         </>
       )}
 
-      {/* ================= VARIANT: PARTNER WITH US (Matches Screenshots 54, 48, 47) ================= */}
-      {variant === "partner" && (
-        <>
-          {/* ----- TOP BELT: Crowning & flanking "PARTNER WITH KRISHI KUTIR" (Screenshot 54) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[-15, 18]} className="top-2 left-[3%] sm:left-[6%] opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-18, 22]} rotRange={[14, -16]} className="top-4 left-[20%] sm:left-[24%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 14]} className="top-3 right-[20%] sm:right-[24%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[15, -15]} className="top-2 right-[3%] sm:right-[6%] opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-16, 20]} rotRange={[-12, 14]} className="top-12 left-[1%] sm:left-[3%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-7 h-7 sm:w-8 sm:h-8" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-18, 22]} rotRange={[14, -14]} className="top-12 right-[1%] sm:right-[3%] opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- UPPER LEFT GUTTER: Alongside "Submit Partnership Inquiry" Form (Screenshots 54 & 48) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-15, 15]} className="top-[20%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.limeSlice} alt="Lime Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[16, -18]} className="top-[30%] left-2 sm:left-4 lg:left-7 xl:left-10 opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[-14, 16]} className="top-[40%] left-1 sm:left-3 lg:left-5 xl:left-7 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.tomato} alt="Fresh Tomato" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 28]} rotRange={[15, -15]} className="top-[50%] left-2 sm:left-4 lg:left-8 xl:left-10 opacity-90">
-            <LeafCurvedShoot className="w-7 h-10 sm:w-8 sm:h-11" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 26]} rotRange={[-16, 14]} className="top-[60%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.cucumber} alt="Fresh Cucumber" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- CENTER GUTTER: Vertical Gap Between Form & Contact Desk (Screenshot 54) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-18, 22]} rotRange={[-12, 14]} className="top-[26%] left-1/2 -translate-x-1/2 opacity-85 hidden xl:block">
-            <FruitPhoto src={FRUIT_PHOTOS.cherry} alt="Fresh Cherry" className="w-7 h-7 sm:w-8 sm:h-8" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[14, -14]} className="top-[42%] left-1/2 -translate-x-1/2 opacity-80 hidden xl:block">
-            <LeafCotyledon className="w-8 h-8" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 25]} rotRange={[-15, 15]} className="top-[58%] left-1/2 -translate-x-1/2 opacity-85 hidden xl:block">
-            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Raspberry" className="w-7 h-7 sm:w-8 sm:h-8" />
-          </FloatingBotanical>
-
-          {/* ----- UPPER RIGHT GUTTER: Alongside "Rapid B2B Response" Desk (Screenshots 54 & 48) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[15, -16]} className="top-[20%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-16, 18]} className="top-[30%] right-2 sm:right-4 lg:right-7 xl:right-10 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[14, -15]} className="top-[40%] right-1 sm:right-3 lg:right-5 xl:right-7 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-15, 16]} className="top-[50%] right-2 sm:right-4 lg:right-8 xl:right-10 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[16, -14]} className="top-[60%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- MID CORRIDOR: Above "OUR INFRASTRUCTURE & SUPPLY GUARANTEE" (Screenshot 47) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[-14, 15]} className="top-[71%] left-[2%] sm:left-[5%] opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 25]} rotRange={[15, -16]} className="top-[72%] left-[16%] sm:left-[20%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Raspberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-18, 22]} rotRange={[-12, 14]} className="top-[71%] left-[34%] sm:left-[38%] opacity-90">
-            <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[14, -14]} className="top-[71%] right-[34%] sm:right-[38%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.limeSlice} alt="Lime Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 25]} rotRange={[-15, 15]} className="top-[72%] right-[16%] sm:right-[20%] opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-19, 23]} rotRange={[14, -15]} className="top-[71%] right-[2%] sm:right-[5%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.radish} alt="Radish" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- LOWER LEFT GUTTER: Alongside Infrastructure Cards (Screenshot 47) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-[80%] left-1 sm:left-3 lg:left-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-[88%] left-2 sm:left-4 lg:left-7 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[-14, 15]} className="bottom-4 left-1 sm:left-3 lg:left-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- LOWER RIGHT GUTTER: Alongside Infrastructure Cards (Screenshot 47) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[16, -15]} className="top-[80%] right-1 sm:right-3 lg:right-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-15, 16]} className="top-[88%] right-2 sm:right-4 lg:right-7 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[14, -14]} className="bottom-4 right-1 sm:right-3 lg:right-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Raspberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-        </>
-      )}
-
-      {/* ================= VARIANT: INQUIRY DESK / CUSTOM ORDER (Matches Screenshot 53) ================= */}
-      {variant === "inquiry" && (
-        <>
-          {/* ----- LEFT GUTTER: 6 items along left margin outside order card (Screenshot 53) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-[6%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-[22%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[-14, 15]} className="top-[38%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 27]} rotRange={[16, -15]} className="top-[54%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.limeSlice} alt="Lime Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-15, 16]} className="top-[70%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[14, -14]} className="top-[86%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.cucumber} alt="Fresh Cucumber" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- RIGHT GUTTER: 6 items along right margin outside order card (Screenshot 53) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[16, -16]} className="top-[6%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-15, 16]} className="top-[22%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[14, -15]} className="top-[38%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 27]} rotRange={[-16, 15]} className="top-[54%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[15, -16]} className="top-[70%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Fresh Raspberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-14, 14]} className="top-[86%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-90">
-            <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-        </>
-      )}
-
-      {/* ================= VARIANT: POWDERS & SPICES (Matches Screenshot 50) ================= */}
-      {variant === "powders" && (
-        <>
-          {/* ----- TOP CORRIDOR: Crowning & flanking "HERBAL POWDERS, SPICES & SEASONING" (Screenshot 50) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[-15, 18]} className="top-2 left-[3%] sm:left-[6%] opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-18, 22]} rotRange={[14, -16]} className="top-4 left-[18%] sm:left-[22%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 14]} className="top-2 left-[36%] sm:left-[40%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[15, -15]} className="top-2 right-[36%] sm:right-[40%] opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-18, 22]} rotRange={[-14, 14]} className="top-4 right-[18%] sm:right-[22%] opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[15, -18]} className="top-2 right-[3%] sm:right-[6%] opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- LEFT GUTTER: Alongside category buttons and product cards (Screenshot 50) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-15, 15]} className="top-[24%] left-1 sm:left-3 lg:left-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.limeSlice} alt="Lime Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[16, -18]} className="top-[40%] left-2 sm:left-4 lg:left-8 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[-14, 16]} className="top-[56%] left-1 sm:left-3 lg:left-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.tomato} alt="Fresh Tomato" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 28]} rotRange={[15, -15]} className="top-[72%] left-2 sm:left-4 lg:left-8 opacity-90">
-            <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 26]} rotRange={[-16, 14]} className="top-[88%] left-1 sm:left-3 lg:left-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.cucumber} alt="Cucumber" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- RIGHT GUTTER: Alongside category buttons and product cards (Screenshot 50) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[15, -15]} className="top-[24%] right-1 sm:right-3 lg:right-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Raspberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-16, 18]} className="top-[40%] right-2 sm:right-4 lg:right-8 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[14, -16]} className="top-[56%] right-1 sm:right-3 lg:right-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 28]} rotRange={[-15, 15]} className="top-[72%] right-2 sm:right-4 lg:right-8 opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 26]} rotRange={[16, -14]} className="top-[88%] right-1 sm:right-3 lg:right-6 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-        </>
-      )}
-
-      {/* ================= VARIANT: PRODUCT CATALOG (Matches Screenshot 49) ================= */}
-      {variant === "catalog" && (
-        <>
-          {/* ----- LEFT GUTTER: Rich sequence alongside 4-column card grid (Screenshot 49) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-[2%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-[12%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[-14, 15]} className="top-[24%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 27]} rotRange={[16, -15]} className="top-[36%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-15, 16]} className="top-[48%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[14, -14]} className="top-[60%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-[72%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-[84%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Raspberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[-14, 14]} className="top-[94%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafCurvedShoot className="w-7 h-10 sm:w-8 sm:h-11" />
-          </FloatingBotanical>
-
-          {/* ----- RIGHT GUTTER: Rich sequence alongside 4-column card grid (Screenshot 49) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[16, -16]} className="top-[2%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Raspberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-15, 16]} className="top-[12%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[14, -15]} className="top-[24%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 27]} rotRange={[-16, 15]} className="top-[36%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[15, -16]} className="top-[48%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-14, 14]} className="top-[60%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[16, -16]} className="top-[72%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.limeSlice} alt="Lime Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-15, 16]} className="top-[84%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[14, -14]} className="top-[94%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-90">
-            <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-        </>
-      )}
-
-      {/* ================= VARIANT: MICROGREENS (Matches Screenshot 51) ================= */}
-      {variant === "microgreens" && (
-        <>
-          {/* ----- LEFT GUTTER: Alongside Live Microgreens Trays & Seed cards (Screenshot 51) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-[4%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-[16%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[-14, 15]} className="top-[28%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafCurvedShoot className="w-7 h-10 sm:w-8 sm:h-11" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 27]} rotRange={[16, -15]} className="top-[40%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.limeSlice} alt="Lime Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-15, 16]} className="top-[52%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[14, -14]} className="top-[64%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.tomato} alt="Fresh Tomato" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-[76%] left-1 sm:left-3 lg:left-6 xl:left-8 opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-[88%] left-2 sm:left-4 lg:left-8 xl:left-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.cucumber} alt="Cucumber" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-
-          {/* ----- RIGHT GUTTER: Alongside Live Microgreens Trays & Seed cards (Screenshot 51) ----- */}
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[16, -16]} className="top-[4%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-15, 16]} className="top-[16%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[14, -15]} className="top-[28%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 27]} rotRange={[-16, 15]} className="top-[40%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[15, -16]} className="top-[52%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-14, 14]} className="top-[64%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Raspberry" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[16, -16]} className="top-[76%] right-1 sm:right-3 lg:right-6 xl:right-8 opacity-90">
-            <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[-15, 16]} className="top-[88%] right-2 sm:right-4 lg:right-8 xl:right-12 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.radish} alt="Radish" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-        </>
-      )}
-
-      {/* ================= VARIANT: ABOUT & PHILOSOPHY ================= */}
+      {/* ========================================================================= */}
+      {/* 1. VARIANT: ABOUT & PHILOSOPHY (MATCHING SCREENSHOT 60 CIRCLES + SCATTERED) */}
+      {/* ========================================================================= */}
       {variant === "about" && (
         <>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-4 left-1 sm:left-4 lg:left-8 opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+          {/* USER CIRCLE 1: Top Corridor above Title */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[6%] sm:top-[7%] left-[33%] sm:left-[36%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafCotyledon className="w-7 h-7 sm:w-8 sm:h-8" />
+            </div>
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-16 left-4 sm:left-12 lg:left-16 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
+
+          {/* USER CIRCLE 2: Top Center Corridor between Title & Founders */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[8%] sm:top-[10%] left-[50%] sm:left-[52%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[16, -15]} className="top-4 right-1 sm:right-4 lg:right-8 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+
+          {/* USER CIRCLE 3: Top Right above "Meet Our Founders" */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[14%] sm:top-[16%] left-[71%] sm:left-[74%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 27]} rotRange={[-15, 16]} className="top-16 right-4 sm:right-12 lg:right-16 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
+
+          {/* USER CIRCLE 4: Far Top-Right Corner */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[6%] sm:top-[7%] right-[10%] sm:right-[13%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitBabyTomato className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-[45%] left-1 sm:left-4 lg:left-8 opacity-90">
+
+          {/* USER CIRCLE 5: Bottom Left below 100% Residue Free cards */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="bottom-[7%] sm:bottom-[9%] left-[3%] sm:left-[5%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Fresh Orange" className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafCurvedShoot className="w-7 h-9 sm:w-8 sm:h-10" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 6: Bottom Center under Founders card */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="bottom-[4%] sm:bottom-[5%] left-[58%] sm:left-[62%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+              <FruitJamunBerry className="w-6 h-6 sm:w-7 sm:h-7" />
+              <LeafBasil className="w-7 h-7 sm:w-8 sm:h-8" />
+            </div>
+          </FloatingBotanical>
+
+          {/* Non-linear Scattered Flank Items (staggered horizontally so NEVER a straight line) */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[12%] left-[2%] sm:left-[4%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[24%] left-[10%] sm:left-[14%] opacity-90">
             <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-[45%] right-1 sm:right-4 lg:right-8 opacity-90">
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[45%] left-[3%] sm:left-[6%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[68%] left-[9%] sm:left-[12%] opacity-90">
             <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[-14, 15]} className="bottom-6 left-2 sm:left-6 lg:left-10 opacity-90">
+
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[28%] right-[3%] sm:right-[5%] opacity-90">
             <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[14, -14]} className="bottom-6 right-2 sm:right-6 lg:right-10 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.limeSlice} alt="Lime Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[48%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitCherry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[72%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="bottom-[5%] right-[9%] sm:right-[12%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
           </FloatingBotanical>
         </>
       )}
 
-      {/* ================= VARIANT: TRAINING ACADEMY ================= */}
-      {variant === "training" && (
+      {/* ========================================================================= */}
+      {/* 2. VARIANT: PRODUCT CATALOG (MATCHING SCREENSHOT 61 CIRCLES + SCATTERED) */}
+      {/* ========================================================================= */}
+      {variant === "catalog" && (
         <>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-4 left-1 sm:left-4 lg:left-8 opacity-90">
-            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+          {/* USER CIRCLE 1: Top-Left above search bar, left of heading */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[8%] sm:top-[9%] left-[18%] sm:left-[20%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-14 left-4 sm:left-10 lg:left-14 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Fresh Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
+
+          {/* USER CIRCLE 2: Left Upper-Mid Flank */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[20%] sm:top-[22%] left-[6%] sm:left-[8%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+              <LeafCotyledon className="w-7 h-7 sm:w-8 sm:h-8" />
+            </div>
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 25]} rotRange={[16, -15]} className="top-4 right-1 sm:right-4 lg:right-8 opacity-90">
-            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+
+          {/* USER CIRCLE 3: Left Inner-Mid (below search bar on the left) */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[33%] sm:top-[35%] left-[18%] sm:left-[21%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-25, 27]} rotRange={[-15, 16]} className="top-14 right-4 sm:right-10 lg:right-14 opacity-95">
+
+          {/* USER CIRCLE 4: Left Lower-Outer Flank */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[48%] sm:top-[51%] left-[3%] sm:left-[5%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 5: Left Bottom Corner */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="bottom-[3%] sm:bottom-[4%] left-[3%] sm:left-[4%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitBabyTomato className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 6: Top-Right above heading / category */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[8%] sm:top-[9%] right-[22%] sm:right-[25%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 7: Far Top-Right Corner */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[14%] sm:top-[16%] right-[8%] sm:right-[10%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitCherry className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 8: Right Inner-Mid (below search bar on right) */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[35%] sm:top-[38%] right-[18%] sm:right-[21%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 9: Right Lower-Outer Flank */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[58%] sm:top-[61%] right-[2%] sm:right-[4%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+              <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 10: Bottom Center below Category Pills */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="bottom-[2%] sm:bottom-[3%] left-[31%] sm:left-[34%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafCurvedShoot className="w-7 h-9 sm:w-8 sm:h-10" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 11: Bottom Right */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="bottom-[2%] sm:bottom-[3%] right-[9%] sm:right-[12%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* Scattered Intermediate Items along Catalog Height (varied X depth) */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[42%] left-[10%] sm:left-[13%] opacity-90">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[68%] left-[11%] sm:left-[14%] opacity-95">
+            <LeafCurvedShoot className="w-7 h-9 sm:w-8 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[82%] left-[4%] sm:left-[6%] opacity-95">
+            <FruitPhoto src={FRUIT_PHOTOS.raspberry} alt="Raspberry" className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[48%] right-[11%] sm:right-[14%] opacity-95">
             <FruitPhoto src={FRUIT_PHOTOS.limeSlice} alt="Lime Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-16, 16]} className="top-1/2 left-2 sm:left-6 lg:left-8 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[73%] right-[12%] sm:right-[15%] opacity-90">
+            <FruitJamunBerry className="w-6 h-6 sm:w-7 sm:h-7" />
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -16]} className="top-1/2 right-2 sm:right-6 lg:right-8 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.blueberries} alt="Blueberries" className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[-14, 15]} className="bottom-4 left-2 sm:left-6 lg:left-10 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
-          </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[14, -14]} className="bottom-4 right-2 sm:right-6 lg:right-10 opacity-95">
-            <FruitPhoto src={FRUIT_PHOTOS.orangeSlice} alt="Orange Slice" className="w-8 h-8 sm:w-9 sm:h-9" />
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[85%] right-[3%] sm:right-[5%] opacity-95">
+            <FruitBabyTomato className="w-8 h-8 sm:w-9 sm:h-9" />
           </FloatingBotanical>
         </>
       )}
 
-      {/* ================= VARIANT: GENERAL FALLBACK ================= */}
-      {variant === "general" && (
+      {/* ========================================================================= */}
+      {/* 3. VARIANT: CERTIFICATIONS (MATCHING SCREENSHOT 62 CIRCLES + SCATTERED) */}
+      {/* ========================================================================= */}
+      {(variant === "certifications" || variant === "general") && (
         <>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-15, 16]} className="top-4 left-2 sm:left-6 lg:left-10 opacity-90">
+          {/* USER CIRCLE 1: Top-Left (below facility cards) */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[10%] sm:top-[12%] left-[8%] sm:left-[10%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+              <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 2: Top Mid-Left (above Certifications Title) */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[16%] sm:top-[18%] left-[27%] sm:left-[30%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 3: Left Flank Upper */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[35%] sm:top-[38%] left-[2%] sm:left-[3%] opacity-90">
+            <div className="flex items-center gap-1.5">
+              <FruitBabyTomato className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 4: Bottom-Left Far Outer Corner */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="bottom-[4%] sm:bottom-[5%] left-[2%] sm:left-[3%] opacity-90">
+            <div className="flex items-center gap-1.5">
+              <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafCurvedShoot className="w-7 h-9 sm:w-8 sm:h-10" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 5: Top Mid-Right (above Certifications Title) */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[18%] sm:top-[20%] right-[18%] sm:right-[21%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 6: Far Top Right */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[12%] sm:top-[14%] right-[3%] sm:right-[4%] opacity-95">
+            <div className="flex items-center gap-1.5">
+              <FruitCherry className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 7: Far Right Upper Flank */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[35%] sm:top-[38%] right-[2%] sm:right-[3%] opacity-90">
+            <div className="flex items-center gap-1.5">
+              <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+              <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+
+          {/* USER CIRCLE 8: Bottom-Right Far Outer Corner */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="bottom-[4%] sm:bottom-[5%] right-[2%] sm:right-[3%] opacity-90">
+            <div className="flex items-center gap-1.5">
+              <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+              <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+            </div>
+          </FloatingBotanical>
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. VARIANT: PARTNER WITH US (ORGANIC SCATTERED) */}
+      {/* ========================================================================= */}
+      {variant === "partner" && (
+        <>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[2%] left-[4%] sm:left-[7%] opacity-90">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[3%] left-[22%] sm:left-[26%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[2%] right-[22%] sm:right-[26%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[2%] right-[4%] sm:right-[7%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[18%] left-[2%] sm:left-[4%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[28%] left-[10%] sm:left-[14%] opacity-90">
+            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[40%] left-[3%] sm:left-[5%] opacity-95">
+            <FruitBabyTomato className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[52%] left-[12%] sm:left-[16%] opacity-90">
             <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-24, 28]} rotRange={[15, -15]} className="top-4 right-2 sm:right-6 lg:right-10 opacity-95">
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[64%] left-[2%] sm:left-[4%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[18%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[28%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[40%] right-[12%] sm:right-[16%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[52%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[64%] right-[10%] sm:right-[14%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+
+          {/* Infrastructure Corridor */}
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[72%] left-[3%] sm:left-[6%] opacity-90">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[73%] left-[18%] sm:left-[22%] opacity-95">
+            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[72%] right-[18%] sm:right-[22%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[73%] right-[3%] sm:right-[6%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[85%] left-[2%] sm:left-[5%] opacity-95">
             <FruitPhoto src={FRUIT_PHOTOS.strawberry} alt="Strawberry" className="w-8 h-8 sm:w-9 sm:h-9" />
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-20, 24]} rotRange={[16, -14]} className="bottom-4 left-2 sm:left-6 lg:left-10 opacity-90">
-            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[85%] right-[2%] sm:right-[5%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
           </FloatingBotanical>
-          <FloatingBotanical scrollYProgress={scrollYProgress} yRange={[-22, 26]} rotRange={[-15, 16]} className="bottom-4 right-2 sm:right-6 lg:right-10 opacity-90">
-            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="bottom-4 left-[3%] sm:left-[6%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="bottom-4 right-[3%] sm:right-[6%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
           </FloatingBotanical>
         </>
       )}
+
+      {/* ========================================================================= */}
+      {/* 5. VARIANT: INQUIRY DESK / CUSTOM ORDER (SCATTERED) */}
+      {/* ========================================================================= */}
+      {variant === "inquiry" && (
+        <>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[6%] left-[2%] sm:left-[5%] opacity-90">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[22%] left-[11%] sm:left-[15%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[38%] left-[2%] sm:left-[4%] opacity-90">
+            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[54%] left-[10%] sm:left-[14%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[70%] left-[2%] sm:left-[4%] opacity-90">
+            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[86%] left-[11%] sm:left-[15%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[6%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[22%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[38%] right-[12%] sm:right-[16%] opacity-95">
+            <FruitCherry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[54%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[70%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[86%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6. VARIANT: POWDERS & SPICES (SCATTERED) */}
+      {/* ========================================================================= */}
+      {variant === "powders" && (
+        <>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-2 left-[3%] sm:left-[6%] opacity-95">
+            <FruitSeaBuckthorn className="w-10 h-10 sm:w-11 sm:h-11" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-4 left-[20%] sm:left-[24%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-2 left-[38%] sm:left-[42%] opacity-90">
+            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-1 left-1/2 -translate-x-1/2 opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-2 right-[36%] sm:right-[40%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-4 right-[18%] sm:right-[22%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-2 right-[3%] sm:right-[6%] opacity-95">
+            <FruitWildBerry className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[22%] left-[2%] sm:left-[4%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[36%] left-[10%] sm:left-[14%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[50%] left-[2%] sm:left-[4%] opacity-90">
+            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[64%] left-[11%] sm:left-[15%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[78%] left-[2%] sm:left-[4%] opacity-90">
+            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[90%] left-[10%] sm:left-[14%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[22%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitWildBerry className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[36%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[50%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[64%] right-[2%] sm:right-[4%] opacity-95">
+            <FruitCherry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[78%] right-[11%] sm:right-[15%] opacity-90">
+            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[90%] right-[2%] sm:right-[4%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 7. VARIANT: MICROGREENS (SCATTERED) */}
+      {/* ========================================================================= */}
+      {variant === "microgreens" && (
+        <>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[3%] left-[2%] sm:left-[4%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[12%] left-[10%] sm:left-[14%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[21%] left-[2%] sm:left-[4%] opacity-90">
+            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[30%] left-[11%] sm:left-[15%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[39%] left-[2%] sm:left-[5%] opacity-90">
+            <LeafCurvedShoot className="w-7 h-10 sm:w-8 sm:h-11" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[48%] left-[11%] sm:left-[15%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[57%] left-[2%] sm:left-[4%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[66%] left-[10%] sm:left-[14%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[75%] left-[2%] sm:left-[4%] opacity-90">
+            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[84%] left-[11%] sm:left-[15%] opacity-95">
+            <FruitBabyTomato className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[93%] left-[2%] sm:left-[4%] opacity-90">
+            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[3%] right-[10%] sm:right-[14%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[12%] right-[2%] sm:right-[4%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[21%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[30%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[39%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitCherry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[48%] right-[2%] sm:right-[4%] opacity-90">
+            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-[57%] right-[11%] sm:right-[15%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-[66%] right-[2%] sm:right-[4%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-[75%] right-[11%] sm:right-[15%] opacity-90">
+            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-[84%] right-[2%] sm:right-[4%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-[93%] right-[10%] sm:right-[14%] opacity-90">
+            <LeafHerbal className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 8. VARIANT: PRODUCT DIVISIONS (SCATTERED) */}
+      {/* ========================================================================= */}
+      {variant === "divisions" && (
+        <>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-4 left-[2%] sm:left-[5%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-20 left-[12%] sm:left-[16%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-4 right-[12%] sm:right-[16%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-20 right-[2%] sm:right-[5%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-1/2 left-[2%] sm:left-[5%] opacity-90">
+            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-1/2 right-[11%] sm:right-[15%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="bottom-6 left-[10%] sm:left-[14%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="bottom-6 right-[2%] sm:right-[5%] opacity-95">
+            <FruitCherry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 9. VARIANT: TRAINING ACADEMY (VIBRANT FRUITS & LEAVES PARALLAX) */}
+      {/* ========================================================================= */}
+      {variant === "training" && (
+        <>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="top-4 left-[2%] sm:left-[5%] opacity-95">
+            <FruitSeaBuckthorn className="w-9 h-9 sm:w-10 sm:h-10" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-14 left-[12%] sm:left-[16%] opacity-95">
+            <FruitWildBerry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="top-4 right-[11%] sm:right-[15%] opacity-90">
+            <LeafAmaranth className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="top-14 right-[2%] sm:right-[5%] opacity-95">
+            <FruitLimeSlice className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="top-1/2 left-[2%] sm:left-[5%] opacity-90">
+            <LeafAutumnGold className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="drift" className="top-1/2 right-[12%] sm:right-[16%] opacity-95">
+            <FruitBlueberries className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="slow" className="bottom-4 left-[11%] sm:left-[15%] opacity-90">
+            <LeafBasil className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="fast" className="bottom-4 right-[2%] sm:right-[5%] opacity-95">
+            <FruitCitrus className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="counter" className="bottom-16 left-[2%] sm:left-[4%] opacity-95">
+            <FruitCherry className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+          <FloatingBotanical scrollYProgress={scrollYProgress} speed="medium" className="bottom-16 right-[12%] sm:right-[16%] opacity-90">
+            <LeafCotyledon className="w-8 h-8 sm:w-9 sm:h-9" />
+          </FloatingBotanical>
+        </>
+      )}
+
     </div>
   );
 };

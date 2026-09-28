@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { ShieldCheck, Award, Leaf, Zap, Droplets, CheckCircle2, FileText, ArrowUpRight } from 'lucide-react';
 
 export const VenkateshQualityPillars = () => {
@@ -68,8 +69,16 @@ export const VenkateshQualityPillars = () => {
           {pillars.map((pillar, i) => {
             const IconComponent = pillar.icon;
             return (
-              <div 
+              <motion.div 
                 key={i}
+                initial={{ opacity: 0, y: -26 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ 
+                  duration: 0.55, 
+                  delay: i * 0.1, 
+                  ease: [0.22, 1, 0.36, 1] 
+                }}
                 className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm hover:shadow-xl hover:border-emerald-500/80 transition-all duration-300 space-y-4 hover:-translate-y-1 flex flex-col justify-between"
               >
                 <div className="space-y-3">
@@ -91,7 +100,7 @@ export const VenkateshQualityPillars = () => {
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Lab Verified Pure</span>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>

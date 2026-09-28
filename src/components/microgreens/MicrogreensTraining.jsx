@@ -11,12 +11,13 @@ export const MicrogreensTraining = () => {
     offset: ["start end", "end start"]
   });
 
-  const springConfig = { stiffness: 45, damping: 18 };
-  const leaf1Y = useSpring(useTransform(scrollYProgress, [0, 1], [-40, 50]), springConfig);
-  const leaf1Rotate = useSpring(useTransform(scrollYProgress, [0, 1], [-20, 30]), springConfig);
-  const leaf2Y = useSpring(useTransform(scrollYProgress, [0, 1], [50, -40]), springConfig);
-  const leaf2Rotate = useSpring(useTransform(scrollYProgress, [0, 1], [30, -15]), springConfig);
-  const berryY = useSpring(useTransform(scrollYProgress, [0, 1], [-30, 40]), springConfig);
+  const springConfig = { stiffness: 60, damping: 18, mass: 0.35 };
+  // Multi-speed parallax: fast foreground drift, counter-scroll movement, and steady midground
+  const leaf1Y = useSpring(useTransform(scrollYProgress, [0, 1], [-85, 105]), springConfig);
+  const leaf1Rotate = useSpring(useTransform(scrollYProgress, [0, 1], [-22, 28]), springConfig);
+  const leaf2Y = useSpring(useTransform(scrollYProgress, [0, 1], [70, -80]), springConfig);
+  const leaf2Rotate = useSpring(useTransform(scrollYProgress, [0, 1], [28, -22]), springConfig);
+  const berryY = useSpring(useTransform(scrollYProgress, [0, 1], [-55, 65]), springConfig);
 
   const [form, setForm] = useState({
     fullName: '',

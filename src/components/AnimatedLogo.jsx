@@ -147,17 +147,17 @@ export const AnimatedLogo = ({
             <g id="brand-typography">
               <path 
                 d="M 64,68 L 74,68 L 94,94 L 82,94 Z" 
-                fill={activeConfig.textColor || "#e0542d"} 
+                fill={activeConfig.textColor || "#2d6a4f"} 
               />
               <path 
                 d="M 72,90 L 82,86 L 100,126 L 88,126 Z" 
-                fill={activeConfig.textColor || "#e0542d"} 
+                fill={activeConfig.textColor || "#2d6a4f"} 
               />
 
               <text 
                 x="88" 
                 y="94" 
-                fill={activeConfig.textColor || "#e0542d"} 
+                fill={activeConfig.textColor || "#2d6a4f"} 
                 fontSize="24" 
                 fontFamily="'Playfair Display', Georgia, serif" 
                 fontWeight="900" 
@@ -169,7 +169,7 @@ export const AnimatedLogo = ({
               <text 
                 x="88" 
                 y="126" 
-                fill={activeConfig.textColor || "#e0542d"} 
+                fill={activeConfig.textColor || "#2d6a4f"} 
                 fontSize="26" 
                 fontFamily="'Playfair Display', Georgia, serif" 
                 fontWeight="900" 
@@ -211,11 +211,11 @@ export const AnimatedLogo = ({
               x="100" 
               y="156" 
               textAnchor="middle" 
-              fill={activeConfig.taglineColor || "#2d6a4f"} 
+              fill={activeConfig.taglineColor || "#800000"} 
               fontSize="12" 
               fontFamily="'Caveat', 'Dancing Script', cursive, Georgia, serif" 
               fontWeight="bold" 
-              fontStyle="italic"
+              fontStyle="italic" 
               letterSpacing="0.4"
             >
               {activeConfig.subTagline || "~ The leaf lounge ~"}

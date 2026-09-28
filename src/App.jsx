@@ -19,14 +19,12 @@ import { HomepageContentProvider } from './context/HomepageContentContext';
 import { NavigationBar } from './components/NavigationBar';
 import { HeroSlider } from './components/HeroSlider';
 import { AboutSection } from './components/AboutSection';
-import { MicrogreensSection } from './components/MicrogreensSection';
-import { PowdersAndSpicesSection } from './components/PowdersAndSpicesSection';
-import { ProductCatalog } from './components/ProductCatalog';
+import { CategoryShowcaseSection } from './components/CategoryShowcaseSection';
+import { CategoryProductsScreen } from './components/CategoryProductsScreen';
 import { ProductInquirySection } from './components/ProductInquirySection';
 import { TrainingAcademy } from './components/TrainingAcademy';
 import { PartnerWithUsSection } from './components/PartnerWithUsSection';
 import { Certifications } from './components/Certifications';
-import { ProductDivisionsGrid } from './components/ProductDivisionsGrid';
 import { Footer } from './components/Footer';
 import { FloatingWhatsAppButton } from './components/common/FloatingWhatsAppButton';
 
@@ -65,13 +63,24 @@ function MainAppContent() {
     };
   }, []);
 
-  // Page View State: 'store' | 'admin' | 'cart'
+  // Selected Category ID for dedicated screen view
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.hash.startsWith('#category=')) {
+      return window.location.hash.replace('#category=', '') || 'harvested-microgreens';
+    }
+    return 'harvested-microgreens';
+  });
+
+  // Page View State: 'store' | 'admin' | 'cart' | 'category'
   const [currentView, setCurrentView] = useState(() => {
     if (typeof window !== 'undefined' && window.location.hash === '#admin') {
       return 'admin';
     }
     if (typeof window !== 'undefined' && (window.location.hash === '#cart' || window.location.hash === '#bag')) {
       return 'cart';
+    }
+    if (typeof window !== 'undefined' && window.location.hash.startsWith('#category=')) {
+      return 'category';
     }
     return 'store';
   });
@@ -104,6 +113,12 @@ function MainAppContent() {
       } else if (window.location.hash === '#cart' || window.location.hash === '#bag') {
         setCurrentView('cart');
         setIsCartOpen(true);
+      } else if (window.location.hash.startsWith('#category=')) {
+        const catId = window.location.hash.replace('#category=', '') || 'harvested-microgreens';
+        setSelectedCategory(catId);
+        setCurrentView('category');
+        setIsCartOpen(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         setCurrentView('store');
         setIsCartOpen(false);
@@ -112,6 +127,19 @@ function MainAppContent() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [setIsCartOpen, isAdmin, currentUser]);
+
+  const handleOpenCategory = (catId) => {
+    setSelectedCategory(catId);
+    setCurrentView('category');
+    window.location.hash = `category=${catId}`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackToHome = () => {
+    setCurrentView('store');
+    window.location.hash = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Active Theme (Clean Modern Default)
   const [activeTheme, setActiveTheme] = useState(THEMES[0]);
@@ -214,6 +242,44 @@ function MainAppContent() {
               onOpenAuth={handleOpenAuth}
             />
           </motion.div>
+        ) : currentView === 'category' ? (
+          <motion.div
+            key="category-view"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className={`min-h-screen font-sans ${activeTheme.bodyClass}`}
+          >
+            <NavigationBar 
+              activeTheme={activeTheme} 
+              onOpenAuth={handleOpenAuth}
+              onOpenProfile={() => setIsProfileModalOpen(true)}
+              onOpenAdmin={handleOpenAdmin}
+              activeCurrency={activeCurrency}
+            />
+            <CategoryProductsScreen
+              selectedCategoryId={selectedCategory}
+              onSelectCategory={(newCatId) => {
+                setSelectedCategory(newCatId);
+                window.location.hash = `category=${newCatId}`;
+              }}
+              onBackToHome={handleBackToHome}
+              formatPrice={formatPrice}
+              setSelectedMicroscopeItem={setSelectedMicroscopeItem}
+              hoverCoords={hoverCoords}
+              hoverState={hoverState}
+              handleCardMouseMove={handleCardMouseMove}
+              handleCardMouseEnter={handleCardMouseEnter}
+              handleCardMouseLeave={handleCardMouseLeave}
+              onOpenAdmin={handleOpenAdmin}
+              activeTheme={activeTheme}
+            />
+            <Footer 
+              activeTheme={activeTheme} 
+              onOpenAdmin={handleOpenAdmin}
+            />
+          </motion.div>
         ) : (
           <motion.div
             key="store-view"
@@ -232,7 +298,7 @@ function MainAppContent() {
         activeCurrency={activeCurrency}
       />
 
-      {/* ================= INTERACTIVE HERO SLIDER ================= */}
+      {/* ================= 1. INTERACTIVE HERO SLIDER (HOME) ================= */}
       <HeroSlider 
         activeTheme={activeTheme} 
         carouselIndex={carouselIndex} 
@@ -244,51 +310,9 @@ function MainAppContent() {
         handleCardMouseLeave={handleCardMouseLeave} 
       />
 
-      {/* ================= PRODUCT DIVISIONS SHOWCASE (Venkatesh Naturals style) ================= */}
-      <ProductDivisionsGrid />
-
-      {/* ================= MEET THE FOUNDERS & OUR STORY ================= */}
-      <AboutSection 
-        activeTheme={activeTheme} 
-      />
-
-      {/* ================= 1. ALL PRODUCTS & FARM PRODUCE CATALOGUE ================= */}
-      <ProductCatalog
-        activeTheme={activeTheme}
-        setSelectedMicroscopeItem={setSelectedMicroscopeItem}
-        hoverCoords={hoverCoords}
-        hoverState={hoverState}
-        handleCardMouseMove={handleCardMouseMove}
-        handleCardMouseEnter={handleCardMouseEnter}
-        handleCardMouseLeave={handleCardMouseLeave}
-        formatPrice={formatPrice}
-        onOpenAdmin={handleOpenAdmin}
-      />
-
-      {/* ================= 2. HERBAL POWDERS, SPICES & SEASONING ================= */}
-      <PowdersAndSpicesSection 
-        activeTheme={activeTheme}
-        formatPrice={formatPrice}
-        setSelectedMicroscopeItem={setSelectedMicroscopeItem}
-        hoverCoords={hoverCoords}
-        hoverState={hoverState}
-        handleCardMouseMove={handleCardMouseMove}
-        handleCardMouseEnter={handleCardMouseEnter}
-        handleCardMouseLeave={handleCardMouseLeave}
-        onOpenAdmin={handleOpenAdmin}
-      />
-
-      {/* ================= 3. MICROGREENS DIVISION & INQUIRE FOR NEXT BATCH ================= */}
-      <MicrogreensSection 
-        activeTheme={activeTheme}
-        formatPrice={formatPrice}
-        setSelectedMicroscopeItem={setSelectedMicroscopeItem}
-        hoverCoords={hoverCoords}
-        hoverState={hoverState}
-        handleCardMouseMove={handleCardMouseMove}
-        handleCardMouseEnter={handleCardMouseEnter}
-        handleCardMouseLeave={handleCardMouseLeave}
-        onOpenAdmin={handleOpenAdmin}
+      {/* ================= 2. PRODUCTS (BOTANICAL CATEGORIES CAROUSEL) ================= */}
+      <CategoryShowcaseSection 
+        onOpenCategoryProducts={handleOpenCategory}
       />
 
       {/* ================= DEDICATED WHATSAPP & PRODUCT PURCHASE INQUIRY SECTION ================= */}
@@ -296,12 +320,17 @@ function MainAppContent() {
         activeTheme={activeTheme}
       />
 
-      {/* ================= 4. TRAINING & GROW ACADEMY ================= */}
+      {/* ================= 3. TRAINING & GROW ACADEMY ================= */}
       <TrainingAcademy 
         activeTheme={activeTheme}
       />
 
-      {/* ================= 3. PARTNER WITH US (Inquiry Form -> Images & Description) ================= */}
+      {/* ================= 4. ABOUT (MEET THE FOUNDERS & OUR STORY) ================= */}
+      <AboutSection 
+        activeTheme={activeTheme} 
+      />
+
+      {/* ================= 5. PARTNER WITH US ================= */}
       <PartnerWithUsSection 
         activeTheme={activeTheme}
       />

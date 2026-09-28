@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { useScroll } from 'motion/react';
+import { motion, useScroll } from 'motion/react';
 import { useHomepageContent } from '../context/HomepageContentContext';
 import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 import { EventsWorkshopBotanicals } from './common/EventsWorkshopBotanicals';
@@ -29,8 +29,8 @@ export const Certifications = ({
       className="py-20 px-6 transition-colors duration-500 relative overflow-hidden" 
       style={{ backgroundColor: `${activeTheme.accentColor}05` }}
     >
-      {/* Background Botanical Decor */}
-      <BotanicalSectionBackdrop variant="general" />
+      {/* Background Botanical Decor with Parallax matching Screenshot 62 */}
+      <BotanicalSectionBackdrop variant="certifications" scrollYProgress={scrollYProgress} />
 
       <div className="max-w-7xl mx-auto space-y-16 relative z-10">
         
@@ -42,7 +42,7 @@ export const Certifications = ({
           </p>
         </div>
 
-        {/* Certifications Row - Dedicated z-20 stacking context to guarantee no overlap */}
+        {/* Certifications Row - Dedicated z-20 stacking context with dropdown animation */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 text-center font-sans relative z-20">
           {[
             { label: "MSME", sub: "Small Enterprises", desc: "Regulated growth model.", icon: "🏢" },
@@ -53,29 +53,59 @@ export const Certifications = ({
             { label: "ISO 9001:2015", sub: "Certified Quality System", desc: "Continuous audits.", icon: "🏅" },
             { label: "Trademarked", sub: "Brand Guarantee", desc: "Registered logo and name.", icon: "🛡️" }
           ].map((cert, idx) => (
-            <div key={idx} className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-xs space-y-2 hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative z-20">
+            <motion.div 
+              key={idx} 
+              initial={{ opacity: 0, y: -26 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ 
+                duration: 0.55, 
+                delay: idx * 0.07, 
+                ease: [0.22, 1, 0.36, 1] 
+              }}
+              className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-xs space-y-2 hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative z-20"
+            >
               <div className="text-3xl">{cert.icon}</div>
               <h4 className="font-extrabold text-sm uppercase text-neutral-800 leading-none">{cert.label}</h4>
               <p className="text-[10px] font-bold text-emerald-600 tracking-tight">{cert.sub}</p>
               <p className="text-[9px] text-neutral-400 font-light leading-tight">{cert.desc}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Social Event Spotlights with generous open margin */}
-        <div className="pt-16 pb-12 space-y-10 relative">
+        <div className="pt-16 pb-12 space-y-8 relative">
           {/* Parallax Floating Fruits & Leaves dynamically moving on scroll, placed strictly in open gaps */}
           <EventsWorkshopBotanicals scrollYProgress={scrollYProgress} />
 
-          <h3 className="text-2xl font-black uppercase tracking-tight text-center relative z-20">Our Events & Workshop Footprint</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-20">
+          <div className="space-y-1 text-center sm:text-left relative z-20">
+            <span className="text-[11px] font-black uppercase tracking-widest text-emerald-700 block">Community & Knowledge Exchange</span>
+            <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-neutral-900">
+              Our Events & Workshop Footprint
+            </h3>
+          </div>
+
+          <div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-20 overflow-x-auto scrollbar-none pb-2"
+          >
             {displayEvents.map((ev, i) => {
               const cardId = `workshop-${i}`;
               const isHovering = hoverState[cardId];
               const coord = hoverCoords[cardId] || { x: 0, y: 0 };
               
               return (
-                <div key={cardId} className="relative z-20 group select-none">
+                <motion.div 
+                  key={cardId} 
+                  initial={{ opacity: 0, y: -30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ 
+                    duration: 0.6, 
+                    delay: i * 0.12, 
+                    ease: [0.22, 1, 0.36, 1] 
+                  }}
+                  className="relative z-20 group select-none min-w-[280px]"
+                >
                   {/* Subtle soft ambient glow behind each workshop card */}
                   <div 
                     className="absolute inset-0 z-0 pointer-events-none transition-transform duration-500 ease-out opacity-40"
@@ -99,12 +129,12 @@ export const Certifications = ({
                   >
                     <div className="h-56 overflow-hidden bg-neutral-100 relative">
                       <img 
-                        src={ev.image} 
+                        src={ev.image || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80'} 
                         alt={ev.title} 
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = 'https://images.unsplash.com/photo-1544535830-9d5a6724cd31?auto=format&fit=crop&w=500&q=80';
+                          e.target.src = 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80';
                         }}
                         className="w-full h-full object-cover transition-transform duration-700 ease-out"
                         style={{
@@ -120,7 +150,7 @@ export const Certifications = ({
                       <p className="text-xs text-neutral-600 font-light leading-relaxed line-clamp-2">{ev.desc}</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>

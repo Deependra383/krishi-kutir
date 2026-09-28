@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { HOME_3D_ASSETS } from '../data';
 import defaultRachnaImg from '../assets/images/founder_portrait_1788864054548.jpg';
+import defaultJanviImg from '../assets/images/janvi_portrait_1790083174336.jpg';
 import botanicalHeroBanner from '../assets/images/botanical_hero_banner.jpg';
 
 const DEFAULT_FOUNDERS = {
@@ -13,10 +14,10 @@ const DEFAULT_FOUNDERS = {
   },
   founder2: {
     id: 'founder2',
-    name: 'Janvi Bhaghchandani',
+    name: 'Janvi Bhagchandani',
     role: 'Chief Administrator',
     quote: 'We ensure seamless cold-chain logistics, strict batch hygiene, and FSSAI statutory compliance across every shipment.',
-    image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&h=300&q=80'
+    image: defaultJanviImg
   }
 };
 
@@ -32,7 +33,7 @@ export const DEFAULT_HERO_SLIDES = [
     badge: "Krishi Kutir • Pure Botanical Harvest",
     overlaySub: "Bhopal Botanical & Vertical Farm",
     overlayCap: "100% Pure Organic Vitality",
-    target: "#full-catalogue-section"
+    target: "#category=harvested-microgreens"
   },
   {
     id: 'slide-2',
@@ -45,7 +46,7 @@ export const DEFAULT_HERO_SLIDES = [
     badge: "Krishi Kutir • Ayurvedic Potency",
     overlaySub: "Leaf Lounge Processing Unit",
     overlayCap: "Pure Plant Concentrates",
-    target: "#powders-spices-section"
+    target: "#category=fruits"
   },
   {
     id: 'slide-3',
@@ -71,7 +72,7 @@ export const DEFAULT_HERO_SLIDES = [
     badge: "Krishi Kutir • Cryo Processed",
     overlaySub: "Zero Additives Laboratory",
     overlayCap: "Active Enzymes Certified",
-    target: "#powders-spices-section"
+    target: "#category=fruits"
   }
 ];
 
@@ -139,7 +140,7 @@ const DEFAULT_EVENTS_WORKSHOPS = [
     title: 'Dietetics Association Workshop',
     location: 'Bhopal Chapter',
     desc: 'Demonstrating high-density microgreens nutrition to 100+ clinical nutritionists.',
-    image: 'https://images.unsplash.com/photo-1544535830-9d5a6724cd31?auto=format&fit=crop&w=500&q=80'
+    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80'
   },
   {
     id: 'event-2',
@@ -195,25 +196,25 @@ const DEFAULT_INFRASTRUCTURE_CARDS = [
 const DEFAULT_DIVISION_CARDS = [
   {
     id: 'div-microgreens',
-    name: 'Living Microgreens & Trays',
+    name: 'Harvested Microgreens & Living Trays',
     subtitle: 'Living Superfoods with 40x Nutrient Density',
     description: 'Living broccoli, daikon radish, sweet pea shoots, and sunflower greens delivered growing on organic coco pads or freshly harvested.',
     image: HOME_3D_ASSETS.microgreens,
     badge: '3D Living Harvest',
     badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     tag: '0 Chemical Residue',
-    target: '#microgreens-section'
+    target: '#category=harvested-microgreens'
   },
   {
     id: 'div-powders',
-    name: 'Fruit & Vegetable Powders',
+    name: 'Natural Powders (Fruit & Vegetable)',
     subtitle: 'Dehydrated Pure Plant Concentrates',
     description: 'Cryo-dehydrated beetroot, moringa, amla, spinach, and tomato umami powder retaining maximum bioflavonoids, vitamins, and natural aroma.',
     image: HOME_3D_ASSETS.botanicalPowders,
     badge: '3D Cryo Processed',
     badgeColor: 'bg-rose-50 text-rose-800 border-rose-200',
     tag: '100% Pure Active Enzymes',
-    target: '#powders-spices-section'
+    target: '#category=fruits'
   },
   {
     id: 'div-spices',
@@ -224,7 +225,7 @@ const DEFAULT_DIVISION_CARDS = [
     badge: '3D Pure Extracts',
     badgeColor: 'bg-amber-50 text-amber-800 border-amber-200',
     tag: 'Steam Sterilized',
-    target: '#powders-spices-section'
+    target: '#category=spices'
   },
   {
     id: 'div-dairy',
@@ -235,18 +236,18 @@ const DEFAULT_DIVISION_CARDS = [
     badge: 'Dairy Free & Vegan',
     badgeColor: 'bg-sky-50 text-sky-800 border-sky-200',
     tag: 'Zero Additives / No Maltodextrin',
-    target: '#powders-spices-section'
+    target: '#category=dairy-alternatives'
   },
   {
     id: 'div-supplies',
-    name: 'Professional Trays & Mediums',
+    name: 'Professional Trays & Seeds',
     subtitle: 'Food-Grade Grow Trays & Substrates',
     description: 'Commercial 10" x 20" slotted grow trays, triple-washed low-EC cocopeat blocks, biodegradable packaging, and untreated non-GMO seed lots.',
     image: HOME_3D_ASSETS.verticalFarm,
     badge: '3D Hydroponic Systems',
     badgeColor: 'bg-neutral-100 text-neutral-800 border-neutral-300',
     tag: 'Direct Grower Supply',
-    target: '#full-catalogue-section'
+    target: '#category=microgreen-seeds'
   }
 ];
 
@@ -407,7 +408,12 @@ export const HomepageContentProvider = ({ children }) => {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
+            return parsed.map(ev => {
+              if (ev.image && ev.image.includes('photo-1544535830-9d5a6724cd31')) {
+                return { ...ev, image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80' };
+              }
+              return ev;
+            });
           }
         }
       } catch (e) {

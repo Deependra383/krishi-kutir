@@ -11,10 +11,10 @@ export const Footer = () => {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <AnimatedLogo 
-              size={58} 
+              size={68} 
               showText={true} 
-              textColor="text-neutral-900" 
-              taglineColor="text-emerald-700 font-semibold" 
+              textColor="text-[#2d6a4f]" 
+              taglineColor="text-[#800000] font-black" 
             />
           </div>
           <p className="text-xs text-emerald-800/90 leading-relaxed font-normal">
@@ -57,9 +57,9 @@ export const Footer = () => {
             Living Microgreens
           </h4>
           <ul className="space-y-2 text-xs text-emerald-800/85 font-medium">
-            <li><a href="#harvested-microgreens" className="hover:text-emerald-950 hover:underline transition-colors">Fresh Harvested Clamshells</a></li>
-            <li><a href="#live-microgreens" className="hover:text-emerald-950 hover:underline transition-colors">Living Grow Trays</a></li>
-            <li><a href="#microgreens-seeds" className="hover:text-emerald-950 hover:underline transition-colors">Untreated Heirloom Seeds</a></li>
+            <li><a href="#category=harvested-microgreens" className="hover:text-emerald-950 hover:underline transition-colors">Fresh Harvested Clamshells</a></li>
+            <li><a href="#category=harvested-microgreens" className="hover:text-emerald-950 hover:underline transition-colors">Living Grow Trays</a></li>
+            <li><a href="#category=microgreen-seeds" className="hover:text-emerald-950 hover:underline transition-colors">Untreated Heirloom Seeds</a></li>
             <li><a href="#training-academy" className="hover:text-emerald-950 hover:underline transition-colors">Commercial Training Masterclass</a></li>
             <li><a href="#partner-with-us" className="hover:text-emerald-950 hover:underline transition-colors">HoReCa Chef Supply</a></li>
           </ul>
@@ -71,9 +71,9 @@ export const Footer = () => {
             Botanical Powders & Extracts
           </h4>
           <ul className="space-y-2 text-xs text-emerald-800/85 font-medium">
-            <li><a href="#powders-spices-section" className="hover:text-emerald-950 hover:underline transition-colors">Pure Fruit & Vegetable Powders</a></li>
-            <li><a href="#powders-spices-section" className="hover:text-emerald-950 hover:underline transition-colors">Lakadong Turmeric & Spices</a></li>
-            <li><a href="#powders-spices-section" className="hover:text-emerald-950 hover:underline transition-colors">Plant Milk Powders (Almond, Oat)</a></li>
+            <li><a href="#category=fruits" className="hover:text-emerald-950 hover:underline transition-colors">Pure Fruit & Vegetable Powders</a></li>
+            <li><a href="#category=spices" className="hover:text-emerald-950 hover:underline transition-colors">Lakadong Turmeric & Spices</a></li>
+            <li><a href="#category=dairy-alternatives" className="hover:text-emerald-950 hover:underline transition-colors">Plant Milk Powders (Almond, Oat)</a></li>
             <li><a href="#partner-with-us" className="hover:text-emerald-950 hover:underline transition-colors">Private Label Dehydration</a></li>
             <li><a href="#partner-with-us" className="hover:text-emerald-950 hover:underline transition-colors">Bulk Commercial Orders</a></li>
           </ul>

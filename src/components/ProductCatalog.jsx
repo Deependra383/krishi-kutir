@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
+import { useScroll } from 'motion/react';
 import { Search, Leaf, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
@@ -16,6 +17,12 @@ export const ProductCatalog = ({
   formatPrice,
   onOpenAdmin
 }) => {
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"]
+  });
+
   const { products } = useProducts();
   const { addToCart, setIsCheckoutOpen } = useCart();
 
@@ -79,9 +86,13 @@ export const ProductCatalog = ({
   };
 
   return (
-    <section id="full-catalogue-section" className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
-      {/* Background Colorful Botanical Decor */}
-      <BotanicalSectionBackdrop variant="catalog" />
+    <section 
+      ref={sectionRef}
+      id="full-catalogue-section" 
+      className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans relative overflow-hidden"
+    >
+      {/* Background Colorful Botanical Decor with Parallax */}
+      <BotanicalSectionBackdrop variant="catalog" scrollYProgress={scrollYProgress} />
 
       <div className="max-w-7xl mx-auto relative z-10 space-y-10">
       {/* Catalog Showcase Header */}

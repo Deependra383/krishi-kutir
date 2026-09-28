@@ -1,25 +1,77 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { motion, useScroll } from 'motion/react';
 import { Sparkles, ArrowRight, ShieldCheck, Leaf, Award, CheckCircle2 } from 'lucide-react';
 import { HOME_3D_ASSETS } from '../data';
 import { useHomepageContent } from '../context/HomepageContentContext';
 import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 
 export const ProductDivisionsGrid = () => {
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"]
+  });
+
   const { divisionCards, defaultDivisionCards } = useHomepageContent();
   const activeDivisions = (divisionCards && divisionCards.length > 0) ? divisionCards : defaultDivisionCards;
 
-  const handleNavigate = (target) => {
-    if (!target) return;
-    const el = document.querySelector(target);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+  const handleDivisionClick = (division) => {
+    const divId = (division.id || '').toLowerCase();
+    const divName = (division.name || '').toLowerCase();
+    const divTarget = (division.target || '').toLowerCase();
+
+    // 1. When user clicks on microgreens -> redirected to harvested microgreens
+    if (divId.includes('microgreen') || divName.includes('microgreen') || divTarget.includes('microgreen')) {
+      window.location.hash = 'category=harvested-microgreens';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // 2. When user clicks on natural powders -> redirected to fruits powder
+    if (divId.includes('powder') || divName.includes('powder') || divName.includes('fruit') || divTarget.includes('powder')) {
+      window.location.hash = 'category=fruits';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // 3. Spices and Seasoning
+    if (divId.includes('spice') || divName.includes('spice')) {
+      window.location.hash = 'category=spices';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // 4. Dairy alternatives
+    if (divId.includes('dairy') || divName.includes('dairy') || divName.includes('milk')) {
+      window.location.hash = 'category=dairy-alternatives';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // 5. Seeds & Grow Mediums
+    if (divId.includes('supplies') || divName.includes('seed') || divName.includes('tray') || divName.includes('medium')) {
+      window.location.hash = 'category=microgreen-seeds';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (division.target) {
+      if (division.target.startsWith('#category=')) {
+        window.location.hash = division.target.replace('#', '');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      const el = document.querySelector(division.target);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 
   return (
-    <section className="w-full py-16 px-4 sm:px-6 lg:px-8 select-none relative overflow-hidden">
-      {/* Background Botanical Decor */}
-      <BotanicalSectionBackdrop variant="divisions" />
+    <section ref={sectionRef} className="w-full py-16 px-4 sm:px-6 lg:px-8 select-none relative overflow-hidden">
+      {/* Background Botanical Decor with Parallax */}
+      <BotanicalSectionBackdrop variant="divisions" scrollYProgress={scrollYProgress} />
       
       <div className="max-w-7xl mx-auto relative z-10 space-y-12">
       {/* Header with Venkatesh Naturals inspiration */}
@@ -36,8 +88,8 @@ export const ProductDivisionsGrid = () => {
         </p>
       </div>
 
-      {/* Grid of Product Divisions with authentic photography */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+      {/* Grid of Product Divisions with authentic photography & dropdown animation */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 relative z-20">
         {activeDivisions.map((division, idx) => {
           const fallbacks = [
             HOME_3D_ASSETS.microgreens,
@@ -49,10 +101,18 @@ export const ProductDivisionsGrid = () => {
           const fallbackImg = fallbacks[idx] || HOME_3D_ASSETS.microgreens;
 
           return (
-            <div 
+            <motion.div 
               key={division.id || idx}
-              onClick={() => handleNavigate(division.target)}
-              className={`group bg-white rounded-3xl overflow-hidden border border-neutral-200/80 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between ${
+              initial={{ opacity: 0, y: -28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ 
+                duration: 0.55, 
+                delay: idx * 0.08, 
+                ease: [0.22, 1, 0.36, 1] 
+              }}
+              onClick={() => handleDivisionClick(division)}
+              className={`group bg-white rounded-3xl overflow-hidden border border-neutral-200/80 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative z-20 ${
                 idx === 0 ? 'lg:col-span-2 lg:flex-row' : ''
               }`}
             >
@@ -102,13 +162,11 @@ export const ProductDivisionsGrid = () => {
                   </span>
                 </div>
               </div>
-
-            </div>
+            </motion.div>
           );
         })}
       </div>
       </div>
-
     </section>
   );
 };

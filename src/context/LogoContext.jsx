@@ -15,8 +15,8 @@ const DEFAULT_LOGO_CONFIG = {
   sunColor: '#f97316',
   sunGlowColor: '#facc15',
   leafColor: '#1b4332',
-  textColor: '#e0542d',
-  taglineColor: '#2d6a4f',
+  textColor: '#2d6a4f', // Same green as in navbar
+  taglineColor: '#800000', // Maroon
   fontFamily: 'Playfair Display' // 'Playfair Display' | 'Inter' | 'Caveat'
 };
 

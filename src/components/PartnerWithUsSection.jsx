@@ -1,23 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { useScroll } from 'motion/react';
+import { motion, useScroll } from 'motion/react';
 import { 
   Handshake, 
   Building2, 
-  Truck, 
-  Globe2, 
   Send, 
   CheckCircle2, 
   Sparkles, 
-  ShieldCheck, 
   Boxes, 
   PhoneCall, 
   Mail, 
   MapPin, 
-  Layers,
   MessageCircle
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { useHomepageContent } from '../context/HomepageContentContext';
 import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 
 export const PartnerWithUsSection = ({ activeTheme }) => {
@@ -26,12 +21,6 @@ export const PartnerWithUsSection = ({ activeTheme }) => {
     target: sectionRef,
     offset: ["start end", "end start"]
   });
-
-  const { infrastructureCards, defaultInfrastructureCards } = useHomepageContent();
-  const displayInfrastructure = (infrastructureCards && infrastructureCards.length > 0) 
-    ? infrastructureCards 
-    : defaultInfrastructureCards;
-
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -400,78 +389,6 @@ export const PartnerWithUsSection = ({ activeTheme }) => {
             </div>
 
           </div>
-        </div>
-
-      </div>
-
-      {/* ========================================================================= */}
-      {/* IMAGES AND DESCRIPTION SECTION */}
-      {/* ========================================================================= */}
-      <div className="space-y-12 pt-8">
-        
-        <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <span className="text-xs font-bold uppercase tracking-widest text-emerald-700">
-            Why Collaborate With Us
-          </span>
-          <h3 className="text-3xl font-black uppercase text-neutral-900">
-            Our Infrastructure & Supply Guarantee
-          </h3>
-          <p className="text-xs text-neutral-500 font-light leading-relaxed">
-            Behind every harvest is a sterile, temperature-regulated micro-climate vertical farm and ISO-aligned dehydration facility.
-          </p>
-        </div>
-
-        {/* 4 Image & Description Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {displayInfrastructure.map((card, idx) => {
-            const colorThemes = [
-              { label: 'text-emerald-700', icon: ShieldCheck, fallbackImg: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80' },
-              { label: 'text-amber-700', icon: Truck, fallbackImg: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80' },
-              { label: 'text-rose-700', icon: Layers, fallbackImg: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80' },
-              { label: 'text-sky-700', icon: Globe2, fallbackImg: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=600&q=80' }
-            ];
-            const theme = colorThemes[idx % colorThemes.length];
-            const IconComponent = theme.icon;
-
-            return (
-              <div 
-                key={card.id || idx}
-                className="bg-white rounded-3xl border border-neutral-200/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-52 overflow-hidden bg-neutral-100 relative">
-                    <img 
-                      src={card.image} 
-                      alt={card.title}
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = theme.fallbackImg;
-                      }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-6 space-y-2">
-                    <span className={`text-[10px] font-bold ${theme.label} uppercase tracking-wider block`}>
-                      {card.category}
-                    </span>
-                    <h4 className="text-base font-bold text-neutral-900 uppercase">
-                      {card.title}
-                    </h4>
-                    <p className="text-xs text-neutral-600 font-light leading-relaxed">
-                      {card.desc}
-                    </p>
-                  </div>
-                </div>
-                <div className="p-6 pt-0">
-                  <span className={`text-[11px] font-bold ${theme.label} flex items-center gap-1`}>
-                    <IconComponent className="w-3.5 h-3.5 shrink-0" />
-                    <span>{card.badge}</span>
-                  </span>
-                </div>
-              </div>
-            );
-          })}
         </div>
 
       </div>

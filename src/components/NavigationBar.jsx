@@ -16,50 +16,57 @@ import { useAuth } from '../context/AuthContext';
 
 const PRODUCT_CATEGORIES = [
   {
-    id: 'all-products',
-    label: 'All Products & Farm Produce',
-    desc: 'Browse entire living & dehydrated harvest catalogue',
-    icon: Layers,
-    sectionId: 'full-catalogue-section',
-    badge: 'Full Store',
-    color: 'emerald'
-  },
-  {
-    id: 'microgreens',
-    label: 'Microgreens',
-    desc: 'Living trays, harvested shoots & untreated seeds',
+    id: 'harvested-microgreens',
+    categoryId: 'harvested-microgreens',
+    label: 'Harvested Microgreens',
+    desc: 'Crisp living shoots & clamshells with 40x nutrition',
     icon: Leaf,
-    sectionId: 'microgreens-section',
     badge: '40x Nutrition',
     color: 'emerald'
   },
   {
     id: 'natural-powders',
+    categoryId: 'fruits',
     label: 'Natural Powders',
-    desc: 'Pure botanical, moringa & herbal superfood powders',
+    desc: 'Cryo-dehydrated fruits, vegetables & herbal powders',
     icon: Sparkles,
-    sectionId: 'powders-spices-section',
-    tabTarget: 'tab-fruits-vegetables',
-    badge: 'Sun-Cured',
+    badge: 'Pure Plant',
     color: 'amber'
   },
   {
     id: 'spices',
+    categoryId: 'spices',
     label: 'Spices & Seasoning',
     desc: 'Heritage single-origin spices, Lakadong turmeric & blends',
     icon: Flame,
-    sectionId: 'powders-spices-section',
-    tabTarget: 'tab-spices-seasoning',
     badge: 'Single Origin',
     color: 'rose'
+  },
+  {
+    id: 'dairy-alternatives',
+    categoryId: 'dairy-alternatives',
+    label: 'Dairy Alternatives',
+    desc: 'Pure spray-dried oat, almond & coconut milk powders',
+    icon: Layers,
+    badge: 'Lactose Free',
+    color: 'sky'
+  },
+  {
+    id: 'all-products',
+    label: 'All Produce Categories',
+    desc: 'Browse complete botanical collections showcase',
+    icon: Layers,
+    sectionId: 'product-categories-showcase',
+    badge: 'Categories',
+    color: 'emerald'
   }
 ];
 
 const NAV_TABS = [
   { id: 'home', label: 'Home', badge: null, sectionId: '' },
-  { id: 'about', label: 'About', badge: null, sectionId: 'about-philosophy' },
-  { id: 'products', label: 'Products', hasDropdown: true, badge: null, sectionId: 'full-catalogue-section' },
+  { id: 'products', label: 'Products', hasDropdown: true, badge: null, sectionId: 'product-categories-showcase' },
   { id: 'training', label: 'Training', badge: null, sectionId: 'training-academy' },
+  { id: 'about', label: 'About', badge: null, sectionId: 'about-philosophy' },
   { id: 'partner', label: 'Partner With Us', badge: null, sectionId: 'partner-with-us' },
 ];
 
@@ -217,27 +224,27 @@ export const NavigationBar = ({
     setIsProductsDropdownOpen(false);
     setIsMobileMenuOpen(false);
 
-    isManualScrollRef.current = true;
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => {
-      isManualScrollRef.current = false;
-    }, 1100);
-
-    const el = document.getElementById(category.sectionId);
-    if (el) {
-      const offset = 80;
-      const elementPosition = el.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({
-        top: elementPosition - offset,
-        behavior: 'smooth'
-      });
+    if (category.categoryId) {
+      window.location.hash = `category=${category.categoryId}`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
 
-    if (category.tabTarget) {
+    if (category.sectionId) {
+      if (typeof window !== 'undefined' && window.location.hash.startsWith('#category=')) {
+        window.location.hash = '';
+      }
       setTimeout(() => {
-        const tabEl = document.getElementById(category.tabTarget);
-        if (tabEl) tabEl.click();
-      }, 350);
+        const el = document.getElementById(category.sectionId);
+        if (el) {
+          const offset = 80;
+          const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({
+            top: elementPosition - offset,
+            behavior: 'smooth'
+          });
+        }
+      }, 50);
     }
   };
 
@@ -267,12 +274,12 @@ export const NavigationBar = ({
           }}
           className="flex items-center gap-3 sm:gap-3.5 shrink-0 group pl-0.5"
         >
-          <AnimatedLogo size={52} showText={false} />
+          <AnimatedLogo size={70} showText={false} />
           <div className="flex flex-col leading-tight">
-            <span className="font-serif font-black text-lg sm:text-xl md:text-2xl tracking-tight transition-colors text-neutral-900 group-hover:text-emerald-700">
+            <span className="font-serif font-black text-2xl sm:text-3xl md:text-[30px] tracking-tight transition-colors text-[#2d6a4f] group-hover:text-[#1b4332]">
               Krishi Kutir
             </span>
-            <span className="text-[10px] sm:text-[11px] font-sans font-extrabold uppercase tracking-widest text-emerald-700 hidden sm:block">
+            <span className="text-[11px] sm:text-[12px] font-sans font-black uppercase tracking-widest text-[#800000] block">
               The Leaf Lounge
             </span>
           </div>
@@ -379,15 +386,23 @@ export const NavigationBar = ({
         </div>
 
         {/* Right Action Icons & Controls */}
-        <div className="flex items-center gap-2.5 shrink-0 pr-0.5">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 pr-0.5">
           
-          {/* Direct Shop Catalogue Pill */}
+          {/* In place of Shop Catalogue: Options for Harvested Microgreens & Natural Powders */}
           <a
-            href="#full-catalogue-section"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            href="#category=harvested-microgreens"
+            className="hidden xl:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-50 hover:bg-[#2d6a4f] hover:text-white border border-emerald-200 text-[#2d6a4f] text-xs font-bold transition-all shadow-2xs cursor-pointer group/navchip"
           >
-            <span>Explore Farm</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <Leaf className="w-3.5 h-3.5 text-emerald-600 group-hover/navchip:text-white transition-colors" />
+            <span>Harvested Microgreens</span>
+          </a>
+
+          <a
+            href="#category=fruits"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 hover:bg-[#b8862d] hover:text-white border border-amber-200 text-[#b8862d] text-xs font-bold transition-all shadow-2xs cursor-pointer group/navchip"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 group-hover/navchip:text-white transition-colors" />
+            <span>Natural Powders</span>
           </a>
 
           {/* User Profile / Authentication */}
@@ -442,6 +457,26 @@ export const NavigationBar = ({
             className="lg:hidden mx-4 mb-3 p-3.5 backdrop-blur-md rounded-2xl shadow-xl border space-y-1 transition-colors bg-white border-neutral-200/90 text-neutral-900 max-h-[82vh] overflow-y-auto"
           >
             <div className="flex flex-col gap-1.5 p-1">
+              {/* Quick direct category options */}
+              <div className="grid grid-cols-2 gap-2 pb-2 mb-1 border-b border-neutral-100">
+                <a
+                  href="#category=harvested-microgreens"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-emerald-50 hover:bg-[#2d6a4f] hover:text-white text-[#2d6a4f] border border-emerald-200 text-xs font-bold shadow-2xs text-center transition-colors"
+                >
+                  <Leaf className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Harvested Greens</span>
+                </a>
+                <a
+                  href="#category=fruits"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-amber-50 hover:bg-[#b8862d] hover:text-white text-[#b8862d] border border-amber-200 text-xs font-bold shadow-2xs text-center transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Natural Powders</span>
+                </a>
+              </div>
+
               {NAV_TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
 
