@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, Sparkles, Leaf, Flame } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Leaf, Flame, ArrowRight } from 'lucide-react';
 import { CAROUSEL_ITEMS } from '../data';
 import { useHomepageContent } from '../context/HomepageContentContext';
+import { useProducts } from '../context/ProductContext';
 import defaultBotanicalBanner from '../assets/images/botanical_hero_banner.jpg';
 
 export const HeroSlider = ({ 
@@ -10,6 +11,7 @@ export const HeroSlider = ({
   setCarouselIndex 
 }) => {
   const { heroSlides } = useHomepageContent();
+  const { showcaseCategories = [] } = useProducts();
   const slides = (heroSlides && heroSlides.length > 0) ? heroSlides : CAROUSEL_ITEMS;
   const currentSlide = slides[carouselIndex] || slides[0];
 
@@ -163,25 +165,47 @@ export const HeroSlider = ({
               {currentSlide?.description || "Nurtured with zero pesticides in our Bhopal vertical farm and botanical reserve. From antioxidant-rich living microgreens to pure sun-cured powders and restorative herbal wellness, experience nature's freshest vitality crafted to nourish your skin and vitality."}
             </p>
 
-            {/* Action Buttons: Natural Powders and Harvested Microgreens in place of Shop Catalogue */}
+            {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-              <a 
-                href="#category=harvested-microgreens"
-                id="hero-harvested-microgreens-btn"
-                className="inline-flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-[#2d6a4f] hover:bg-[#1b4332] text-white text-sm sm:text-base font-semibold rounded-full shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer active:scale-98"
-              >
-                <Leaf className="w-4 h-4 text-emerald-300" />
-                <span>Harvested Microgreens</span>
-              </a>
+              {showcaseCategories.length > 0 ? (
+                <a 
+                  href={`#category=${showcaseCategories[0].id}`}
+                  id="hero-primary-cat-btn"
+                  className="inline-flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-[#2d6a4f] hover:bg-[#1b4332] text-white text-sm sm:text-base font-semibold rounded-full shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer active:scale-98"
+                >
+                  <Leaf className="w-4 h-4 text-emerald-300" />
+                  <span>Explore {showcaseCategories[0].title}</span>
+                </a>
+              ) : (
+                <a 
+                  href="#product-categories-showcase"
+                  id="hero-categories-btn"
+                  className="inline-flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-[#2d6a4f] hover:bg-[#1b4332] text-white text-sm sm:text-base font-semibold rounded-full shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer active:scale-98"
+                >
+                  <Sparkles className="w-4 h-4 text-emerald-300" />
+                  <span>Explore Categories</span>
+                </a>
+              )}
 
-              <a 
-                href="#category=fruits"
-                id="hero-natural-powders-btn"
-                className="inline-flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-[#b8862d] hover:bg-[#996e23] text-white text-sm sm:text-base font-semibold rounded-full shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer active:scale-98"
-              >
-                <Sparkles className="w-4 h-4 text-amber-200" />
-                <span>Natural Powders</span>
-              </a>
+              {showcaseCategories.length > 1 ? (
+                <a 
+                  href={`#category=${showcaseCategories[1].id}`}
+                  id="hero-secondary-cat-btn"
+                  className="inline-flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-[#b8862d] hover:bg-[#996e23] text-white text-sm sm:text-base font-semibold rounded-full shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer active:scale-98"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-200" />
+                  <span>{showcaseCategories[1].title}</span>
+                </a>
+              ) : (
+                <a 
+                  href="#product-inquiry-section"
+                  id="hero-living-store-btn"
+                  className="inline-flex items-center justify-center gap-2 px-5 sm:px-8 py-3 sm:py-4 bg-[#b8862d] hover:bg-[#996e23] text-white text-sm sm:text-base font-semibold rounded-full shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer active:scale-98"
+                >
+                  <Leaf className="w-4 h-4 text-amber-200" />
+                  <span>Living Farm Store</span>
+                </a>
+              )}
 
               <a 
                 href="#partner-with-us"
@@ -193,41 +217,23 @@ export const HeroSlider = ({
               </a>
             </div>
 
-            {/* Interactive Category Jump Chips */}
-            <div className="mt-6 sm:mt-10 pt-5 sm:pt-6 border-t border-neutral-200/80 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-neutral-500 mr-1 hidden sm:inline">Explore:</span>
-              
-              <a 
-                href="#category=harvested-microgreens" 
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-[#2d6a4f] hover:text-white border border-neutral-200/90 text-xs font-semibold text-neutral-700 transition-all duration-200 shadow-2xs hover:-translate-y-0.5 cursor-pointer"
-              >
-                <Leaf className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Harvested Microgreens</span>
-              </a>
-
-              <a 
-                href="#category=fruits" 
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-[#b8862d] hover:text-white border border-neutral-200/90 text-xs font-semibold text-neutral-700 transition-all duration-200 shadow-2xs hover:-translate-y-0.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Natural Powders</span>
-              </a>
-
-              <a 
-                href="#category=spices" 
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-emerald-700 hover:text-white border border-neutral-200/90 text-xs font-semibold text-neutral-700 transition-all duration-200 shadow-2xs hover:-translate-y-0.5 cursor-pointer"
-              >
-                <Flame className="w-3.5 h-3.5 text-rose-500" />
-                <span>Spices & Seasoning</span>
-              </a>
-
-              <a 
-                href="#category=dairy-alternatives" 
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-emerald-700 hover:text-white border border-neutral-200/90 text-xs font-semibold text-neutral-700 transition-all duration-200 shadow-2xs hover:-translate-y-0.5 cursor-pointer"
-              >
-                <span>Dairy Alternatives</span>
-              </a>
-            </div>
+            {/* Interactive Category Jump Chips (Dynamic) */}
+            {showcaseCategories.length > 0 && (
+              <div className="mt-6 sm:mt-10 pt-5 sm:pt-6 border-t border-neutral-200/80 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-neutral-500 mr-1 hidden sm:inline">Explore:</span>
+                
+                {showcaseCategories.slice(0, 6).map((cat) => (
+                  <a 
+                    key={cat.id}
+                    href={`#category=${cat.id}`} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 hover:bg-[#2d6a4f] hover:text-white border border-neutral-200/90 text-xs font-semibold text-neutral-700 transition-all duration-200 shadow-2xs hover:-translate-y-0.5 cursor-pointer"
+                  >
+                    <Leaf className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{cat.title}</span>
+                  </a>
+                ))}
+              </div>
+            )}
 
           </div>
         </div>

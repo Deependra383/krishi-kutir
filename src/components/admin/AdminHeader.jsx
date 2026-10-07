@@ -11,7 +11,8 @@ import {
   Sliders, 
   Plus, 
   RotateCcw,
-  Images
+  Images,
+  Layers
 } from 'lucide-react';
 import { AnimatedLogo } from '../AnimatedLogo';
 
@@ -105,6 +106,19 @@ export const AdminHeader = ({
             >
               <Package className="w-4 h-4" />
               Products ({productsCount})
+            </button>
+
+            <button
+              id="page-tab-categories"
+              onClick={() => setActiveTab('categories')}
+              className={`py-2.5 px-3.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                activeTab === 'categories'
+                  ? 'bg-emerald-600 text-white shadow-sm font-black'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              Categories & Slides
             </button>
 
             <button

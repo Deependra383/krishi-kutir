@@ -17,7 +17,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useHomepageContent } from '../../context/HomepageContentContext';
-import { uploadProductImage, isSupabaseConfigured } from '../../supabase';
+import { uploadHomepageImage, isSupabaseConfigured } from '../../supabase';
 import defaultBotanicalBanner from '../../assets/images/botanical_hero_banner.jpg';
 
 export const HomepageImagesCard = () => {
@@ -122,19 +122,19 @@ export const HomepageImagesCard = () => {
     setUploadingIndex(index);
 
     try {
-      // 1. Try Supabase cloud upload first
+      // 1. Try Supabase cloud upload to 'homepage' bucket first
       if (isSupabaseConfigured) {
         try {
-          const res = await uploadProductImage(file);
+          const res = await uploadHomepageImage(file);
           if (res?.url) {
             handleFieldChange(index, 'image', res.url);
-            setSuccessMsg(`Showcase Image #${index + 1} uploaded to cloud storage successfully!`);
+            setSuccessMsg(`Showcase Image #${index + 1} uploaded to "homepage" storage bucket!`);
             setTimeout(() => setSuccessMsg(''), 3000);
             setUploadingIndex(null);
             return;
           }
         } catch (sbErr) {
-          console.warn('Supabase upload fallback to dataURL:', sbErr);
+          console.warn('Supabase homepage upload notice:', sbErr);
         }
       }
 

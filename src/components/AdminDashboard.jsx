@@ -20,11 +20,11 @@ import { LogoCustomizerCard } from './admin/LogoCustomizerCard';
 import { HomepageImagesCard } from './admin/HomepageImagesCard';
 import { FoundersCustomizerCard } from './admin/FoundersCustomizerCard';
 import { EventsWorkshopsCard } from './admin/EventsWorkshopsCard';
-import { InfrastructureCustomizerCard } from './admin/InfrastructureCustomizerCard';
-import { ProductDivisionsCustomizerCard } from './admin/ProductDivisionsCustomizerCard';
+import { StorageBucketsGuideCard } from './admin/StorageBucketsGuideCard';
+import { CategoryManagerCard } from './admin/CategoryManagerCard';
 
 export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
-  const { products, addProduct, updateProduct, deleteProduct, resetToDefaultCatalog } = useProducts();
+  const { products, categories: dynamicCategories = [], addProduct, updateProduct, deleteProduct, resetToDefaultCatalog } = useProducts();
   const { currentUser, logout, isAdmin } = useAuth();
   const isStrictAdmin = isAdmin && (currentUser?.email || '').trim().toLowerCase() === 'krishi345@gmail.com';
 
@@ -53,9 +53,9 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   const [formState, setFormState] = useState({
     name: '',
     price: '',
-    category: 'Harvested Microgreens',
+    category: '',
     unit: '100 GM',
-    moq: '250 GM',
+    moq: '1 Pack',
     benefit: '',
     image: ''
   });
@@ -87,18 +87,10 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   const [productToDelete, setProductToDelete] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  const categories = [
-    'All',
-    'Harvested Microgreens',
-    'Live Microgreens',
-    'Microgreens Seeds',
-    'Dairy Alternatives',
-    'Fruits and Vegetables',
-    'Spices and Seasoning',
-    'Professional Grow Trays',
-    'Substrates & Growing Mediums',
-    'Eco Packaging'
-  ];
+  const categories = React.useMemo(() => {
+    const list = Array.isArray(dynamicCategories) ? dynamicCategories : [];
+    return ['All', ...list.filter(c => c !== 'All')];
+  }, [dynamicCategories]);
 
   // Subscribe to all orders, users, partner inquiries, training inquiries
   useEffect(() => {
@@ -310,9 +302,9 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
     setFormState({
       name: '',
       price: '',
-      category: 'Harvested Microgreens',
+      category: dynamicCategories?.[0] || '',
       unit: '100 GM',
-      moq: '250 GM',
+      moq: '1 Pack',
       benefit: '',
       image: ''
     });
@@ -326,9 +318,9 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
     setFormState({
       name: prod.name || '',
       price: prod.price || '',
-      category: prod.category || 'Harvested Microgreens',
+      category: prod.category || dynamicCategories?.[0] || '',
       unit: prod.unit || '100 GM',
-      moq: prod.moq || '250 GM',
+      moq: prod.moq || '1 Pack',
       benefit: prod.benefit || '',
       image: prod.image || ''
     });
@@ -387,17 +379,17 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
-    if (!formState.name || !formState.price) return;
+    if (!formState.name?.trim()) return;
     setSavingProduct(true);
 
     try {
       const productPayload = {
         name: formState.name.trim(),
-        price: Number(formState.price),
+        price: Number(formState.price) || 0,
         category: formState.category,
         unit: formState.unit || '100 GM',
         moq: formState.moq || '1 Pack',
-        benefit: formState.benefit.trim(),
+        benefit: formState.benefit ? formState.benefit.trim() : 'Pure, nutrient-dense organic harvest cultivated with zero chemical pesticides.',
         image: formState.image || 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=600&q=80'
       };
 
@@ -462,9 +454,9 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   };
 
   const handleResetCatalog = async () => {
-    if (window.confirm('Reset all catalog items to factory original Krishi Kutir list?')) {
+    if (window.confirm('Delete all products from the store? This will completely clear the product catalog so you can add your items manually.')) {
       await resetToDefaultCatalog();
-      setProductSuccessMsg('Catalog reset to initial factory products.');
+      setProductSuccessMsg('All products cleared from catalog. Ready for fresh products.');
       setTimeout(() => setProductSuccessMsg(''), 4000);
     }
   };
@@ -550,9 +542,18 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
             onOpenEdit={handleOpenEdit}
             onDeleteProduct={handleDeleteProduct}
             onOpenAdd={handleOpenAdd}
+            onResetCatalog={handleResetCatalog}
             isDarkMode={isDarkMode}
           />
         )}
+
+        {/* TAB 1.5: SLIDING CATEGORIES & PRODUCE COLLECTIONS */}
+        {activeTab === 'categories' && (
+          <div className="max-w-6xl mx-auto space-y-6">
+            <CategoryManagerCard isDarkMode={isDarkMode} />
+          </div>
+        )}
+
 
         {/* TAB 2: B2B PARTNER INQUIRIES */}
         {activeTab === 'partners' && (
@@ -583,14 +584,15 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
         {/* TAB 6: HOMEPAGE, FOUNDERS & EVENTS MEDIA CUSTOMIZER */}
         {activeTab === 'media' && (
           <div className="max-w-6xl mx-auto space-y-8">
+            <CategoryManagerCard isDarkMode={isDarkMode} />
+            <StorageBucketsGuideCard isDarkMode={isDarkMode} />
             <LogoCustomizerCard />
             <HomepageImagesCard />
-            <ProductDivisionsCustomizerCard />
-            <InfrastructureCustomizerCard />
             <EventsWorkshopsCard />
             <FoundersCustomizerCard />
           </div>
         )}
+
 
         {/* TAB 7: STORE & SUPABASE SETTINGS */}
         {activeTab === 'settings' && (

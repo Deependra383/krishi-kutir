@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
   Menu, 
   X,
   ChevronDown,
+  ChevronRight,
   Sparkles,
   Leaf,
   Flame,
@@ -13,54 +14,8 @@ import {
 } from 'lucide-react';
 import { AnimatedLogo } from './AnimatedLogo';
 import { useAuth } from '../context/AuthContext';
-
-const PRODUCT_CATEGORIES = [
-  {
-    id: 'harvested-microgreens',
-    categoryId: 'harvested-microgreens',
-    label: 'Harvested Microgreens',
-    desc: 'Crisp living shoots & clamshells with 40x nutrition',
-    icon: Leaf,
-    badge: '40x Nutrition',
-    color: 'emerald'
-  },
-  {
-    id: 'natural-powders',
-    categoryId: 'fruits',
-    label: 'Natural Powders',
-    desc: 'Cryo-dehydrated fruits, vegetables & herbal powders',
-    icon: Sparkles,
-    badge: 'Pure Plant',
-    color: 'amber'
-  },
-  {
-    id: 'spices',
-    categoryId: 'spices',
-    label: 'Spices & Seasoning',
-    desc: 'Heritage single-origin spices, Lakadong turmeric & blends',
-    icon: Flame,
-    badge: 'Single Origin',
-    color: 'rose'
-  },
-  {
-    id: 'dairy-alternatives',
-    categoryId: 'dairy-alternatives',
-    label: 'Dairy Alternatives',
-    desc: 'Pure spray-dried oat, almond & coconut milk powders',
-    icon: Layers,
-    badge: 'Lactose Free',
-    color: 'sky'
-  },
-  {
-    id: 'all-products',
-    label: 'All Produce Categories',
-    desc: 'Browse complete botanical collections showcase',
-    icon: Layers,
-    sectionId: 'product-categories-showcase',
-    badge: 'Categories',
-    color: 'emerald'
-  }
-];
+import { useProducts } from '../context/ProductContext';
+import { CATEGORIES_CONFIG } from '../data/categoriesConfig';
 
 const NAV_TABS = [
   { id: 'home', label: 'Home', badge: null, sectionId: '' },
@@ -76,15 +31,64 @@ export const NavigationBar = ({
   onOpenAdmin 
 }) => {
   const { currentUser, userProfile } = useAuth();
+  const { products = [], showcaseCategories = [], majorCategories = [] } = useProducts();
+  const categoriesList = showcaseCategories && showcaseCategories.length > 0 ? showcaseCategories : CATEGORIES_CONFIG;
   
   const [activeTab, setActiveTab] = useState('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
   const [isMobileProductsExpanded, setIsMobileProductsExpanded] = useState(false);
+  const [activeMajorCatId, setActiveMajorCatId] = useState(null);
+  const [activeDropdownCatId, setActiveDropdownCatId] = useState('dairy-alternatives');
+  const [expandedMobileMajorId, setExpandedMobileMajorId] = useState(null);
+  const [expandedMobileCatId, setExpandedMobileCatId] = useState(null);
   
   const dropdownTimeoutRef = useRef(null);
   const isManualScrollRef = useRef(false);
   const scrollTimeoutRef = useRef(null);
+
+  // Active Major Category
+  const currentMajorCat = (majorCategories && majorCategories.length > 0)
+    ? (majorCategories.find(m => m.id === activeMajorCatId) || majorCategories[0])
+    : null;
+
+  // Sub-categories under currently active Major Category (or all if none)
+  const currentMajorSubCategories = useMemo(() => {
+    if (!currentMajorCat) return categoriesList;
+    const subs = categoriesList.filter(c => c.majorCategoryId === currentMajorCat.id);
+    return subs.length > 0 ? subs : categoriesList;
+  }, [currentMajorCat, categoriesList]);
+
+  // Helper to extract products belonging to each category
+  const getCategoryProducts = (cat) => {
+    if (!products || products.length === 0 || !cat) return [];
+    if (typeof cat.filterProduct === 'function') {
+      const filtered = products.filter(p => {
+        try {
+          return cat.filterProduct(p);
+        } catch {
+          return false;
+        }
+      });
+      if (filtered.length > 0) return filtered;
+    }
+    const catTitle = (cat.title || cat.name || '').toLowerCase();
+    const catId = (cat.id || '').toLowerCase();
+    return products.filter(p => {
+      const pCat = (p.category || '').toLowerCase();
+      const pSub = (p.subCategory || '').toLowerCase();
+      const pName = (p.name || '').toLowerCase();
+      return pCat === catTitle || pSub === catTitle || pCat.includes(catTitle) || pName.includes(catTitle) || pCat.includes(catId);
+    });
+  };
+
+  // Currently active/hovered/clicked category for the desktop sub-dropdown
+  const currentNavCat = categoriesList.find(c => c.id === activeDropdownCatId) 
+    || currentMajorSubCategories.find(c => c.id === 'dairy-alternatives')
+    || currentMajorSubCategories[0] 
+    || categoriesList[0];
+
+  const activeCategoryProducts = getCategoryProducts(currentNavCat);
 
   // Release scroll lock if user manually touches or scrolls with mouse wheel
   useEffect(() => {
@@ -219,33 +223,36 @@ export const NavigationBar = ({
     setTimeout(performScroll, 80);
   };
 
-  const handleCategorySelect = (category) => {
+  const handleNavigateCategory = (categoryId) => {
     setActiveTab('products');
     setIsProductsDropdownOpen(false);
     setIsMobileMenuOpen(false);
 
-    if (category.categoryId) {
-      window.location.hash = `category=${category.categoryId}`;
+    if (categoryId) {
+      window.location.hash = `category=${categoryId}`;
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
     }
+  };
 
-    if (category.sectionId) {
-      if (typeof window !== 'undefined' && window.location.hash.startsWith('#category=')) {
-        window.location.hash = '';
-      }
-      setTimeout(() => {
-        const el = document.getElementById(category.sectionId);
-        if (el) {
-          const offset = 80;
-          const elementPosition = el.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({
-            top: elementPosition - offset,
-            behavior: 'smooth'
-          });
-        }
-      }, 50);
+  const handleNavigateAllShowcase = () => {
+    setActiveTab('products');
+    setIsProductsDropdownOpen(false);
+    setIsMobileMenuOpen(false);
+
+    if (typeof window !== 'undefined' && window.location.hash.startsWith('#category=')) {
+      window.location.hash = '';
     }
+    setTimeout(() => {
+      const el = document.getElementById('product-categories-showcase');
+      if (el) {
+        const offset = 80;
+        const elementPosition = el.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({
+          top: elementPosition - offset,
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
   };
 
   const handleMouseEnterProducts = () => {
@@ -313,52 +320,227 @@ export const NavigationBar = ({
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isProductsDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
 
-                    {/* Products Dropdown Menu */}
+                    {/* Products Dropdown Menu: Major Categories -> Sub Categories -> Sub Products flyout */}
                     <AnimatePresence>
                       {isProductsDropdownOpen && (
                         <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                          initial={{ opacity: 0, y: 10, scale: 0.98 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                          exit={{ opacity: 0, y: 6, scale: 0.98 }}
                           transition={{ duration: 0.16 }}
-                          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-neutral-200 p-2.5 z-50"
+                          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[760px] max-w-[95vw] bg-white rounded-2xl shadow-2xl border border-neutral-200/90 z-50 overflow-hidden flex flex-col"
                         >
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 px-3 py-1.5 border-b border-neutral-100">
-                            Major Product Categories
-                          </div>
-                          
-                          <div className="space-y-1 mt-1">
-                            {PRODUCT_CATEGORIES.map((cat) => {
-                              const IconComponent = cat.icon;
-                              return (
+                          {categoriesList.length === 0 ? (
+                            <div className="p-8 text-center space-y-2.5">
+                              <Layers className="w-8 h-8 text-neutral-400 mx-auto" />
+                              <h4 className="text-xs font-bold text-neutral-800">No categories created yet</h4>
+                              <p className="text-[11px] text-neutral-500 max-w-xs mx-auto">
+                                Add categories in the Admin Dashboard to organize your products into dropdown menus.
+                              </p>
+                              {onOpenAdmin && (
                                 <button
-                                  key={cat.id}
                                   type="button"
-                                  onClick={() => handleCategorySelect(cat)}
-                                  className="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50/70 transition-all flex items-start gap-3 group cursor-pointer"
+                                  onClick={() => {
+                                    setIsProductsDropdownOpen(false);
+                                    onOpenAdmin();
+                                  }}
+                                  className="mt-2 px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-bold cursor-pointer inline-flex items-center gap-1 shadow-2xs"
                                 >
-                                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                    <IconComponent className="w-4 h-4" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="text-xs font-bold text-neutral-900 group-hover:text-emerald-800">
-                                        {cat.label}
-                                      </span>
-                                      {cat.badge && (
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-600 group-hover:bg-emerald-200/60 group-hover:text-emerald-800">
-                                          {cat.badge}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-[11px] text-neutral-500 font-normal line-clamp-1 mt-0.5">
-                                      {cat.desc}
-                                    </p>
-                                  </div>
+                                  <span>Open Admin</span>
+                                  <ArrowRight className="w-3 h-3" />
                                 </button>
-                              );
-                            })}
-                          </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-12 min-h-[360px]">
+                            
+                            {/* Column 1: Major Categories (e.g. Natural Powders, Microgreens & Seeds) */}
+                            {majorCategories && majorCategories.length > 0 && (
+                              <div className="col-span-3 border-r border-neutral-100 p-2.5 bg-neutral-100/60 flex flex-col justify-between">
+                                <div>
+                                  <div className="text-[10px] font-black uppercase tracking-wider text-neutral-400 px-2 py-1.5 mb-1">
+                                    Major Category
+                                  </div>
+                                  <div className="space-y-1">
+                                    {majorCategories.map((m) => {
+                                      const isMajorSelected = (currentMajorCat?.id === m.id);
+                                      const majorSubs = categoriesList.filter(c => c.majorCategoryId === m.id);
+                                      return (
+                                        <button
+                                          key={m.id}
+                                          type="button"
+                                          onMouseEnter={() => {
+                                            setActiveMajorCatId(m.id);
+                                            const firstSub = categoriesList.find(c => c.majorCategoryId === m.id);
+                                            if (firstSub) setActiveDropdownCatId(firstSub.id);
+                                          }}
+                                          onClick={() => {
+                                            setActiveMajorCatId(m.id);
+                                            const firstSub = categoriesList.find(c => c.majorCategoryId === m.id);
+                                            if (firstSub) setActiveDropdownCatId(firstSub.id);
+                                          }}
+                                          className={`w-full text-left px-2.5 py-2 rounded-xl transition-all flex items-center justify-between group cursor-pointer text-xs ${
+                                            isMajorSelected
+                                              ? 'bg-neutral-900 text-white font-black shadow-2xs'
+                                              : 'text-neutral-700 hover:bg-neutral-200/80 font-bold'
+                                          }`}
+                                        >
+                                          <span className="truncate leading-tight">{m.name}</span>
+                                          <ChevronRight className={`w-3.5 h-3.5 shrink-0 transition-transform ${isMajorSelected ? 'translate-x-0.5 text-white' : 'text-neutral-400'}`} />
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div className="pt-2 border-t border-neutral-200/80 px-1">
+                                  <span className="text-[9px] font-semibold text-neutral-400 uppercase tracking-wider block">
+                                    Krishi Kutir
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Column 2: Sub-Categories under the Selected Major Category */}
+                            <div className={`${majorCategories && majorCategories.length > 0 ? 'col-span-4' : 'col-span-5'} border-r border-neutral-100 p-2.5 bg-neutral-50/50 flex flex-col justify-between`}>
+                              <div>
+                                <div className="text-[10px] font-black uppercase tracking-wider text-neutral-400 px-2 py-1.5 mb-1 flex items-center justify-between">
+                                  <span>{currentMajorCat ? currentMajorCat.name : 'Sub-Categories'}</span>
+                                  <span className="text-[9px] font-mono font-bold bg-neutral-200/70 px-1.5 py-0.5 rounded text-neutral-600">
+                                    {currentMajorSubCategories.length}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-0.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-none">
+                                  {currentMajorSubCategories.map((cat) => {
+                                    const isSelected = (currentNavCat?.id === cat.id);
+                                    const prods = getCategoryProducts(cat);
+                                    return (
+                                      <button
+                                        key={cat.id}
+                                        type="button"
+                                        onMouseEnter={() => setActiveDropdownCatId(cat.id)}
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setActiveDropdownCatId(cat.id);
+                                        }}
+                                        className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center justify-between group cursor-pointer ${
+                                          isSelected 
+                                            ? 'bg-emerald-700 text-white shadow-xs font-bold' 
+                                            : 'text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 font-semibold'
+                                        }`}
+                                      >
+                                        <span className="text-xs truncate">{cat.title}</span>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          {prods.length > 0 && (
+                                            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                                              isSelected ? 'bg-white/20 text-white font-bold' : 'bg-neutral-200/80 text-neutral-600 font-medium'
+                                            }`}>
+                                              {prods.length}
+                                            </span>
+                                          )}
+                                          <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'translate-x-0.5 text-white' : 'text-neutral-400 group-hover:text-neutral-700'}`} />
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              <div className="pt-2 mt-2 border-t border-neutral-200/70 px-1">
+                                <button
+                                  type="button"
+                                  onClick={handleNavigateAllShowcase}
+                                  className="w-full py-1.5 px-2.5 rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-800 text-neutral-700 text-[11px] font-bold border border-neutral-200/80 flex items-center justify-between transition-colors cursor-pointer shadow-2xs"
+                                >
+                                  <span>All Produce Showcase</span>
+                                  <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Column 3: Products Belonging to Selected Sub-Category (e.g. Dairy Alternatives products) */}
+                            <div className={`${majorCategories && majorCategories.length > 0 ? 'col-span-5' : 'col-span-7'} p-3.5 bg-white flex flex-col justify-between`}>
+                              <div>
+                                <div className="flex items-center justify-between pb-2 border-b border-neutral-100 px-1">
+                                  <div className="min-w-0 pr-2">
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950 truncate">
+                                      {currentNavCat?.title} Products
+                                    </h4>
+                                    <span className="text-[10px] text-neutral-400 block truncate">
+                                      {activeCategoryProducts.length} items available
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleNavigateCategory(currentNavCat?.id)}
+                                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer transition-colors bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg shrink-0"
+                                  >
+                                    <span>Open Page</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                  </button>
+                                </div>
+
+                                {/* Products List */}
+                                <div className="mt-2 space-y-1.5 max-h-[250px] overflow-y-auto pr-1 scrollbar-none">
+                                  {activeCategoryProducts.length > 0 ? (
+                                    activeCategoryProducts.map((prod) => (
+                                      <button
+                                        key={prod.id}
+                                        type="button"
+                                        onClick={() => handleNavigateCategory(currentNavCat?.id)}
+                                        className="w-full text-left p-2 rounded-xl hover:bg-emerald-50/80 border border-transparent hover:border-emerald-200/70 transition-colors flex items-center justify-between group cursor-pointer gap-2"
+                                        title={prod.name}
+                                      >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          {prod.image && (
+                                            <img
+                                              src={prod.image}
+                                              alt={prod.name}
+                                              className="w-7 h-7 rounded-lg object-contain bg-white border border-neutral-200/80 p-0.5 shrink-0"
+                                            />
+                                          )}
+                                          <div className="min-w-0">
+                                            <span className="text-xs font-bold text-neutral-800 group-hover:text-emerald-900 truncate block">
+                                              {prod.name}
+                                            </span>
+                                            {prod.unit && (
+                                              <span className="text-[9px] font-mono text-neutral-400 block">
+                                                {prod.unit}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {prod.price !== undefined && (
+                                          <span className="text-[11px] font-mono font-bold text-emerald-800 shrink-0">
+                                            ₹{prod.price}
+                                          </span>
+                                        )}
+                                      </button>
+                                    ))
+                                  ) : (
+                                    <div className="py-12 text-center text-xs text-neutral-400 font-medium">
+                                      No products listed in {currentNavCat?.title} yet.
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="pt-2 border-t border-neutral-100 flex items-center justify-between px-1 text-[11px]">
+                                <span className="text-neutral-400 text-[10px]">100% Pure & Traceable</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleNavigateCategory(currentNavCat?.id)}
+                                  className="font-bold text-emerald-700 hover:underline cursor-pointer"
+                                >
+                                  View All {currentNavCat?.title} &rarr;
+                                </button>
+                              </div>
+                            </div>
+
+                            </div>
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -457,25 +639,22 @@ export const NavigationBar = ({
             className="lg:hidden mx-4 mb-3 p-3.5 backdrop-blur-md rounded-2xl shadow-xl border space-y-1 transition-colors bg-white border-neutral-200/90 text-neutral-900 max-h-[82vh] overflow-y-auto"
           >
             <div className="flex flex-col gap-1.5 p-1">
-              {/* Quick direct category options */}
-              <div className="grid grid-cols-2 gap-2 pb-2 mb-1 border-b border-neutral-100">
-                <a
-                  href="#category=harvested-microgreens"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-emerald-50 hover:bg-[#2d6a4f] hover:text-white text-[#2d6a4f] border border-emerald-200 text-xs font-bold shadow-2xs text-center transition-colors"
-                >
-                  <Leaf className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Harvested Greens</span>
-                </a>
-                <a
-                  href="#category=fruits"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-amber-50 hover:bg-[#b8862d] hover:text-white text-[#b8862d] border border-amber-200 text-xs font-bold shadow-2xs text-center transition-colors"
-                >
-                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Natural Powders</span>
-                </a>
-              </div>
+              {/* Quick direct category options (dynamic) */}
+              {categoriesList.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 pb-2 mb-1 border-b border-neutral-100">
+                  {categoriesList.slice(0, 2).map((cat) => (
+                    <a
+                      key={cat.id}
+                      href={`#category=${cat.id}`}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-emerald-50 hover:bg-[#2d6a4f] hover:text-white text-[#2d6a4f] border border-emerald-200 text-xs font-bold shadow-2xs text-center transition-colors"
+                    >
+                      <Leaf className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{cat.title}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
 
               {NAV_TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
@@ -496,23 +675,154 @@ export const NavigationBar = ({
                         <ChevronDown className={`w-4 h-4 transition-transform ${isMobileProductsExpanded ? 'rotate-180' : ''}`} />
                       </button>
 
-                      {/* Expandable Mobile Product Categories */}
+                      {/* Expandable Mobile Product Categories (Clean text, grouped by Major Category) */}
                       {isMobileProductsExpanded && (
-                        <div className="pl-3 pr-1 py-1 space-y-1 border-l-2 border-emerald-500/50 ml-3">
-                          {PRODUCT_CATEGORIES.map((cat) => {
-                            const IconComponent = cat.icon;
-                            return (
-                              <button
-                                key={cat.id}
-                                type="button"
-                                onClick={() => handleCategorySelect(cat)}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-neutral-700 hover:text-emerald-800 hover:bg-emerald-50/80 transition-colors text-left"
-                              >
-                                <IconComponent className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                <span>{cat.label}</span>
-                              </button>
-                            );
-                          })}
+                        <div className="pl-2 pr-1 py-1 space-y-2 border-l-2 border-emerald-500/50 ml-3">
+                          {categoriesList.length === 0 ? (
+                            <div className="py-2.5 px-2 text-xs text-neutral-400">
+                              No categories created yet
+                            </div>
+                          ) : majorCategories && majorCategories.length > 0 ? (
+                            majorCategories.map((major) => {
+                              const majorSubs = categoriesList.filter(c => c.majorCategoryId === major.id);
+                              if (majorSubs.length === 0) return null;
+
+                              return (
+                                <div key={major.id} className="space-y-1 pt-1 first:pt-0">
+                                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-900 bg-emerald-50/80 px-2 py-1 rounded-md flex items-center justify-between">
+                                    <span>{major.name}</span>
+                                    <span className="text-[9px] font-mono text-emerald-700">({majorSubs.length})</span>
+                                  </div>
+
+                                  <div className="pl-1.5 space-y-0.5">
+                                    {majorSubs.map((cat) => {
+                                      const isCatExpanded = expandedMobileCatId === cat.id;
+                                      const catProds = getCategoryProducts(cat);
+                                      return (
+                                        <div key={cat.id} className="space-y-0.5">
+                                          <div className="flex items-center justify-between rounded-lg hover:bg-emerald-50/60 px-2 py-1.5 transition-colors">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setExpandedMobileCatId(isCatExpanded ? null : cat.id);
+                                              }}
+                                              className="text-xs font-bold text-neutral-800 hover:text-emerald-800 text-left flex-1"
+                                            >
+                                              {cat.title}
+                                            </button>
+                                            <div className="flex items-center gap-1">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleNavigateCategory(cat.id)}
+                                                className="text-[10px] font-semibold text-emerald-700 hover:underline px-1 py-0.5"
+                                                title={`Open ${cat.title} page`}
+                                              >
+                                                Page &rarr;
+                                              </button>
+                                              {catProds.length > 0 && (
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setExpandedMobileCatId(isCatExpanded ? null : cat.id);
+                                                  }}
+                                                  className="p-1 text-neutral-400 hover:text-emerald-800 cursor-pointer flex items-center gap-0.5"
+                                                  aria-label={`Toggle ${cat.title} products`}
+                                                >
+                                                  <span className="text-[10px] font-mono text-neutral-400">({catProds.length})</span>
+                                                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCatExpanded ? 'rotate-180' : ''}`} />
+                                                </button>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Nested sub products under this category (e.g. Dairy Alternatives products) */}
+                                          {isCatExpanded && (
+                                            <div className="pl-3 pr-1 py-1 space-y-1.5 border-l-2 border-emerald-400/60 ml-2 bg-emerald-50/30 rounded-r-lg p-1.5">
+                                              {catProds.length > 0 ? (
+                                                <>
+                                                  {catProds.map(p => (
+                                                    <button
+                                                      key={p.id}
+                                                      type="button"
+                                                      onClick={() => handleNavigateCategory(cat.id)}
+                                                      className="w-full text-left py-1 text-[11px] text-neutral-700 hover:text-emerald-800 font-semibold truncate flex items-center justify-between gap-1"
+                                                    >
+                                                      <span className="truncate">• {p.name}</span>
+                                                      {p.price !== undefined && (
+                                                        <span className="text-[10px] font-mono text-emerald-700 font-bold shrink-0">₹{p.price}</span>
+                                                      )}
+                                                    </button>
+                                                  ))}
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleNavigateCategory(cat.id)}
+                                                    className="w-full text-left pt-1 mt-1 border-t border-emerald-200/70 text-[10px] font-bold text-emerald-800 hover:underline block"
+                                                  >
+                                                    View All {cat.title} Products &rarr;
+                                                  </button>
+                                                </>
+                                              ) : (
+                                                <span className="text-[10px] text-neutral-400 italic block">No products in this category yet.</span>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            categoriesList.map((cat) => {
+                              const isCatExpanded = expandedMobileCatId === cat.id;
+                              const catProds = getCategoryProducts(cat);
+                              return (
+                                <div key={cat.id} className="space-y-0.5">
+                                  <div className="flex items-center justify-between rounded-lg hover:bg-emerald-50/60 px-2 py-1.5 transition-colors">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleNavigateCategory(cat.id)}
+                                      className="text-xs font-bold text-neutral-800 hover:text-emerald-800 text-left flex-1"
+                                    >
+                                      {cat.title}
+                                    </button>
+                                    {catProds.length > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setExpandedMobileCatId(isCatExpanded ? null : cat.id);
+                                        }}
+                                        className="p-1 text-neutral-400 hover:text-emerald-800 cursor-pointer flex items-center gap-1"
+                                        aria-label={`Toggle ${cat.title} products`}
+                                      >
+                                        <span className="text-[10px] font-mono text-neutral-400">({catProds.length})</span>
+                                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCatExpanded ? 'rotate-180' : ''}`} />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Nested products under this category */}
+                                  {isCatExpanded && catProds.length > 0 && (
+                                    <div className="pl-3 pr-1 py-1 space-y-1 border-l border-neutral-200 ml-2">
+                                      {catProds.map(p => (
+                                        <button
+                                          key={p.id}
+                                          type="button"
+                                          onClick={() => handleNavigateCategory(cat.id)}
+                                          className="w-full text-left py-1 text-[11px] text-neutral-600 hover:text-emerald-800 font-medium truncate block"
+                                        >
+                                          • {p.name}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
                       )}
                     </div>

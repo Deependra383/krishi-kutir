@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { 
   ShoppingBag, 
   Clock, 
@@ -18,101 +18,12 @@ import {
 import { motion, useScroll } from 'motion/react';
 import { supabase } from '../supabase';
 import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
+import { useProducts } from '../context/ProductContext';
 
 const WHATSAPP_NUMBER = '9009911030';
 
-const FARM_PRODUCTS = [
-  { 
-    id: 'micro-radish', 
-    name: 'Fresh Radish Red Microgreens (Clamshell)', 
-    categoryType: 'harvested',
-    categoryLabel: 'HARVESTED MICROGREENS', 
-    categoryBadgeColor: 'bg-[#881337] text-white',
-    price: '₹149', 
-    priceNum: 149,
-    subtext: '50g Sealed Eco-pack • Harvested 2h prior to dispatch'
-  },
-  { 
-    id: 'micro-sunflower', 
-    name: 'Crisp Sunflower Shoots (Living Tray)', 
-    categoryType: 'living',
-    categoryLabel: 'LIVE MICROGREENS', 
-    categoryBadgeColor: 'bg-[#059669] text-white',
-    price: '₹220', 
-    priceNum: 220,
-    subtext: 'Living Bio-tray • Snip as you eat for 7-10 days freshness'
-  },
-  { 
-    id: 'micro-broccoli', 
-    name: 'Superfood Broccoli Microgreens (Clamshell)', 
-    categoryType: 'harvested',
-    categoryLabel: 'HARVESTED MICROGREENS', 
-    categoryBadgeColor: 'bg-[#881337] text-white',
-    price: '₹180', 
-    priceNum: 180,
-    subtext: '50g Box • Crisp and highly nutrient-dense harvest'
-  },
-  { 
-    id: 'powder-beetroot', 
-    name: 'Cryo-Dehydrated Beetroot Powder (100g)', 
-    categoryType: 'cryo',
-    categoryLabel: 'NATURAL POWDERS', 
-    categoryBadgeColor: 'bg-[#581c87] text-white',
-    price: '₹249', 
-    priceNum: 249,
-    subtext: 'Retains 98% bio-active enzymes & natural nitrates'
-  },
-  { 
-    id: 'powder-moringa', 
-    name: 'Raw Shade-Dried Moringa Powder (100g)', 
-    categoryType: 'cryo',
-    categoryLabel: 'NATURAL POWDERS', 
-    categoryBadgeColor: 'bg-[#581c87] text-white',
-    price: '₹199', 
-    priceNum: 199,
-    priceNote: '100g pack',
-    subtext: 'Direct farm leaves, gently milled without thermal loss'
-  },
-  { 
-    id: 'spice-lakadong', 
-    name: 'Lakadong High-Curcumin Turmeric (100g)', 
-    categoryType: 'spices',
-    categoryLabel: 'SPICES & SEASONING', 
-    categoryBadgeColor: 'bg-[#9a3412] text-white',
-    price: '₹280', 
-    priceNum: 280,
-    subtext: 'Pure Meghalaya single-origin heirloom turmeric root'
-  },
-  { 
-    id: 'spice-cardamom', 
-    name: 'Single-Origin Green Cardamom (50g)', 
-    categoryType: 'spices',
-    categoryLabel: 'SPICES & SEASONING', 
-    categoryBadgeColor: 'bg-[#9a3412] text-white',
-    price: '₹320', 
-    priceNum: 320,
-    subtext: 'High essential oil, Idukki shade-plantation harvest'
-  },
-  { 
-    id: 'seed-alfalfa', 
-    name: 'Untreated Heirloom Alfalfa Seeds (250g)', 
-    categoryType: 'seeds',
-    categoryLabel: 'UNTREATED SEEDS', 
-    categoryBadgeColor: 'bg-[#134e4a] text-white',
-    price: '₹350', 
-    priceNum: 350,
-    subtext: 'Non-GMO tested microgreen sprouting grade'
-  }
-];
-
-const FILTER_TABS = [
-  { id: 'all', label: 'All Items (8)' },
-  { id: 'harvested', label: 'Harvested Clamshells' },
-  { id: 'living', label: 'Living Trays' },
-  { id: 'cryo', label: 'Cryo Powders' }
-];
-
 export const ProductInquirySection = ({ activeTheme }) => {
+  const { products = [] } = useProducts();
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -120,7 +31,7 @@ export const ProductInquirySection = ({ activeTheme }) => {
   });
 
   const [activeFilter, setActiveFilter] = useState('all');
-  const [selectedProduct, setSelectedProduct] = useState(FARM_PRODUCTS[0]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [trayMultiplier, setTrayMultiplier] = useState(1);
   const [customProduct, setCustomProduct] = useState('');
   const [isSpecialOrderActive, setIsSpecialOrderActive] = useState(false);
@@ -133,11 +44,26 @@ export const ProductInquirySection = ({ activeTheme }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  useEffect(() => {
+    if (products.length > 0 && (!selectedProduct || !products.some(p => p.id === selectedProduct.id))) {
+      setSelectedProduct(products[0]);
+    }
+  }, [products, selectedProduct]);
+
+  const filterTabs = useMemo(() => {
+    const tabs = [{ id: 'all', label: `All Items (${products.length})` }];
+    const uniqueCats = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+    uniqueCats.forEach(cat => {
+      tabs.push({ id: cat.toLowerCase(), label: cat });
+    });
+    return tabs;
+  }, [products]);
+
   // Filter products by category tab
-  const displayedProducts = FARM_PRODUCTS.filter(item => {
-    if (activeFilter === 'all') return true;
-    return item.categoryType === activeFilter;
-  });
+  const displayedProducts = useMemo(() => {
+    if (activeFilter === 'all') return products;
+    return products.filter(item => (item.category || '').toLowerCase() === activeFilter);
+  }, [products, activeFilter]);
 
   const handleSelectProduct = (prod) => {
     setSelectedProduct(prod);
@@ -155,14 +81,13 @@ export const ProductInquirySection = ({ activeTheme }) => {
     e?.preventDefault();
     const productName = isSpecialOrderActive && customProduct.trim() 
       ? `Special Order: ${customProduct.trim()}` 
-      : selectedProduct.name;
-    const priceEst = isSpecialOrderActive ? 'Custom Quote' : selectedProduct.price;
+      : (selectedProduct?.name || customProduct.trim() || 'Fresh Farm Produce');
+    const priceEst = isSpecialOrderActive ? 'Custom Quote' : (selectedProduct?.price || 'Direct Farm Inquiry');
 
     const msg = 
       `*KRISHI KUTIR - FARM-TO-FORK ORDER INQUIRY*\n` +
       `----------------------------------------\n` +
       `• *Selected Item:* ${productName}\n` +
-      `• *Item Price/Est:* ${priceEst}\n` +
       `• *Tray Multiplier / Qty:* ${trayMultiplier}\n` +
       `• *Customer Name:* ${fullName.trim() || 'Valued Customer'}\n` +
       `• *Phone / WhatsApp:* ${phone.trim() || 'Provided on chat'}\n` +
@@ -182,7 +107,7 @@ export const ProductInquirySection = ({ activeTheme }) => {
 
     const productName = isSpecialOrderActive && customProduct.trim() 
       ? `Special Order: ${customProduct.trim()}` 
-      : selectedProduct.name;
+      : (selectedProduct?.name || customProduct.trim() || 'Fresh Farm Produce');
 
     const inquiryRecord = {
       product_name: productName,
@@ -301,80 +226,82 @@ export const ProductInquirySection = ({ activeTheme }) => {
                   </div>
 
                   {/* Filter Tabs */}
-                  <div className="flex flex-wrap items-center gap-1.5 p-1 bg-neutral-100/70 rounded-full border border-neutral-200/60">
-                    {FILTER_TABS.map((tab) => {
-                      const isActive = activeFilter === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setActiveFilter(tab.id)}
-                          className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                            isActive 
-                              ? 'bg-[#1b4332] text-white shadow-2xs' 
-                              : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/60'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {filterTabs.length > 1 && (
+                    <div className="flex flex-wrap items-center gap-1.5 p-1 bg-neutral-100/70 rounded-full border border-neutral-200/60">
+                      {filterTabs.map((tab) => {
+                        const isActive = activeFilter === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setActiveFilter(tab.id)}
+                            className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                              isActive 
+                                ? 'bg-[#1b4332] text-white shadow-2xs' 
+                                : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/60'
+                            }`}
+                          >
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* Products Grid (2 Columns, 8 Cards) */}
+                {/* Products Grid (2 Columns) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {displayedProducts.map((prod) => {
-                    const isSelected = selectedProduct?.id === prod.id && !isSpecialOrderActive;
-                    return (
-                      <div
-                        key={prod.id}
-                        onClick={() => handleSelectProduct(prod)}
-                        className={`group relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-                          isSelected 
-                            ? 'border-2 border-emerald-600 bg-emerald-50/30 shadow-sm' 
-                            : 'border-neutral-200 hover:border-emerald-300 hover:bg-neutral-50/50'
-                        }`}
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-start justify-between gap-2">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${prod.categoryBadgeColor}`}>
-                              {prod.categoryLabel}
-                            </span>
-                            <div className="text-right">
-                              <span className="text-base font-black text-neutral-900">
-                                {prod.price}
+                  {displayedProducts.length === 0 ? (
+                    <div className="md:col-span-2 py-10 px-4 text-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/50 space-y-2">
+                      <p className="text-xs font-bold text-neutral-600">No catalog products listed yet.</p>
+                      <p className="text-[11px] text-neutral-400">Add products via Admin Panel, or use the custom order option below to inquire directly via WhatsApp.</p>
+                    </div>
+                  ) : (
+                    displayedProducts.map((prod) => {
+                      const isSelected = selectedProduct?.id === prod.id && !isSpecialOrderActive;
+                      return (
+                        <div
+                          key={prod.id}
+                          onClick={() => handleSelectProduct(prod)}
+                          className={`group relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+                            isSelected 
+                              ? 'border-2 border-emerald-600 bg-emerald-50/30 shadow-sm' 
+                              : 'border-neutral-200 hover:border-emerald-300 hover:bg-neutral-50/50'
+                          }`}
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#1b4332] text-white">
+                                {prod.category || 'Farm Harvest'}
                               </span>
-                              {prod.priceNote && (
-                                <span className="block text-[10px] text-neutral-400">
-                                  {prod.priceNote}
-                                </span>
-                              )}
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                Chemical Free
+                              </span>
+                            </div>
+
+                            <h4 className="text-sm font-bold text-neutral-900 leading-snug group-hover:text-emerald-800 transition-colors">
+                              {prod.name}
+                            </h4>
+
+                            <p className="text-xs text-neutral-500 font-normal leading-relaxed line-clamp-2">
+                              {prod.benefit || 'Grown sustainably in Bhopal with zero synthetic pesticides.'}
+                            </p>
+                          </div>
+
+                          {/* Selected Radio Check Indicator */}
+                          <div className="pt-2 flex items-center justify-end">
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
+                              isSelected 
+                                ? 'bg-emerald-600 text-white' 
+                                : 'border border-neutral-300'
+                            }`}>
+                              {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                             </div>
                           </div>
-
-                          <h4 className="text-sm font-bold text-neutral-900 leading-snug group-hover:text-emerald-800 transition-colors">
-                            {prod.name}
-                          </h4>
-
-                          <p className="text-xs text-neutral-400 font-normal leading-relaxed">
-                            {prod.subtext}
-                          </p>
                         </div>
-
-                        {/* Selected Radio Check Indicator */}
-                        <div className="pt-2 flex items-center justify-end">
-                          <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
-                            isSelected 
-                              ? 'bg-emerald-600 text-white' 
-                              : 'border border-neutral-300'
-                          }`}>
-                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
 
                 {/* Looking For Something Else? / Special Order */}

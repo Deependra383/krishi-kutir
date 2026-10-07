@@ -29,7 +29,8 @@ export const CategoryProductsScreen = ({
   onOpenAdmin,
   activeTheme
 }) => {
-  const { products } = useProducts();
+  const { products, showcaseCategories } = useProducts();
+  const categoriesList = showcaseCategories && showcaseCategories.length > 0 ? showcaseCategories : CATEGORIES_CONFIG;
   const { addToCart, setIsCheckoutOpen } = useCart();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,8 +38,44 @@ export const CategoryProductsScreen = ({
   const [addedItemEffect, setAddedItemEffect] = useState({});
 
   const currentCategory = useMemo(() => {
-    return getCategoryById(selectedCategoryId);
-  }, [selectedCategoryId]);
+    if (!categoriesList || categoriesList.length === 0) {
+      return null;
+    }
+    const found = getCategoryById(selectedCategoryId, categoriesList);
+    const cat = found || categoriesList[0];
+    if (!cat) return null;
+
+    return {
+      id: cat.id || 'produce',
+      letter: cat.letter || cat.title?.charAt(0)?.toUpperCase() || 'K',
+      title: cat.title || 'Produce',
+      shortDesc: cat.shortDesc || `Discover our pure fresh organic ${cat.title || 'produce'}.`,
+      image: cat.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+      borderColor: cat.borderColor || 'border-[#98c56c]',
+      buttonColor: cat.buttonColor || 'bg-[#5fa114]',
+      accentColor: cat.accentColor || '#5fa114',
+      watermarkColor: cat.watermarkColor || 'text-[#98c56c]/30',
+      tag: cat.tag || `${cat.title || 'Produce'} • 100% Organic`,
+      benefits: Array.isArray(cat.benefits) && cat.benefits.length > 0
+        ? cat.benefits
+        : [
+            '100% naturally processed with zero synthetic preservatives',
+            'Tested for optimal nutrient purity and safety standards',
+            'Freshly prepared or packaged for peak bioavailability',
+            'Certified and traceable organic farming practices'
+          ],
+      filterProduct: typeof cat.filterProduct === 'function'
+        ? cat.filterProduct
+        : (p) => {
+            const pCat = (p.category || '').toLowerCase();
+            const pName = (p.name || '').toLowerCase();
+            const query = (cat.title || '').toLowerCase();
+            return pCat.includes(query) || pName.includes(query);
+          }
+    };
+  }, [selectedCategoryId, categoriesList]);
+
+
 
   // Scroll to top when category changes
   useEffect(() => {
@@ -72,11 +109,7 @@ export const CategoryProductsScreen = ({
     }
 
     // Sort
-    if (sortBy === 'price-low') {
-      filtered.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-    } else if (sortBy === 'price-high') {
-      filtered.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
-    } else if (sortBy === 'name') {
+    if (sortBy === 'name') {
       filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
 
@@ -97,6 +130,38 @@ export const CategoryProductsScreen = ({
     addToCart(product, 1);
     setIsCheckoutOpen(true);
   };
+
+  if (!currentCategory) {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center py-20 px-4 bg-[#fafcf9]">
+        <div className="text-center max-w-md bg-white p-8 sm:p-10 rounded-3xl border border-neutral-200 shadow-sm space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto border border-emerald-200">
+            <Layers className="w-7 h-7 text-emerald-600" />
+          </div>
+          <h2 className="text-xl font-black font-serif text-neutral-900">No Categories Created Yet</h2>
+          <p className="text-xs text-neutral-500 leading-relaxed">
+            There are currently no product categories published in the store. You can add your categories and items manually from the Admin Dashboard.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={onBackToHome}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-neutral-900 hover:bg-black text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+            >
+              Back to Home
+            </button>
+            {onOpenAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+              >
+                Open Admin Panel
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafcf9] pb-24 font-sans select-none">
@@ -174,7 +239,7 @@ export const CategoryProductsScreen = ({
 
               {/* Key Benefits Pills */}
               <div className="pt-2 flex flex-wrap gap-2 justify-center md:justify-start">
-                {currentCategory.benefits.slice(0, 2).map((b, idx) => (
+                {(Array.isArray(currentCategory?.benefits) ? currentCategory.benefits : []).slice(0, 2).map((b, idx) => (
                   <span 
                     key={idx}
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-neutral-200 text-xs font-medium text-neutral-700 shadow-2xs"
@@ -184,6 +249,7 @@ export const CategoryProductsScreen = ({
                   </span>
                 ))}
               </div>
+
             </div>
 
           </div>
@@ -197,7 +263,7 @@ export const CategoryProductsScreen = ({
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none select-none">
-            {CATEGORIES_CONFIG.map((cat) => {
+            {categoriesList.map((cat) => {
               const isCurrent = cat.id === currentCategory.id;
               return (
                 <button
@@ -243,8 +309,6 @@ export const CategoryProductsScreen = ({
                 className="bg-transparent outline-none cursor-pointer text-xs font-bold w-full sm:w-auto"
               >
                 <option value="default">Default Order</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
                 <option value="name">Name: A to Z</option>
               </select>
             </div>

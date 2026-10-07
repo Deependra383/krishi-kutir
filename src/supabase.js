@@ -116,11 +116,18 @@ function createSafeSupabaseClient() {
 export const supabase = createSafeSupabaseClient();
 
 /**
- * Upload a product image file directly to Supabase Storage Bucket ('products')
- * Falls back to 'product-images' if needed.
+ * Upload an image file directly to a dedicated Supabase Storage Bucket.
+ * Supported bucket types:
+ * - 'products' (Product Catalog Photos)
+ * - 'homepage' (Hero Slides, Banners & Showcase)
+ * - 'workshops' (Events & Training Sessions)
+ * - 'founders' (Leadership & Team Portraits)
+ * 
+ * Automatically creates unique timestamped filenames, attempts dedicated bucket
+ * and cascades to generic buckets ('public', 'images') if needed.
  * Returns { success: true, url, bucket, path }
  */
-export async function uploadProductImage(file) {
+export async function uploadToSupabaseBucket(file, bucketType = 'products') {
   if (!file) {
     throw new Error('No file provided for upload.');
   }
@@ -129,21 +136,30 @@ export async function uploadProductImage(file) {
     throw new Error('Supabase is not configured.');
   }
 
-  // Create clean, unique file path: catalog/filename-timestamp.ext
+  // Create clean, unique file path: <bucketType>/filename-timestamp.ext
   const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const cleanBaseName = file.name
     .replace(/\.[^/.]+$/, '')
     .replace(/[^a-zA-Z0-9]/g, '-')
     .toLowerCase()
-    .slice(0, 30);
+    .slice(0, 35);
   const fileName = `${cleanBaseName}-${Date.now()}.${fileExt}`;
-  const filePath = `catalog/${fileName}`;
+  const filePath = `${bucketType}/${fileName}`;
 
-  // Preferred buckets in order
-  const candidateBuckets = ['products', 'product-images', 'images', 'public'];
+  // Candidate bucket priority for this upload type
+  const candidateBuckets = [
+    bucketType, // e.g. 'products', 'homepage', 'workshops', 'founders'
+    `krishi-${bucketType}`,
+    'products',
+    'public',
+    'images'
+  ];
+
+  // Remove duplicates while preserving order
+  const uniqueCandidateBuckets = [...new Set(candidateBuckets)];
   let lastError = null;
 
-  for (const bucket of candidateBuckets) {
+  for (const bucket of uniqueCandidateBuckets) {
     try {
       const { data, error } = await supabase.storage
         .from(bucket)
@@ -178,8 +194,36 @@ export async function uploadProductImage(file) {
 
   throw new Error(
     lastError?.message || 
-    "Could not upload to Supabase storage. Please create a public bucket named 'products' in your Supabase dashboard."
+    `Could not upload to Supabase storage. Please create a public bucket named '${bucketType}' in your Supabase dashboard.`
   );
+}
+
+/**
+ * Backward compatibility alias for uploadProductImage
+ */
+export async function uploadProductImage(file) {
+  return uploadToSupabaseBucket(file, 'products');
+}
+
+/**
+ * Upload to 'homepage' storage bucket
+ */
+export async function uploadHomepageImage(file) {
+  return uploadToSupabaseBucket(file, 'homepage');
+}
+
+/**
+ * Upload to 'workshops' storage bucket
+ */
+export async function uploadWorkshopImage(file) {
+  return uploadToSupabaseBucket(file, 'workshops');
+}
+
+/**
+ * Upload to 'founders' storage bucket
+ */
+export async function uploadFounderImage(file) {
+  return uploadToSupabaseBucket(file, 'founders');
 }
 
 /**
@@ -290,36 +334,43 @@ CREATE POLICY "Allow public read on training_inquiries" ON public.training_inqui
 
 CREATE POLICY "Allow public all on users" ON public.users FOR ALL USING (true);
 
--- 8. Storage Bucket 'products' for Product Photos
+-- 8. Storage Buckets ('products', 'homepage', 'workshops', 'founders')
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('products', 'products', true)
+VALUES 
+  ('products', 'products', true),
+  ('homepage', 'homepage', true),
+  ('workshops', 'workshops', true),
+  ('founders', 'founders', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Storage Policies for public read and upload
+-- Storage Policies for public read and upload across all Krishi Kutir buckets
 DO $$
 BEGIN
+  -- Read Policy
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Public Access to Products Bucket'
+    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Public Access to Krishi Kutir Buckets'
   ) THEN
-    CREATE POLICY "Public Access to Products Bucket"
+    CREATE POLICY "Public Access to Krishi Kutir Buckets"
     ON storage.objects FOR SELECT
-    USING (bucket_id = 'products');
+    USING (bucket_id IN ('products', 'homepage', 'workshops', 'founders'));
   END IF;
 
+  -- Upload Policy
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Allow Public Uploads to Products Bucket'
+    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Allow Public Uploads to Krishi Kutir Buckets'
   ) THEN
-    CREATE POLICY "Allow Public Uploads to Products Bucket"
+    CREATE POLICY "Allow Public Uploads to Krishi Kutir Buckets"
     ON storage.objects FOR INSERT
-    WITH CHECK (bucket_id = 'products');
+    WITH CHECK (bucket_id IN ('products', 'homepage', 'workshops', 'founders'));
   END IF;
 
+  -- Update Policy
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Allow Public Updates to Products Bucket'
+    SELECT 1 FROM pg_policies WHERE tablename = 'objects' AND policyname = 'Allow Public Updates to Krishi Kutir Buckets'
   ) THEN
-    CREATE POLICY "Allow Public Updates to Products Bucket"
+    CREATE POLICY "Allow Public Updates to Krishi Kutir Buckets"
     ON storage.objects FOR UPDATE
-    USING (bucket_id = 'products');
+    USING (bucket_id IN ('products', 'homepage', 'workshops', 'founders'));
   END IF;
 END $$;
 `;

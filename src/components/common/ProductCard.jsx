@@ -17,7 +17,6 @@ const WhatsAppIcon = ({ className = "w-4 h-4" }) => (
 
 export const ProductCard = ({
   product,
-  formatPrice,
   onOpenAdmin,
   badgeText,
   activeTheme,
@@ -34,11 +33,9 @@ export const ProductCard = ({
   const { isAdmin } = useAuth();
   const fallbackImg = getCategoryFallbackImage(product.category, product.name);
 
-  const formattedPrice = formatPrice ? formatPrice(product.price) : `₹${product.price}`;
-
-  // WhatsApp inquiry URL prefilled with product name, price, and inquiry details
+  // WhatsApp inquiry URL prefilled with product name and details (no price)
   const whatsappUrl = `https://wa.me/919009911030?text=${encodeURIComponent(
-    `Hi Krishi Kutir, I want to inquire about purchasing ${product.name} (${formattedPrice}${product.unit ? ' / ' + product.unit : ''}). Please share availability and ordering details.`
+    `Hi Krishi Kutir, I want to inquire about purchasing ${product.name}${product.unit ? ' (' + product.unit + ')' : ''}. Please share availability and ordering details.`
   )}`;
 
   return (
@@ -47,92 +44,92 @@ export const ProductCard = ({
       onMouseMove={(e) => onMouseMove && onMouseMove(e, product.id)}
       onMouseEnter={() => onMouseEnter && onMouseEnter(product.id)}
       onMouseLeave={() => onMouseLeave && onMouseLeave(product.id)}
-      className="relative z-10 bg-white border border-neutral-200/90 rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col justify-between group transition-all duration-300 ease-out will-change-transform shadow-xs hover:scale-[1.025] hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-emerald-950/10 hover:border-emerald-400/90 active:scale-[0.99] select-none cursor-pointer"
+      className="relative z-10 bg-white border border-neutral-200/90 rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col h-full group transition-all duration-300 ease-out will-change-transform shadow-xs hover:scale-[1.02] hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-950/10 hover:border-emerald-400/90 active:scale-[0.99] select-none cursor-pointer"
     >
-      <div className="flex flex-col h-full justify-between">
+      {/* ================= FULL COVER IMAGE ABOVE DETAILS ================= */}
+      <div className="relative w-full h-44 sm:h-52 md:h-56 shrink-0 overflow-hidden bg-neutral-100">
+        <img
+          src={product.image || fallbackImg}
+          alt={product.name}
+          referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = fallbackImg;
+          }}
+          className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
+        />
+
+        {/* Subtle soft gradient overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+        {/* Admin Quick Edit Button */}
+        {isAdmin && onOpenAdmin && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenAdmin();
+            }}
+            className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-amber-400 text-neutral-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md opacity-90 hover:opacity-100 transition-all cursor-pointer z-10"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" /> Edit
+          </button>
+        )}
+      </div>
+
+      {/* ================= CARD DETAILS & EQUALIZED LAYOUT ================= */}
+      <div className="p-3.5 sm:p-4 md:p-5 flex-1 flex flex-col justify-between">
+        
+        {/* Top Content Block */}
         <div>
-          {/* ================= FULL COVER IMAGE ABOVE DETAILS ================= */}
-          <div className="relative w-full h-40 sm:h-52 md:h-56 overflow-hidden bg-neutral-100">
-            <img
-              src={product.image || fallbackImg}
-              alt={product.name}
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = fallbackImg;
-              }}
-              className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
-            />
+          {/* Title (No price display) */}
+          <div className="flex items-start justify-between gap-1.5">
+            <h4 
+              className="font-bold text-neutral-900 text-sm sm:text-base leading-snug line-clamp-1 group-hover:text-emerald-700 transition-colors"
+              title={product.name}
+            >
+              {product.name}
+            </h4>
+          </div>
 
-            {/* Subtle soft gradient overlay on hover */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
-            {/* Admin Quick Edit Button */}
-            {isAdmin && onOpenAdmin && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenAdmin();
-                }}
-                className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-amber-400 text-neutral-950 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md opacity-90 hover:opacity-100 transition-all cursor-pointer z-10"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" /> Edit
-              </button>
+          {/* Category / Unit Subtitle */}
+          <div className="flex items-center justify-between gap-1 mt-0.5">
+            <span className="text-[10px] sm:text-xs text-neutral-400 font-medium capitalize line-clamp-1">
+              {badgeText || product.category || 'Organic Farm Produce'}
+            </span>
+            {product.unit && (
+              <span className="text-[9px] sm:text-[10px] text-neutral-400 font-mono shrink-0">
+                • {product.unit}
+              </span>
             )}
           </div>
 
-          {/* ================= CARD DETAILS ================= */}
-          <div className="p-3.5 sm:p-4 md:p-5 space-y-2 pb-4 sm:pb-5">
-            {/* Title and Price */}
-            <div className="flex items-baseline justify-between gap-1.5">
-              <h4 
-                className="font-bold text-neutral-900 text-xs sm:text-base leading-snug line-clamp-1 group-hover:text-emerald-700 transition-colors"
-                title={product.name}
-              >
-                {product.name}
-              </h4>
-              <span className="font-extrabold text-emerald-800 text-xs sm:text-base tracking-tight shrink-0 font-sans group-hover:text-emerald-600 transition-colors">
-                {formattedPrice}
-              </span>
-            </div>
-
-            {/* Category / Unit Subtitle */}
-            <div className="flex items-center justify-between gap-1 -mt-0.5">
-              <span className="text-[10px] sm:text-xs text-neutral-400 font-medium capitalize line-clamp-1">
-                {badgeText || product.category || 'Organic Farm Produce'}
-              </span>
-              {product.unit && (
-                <span className="text-[9px] sm:text-[10px] text-neutral-400 font-mono shrink-0">
-                  • {product.unit}
-                </span>
-              )}
-            </div>
-
-            {/* Description matching home page text style */}
-            <p className="text-xs sm:text-sm text-neutral-600 font-light leading-relaxed pt-1 line-clamp-3 sm:line-clamp-4">
-              {product.benefit || product.description || 'Pure, nutrient-dense organic harvest cultivated with zero chemical pesticides in our Bhopal vertical farm and botanical reserve.'}
-            </p>
-
-            {/* ================= INQUIRE ON WHATSAPP OPTION ================= */}
-            <div className="pt-2">
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                className="w-full py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1da850] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group/wa"
-                title={`Inquire on WhatsApp for ${product.name}`}
-              >
-                <WhatsAppIcon className="w-4 h-4 shrink-0 fill-current group-hover/wa:scale-110 transition-transform" />
-                <span>Inquire on WhatsApp</span>
-              </a>
-            </div>
-
-          </div>
+          {/* Standardized description with consistent line clamp & min-height */}
+          <p 
+            className="text-xs sm:text-sm text-neutral-600 font-light leading-relaxed mt-2 line-clamp-3 min-h-[3.75rem] sm:min-h-[4.2rem]"
+            title={product.benefit || product.description}
+          >
+            {product.benefit || product.description || 'Pure, nutrient-dense organic harvest cultivated with zero chemical pesticides in our Bhopal vertical farm and botanical reserve.'}
+          </p>
         </div>
+
+        {/* ================= INQUIRE ON WHATSAPP BUTTON (ANCHORED AT BOTTOM) ================= */}
+        <div className="mt-auto pt-3 sm:pt-4">
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            className="w-full py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1da850] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group/wa"
+            title={`Inquire on WhatsApp for ${product.name}`}
+          >
+            <WhatsAppIcon className="w-4 h-4 shrink-0 fill-current group-hover/wa:scale-110 transition-transform" />
+            <span>Inquire on WhatsApp</span>
+          </a>
+        </div>
+
       </div>
     </div>
   );

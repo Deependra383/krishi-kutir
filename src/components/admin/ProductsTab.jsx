@@ -1,5 +1,6 @@
-import React from 'react';
-import { Search, Package, Edit3, Trash2, Plus, Tag } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Package, Edit3, Trash2, Plus, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { CategoryManagerCard } from './CategoryManagerCard';
 
 export const ProductsTab = ({
   products = [],
@@ -13,10 +14,33 @@ export const ProductsTab = ({
   onOpenEdit,
   onDeleteProduct,
   onOpenAdd,
+  onResetCatalog,
   isDarkMode = false
 }) => {
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+
   return (
     <div className="space-y-6">
+      
+      {/* Category Manager Toggle & Component */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-neutral-500 font-medium">
+          Manage product inventory, pricing, stock, and categories
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowCategoryManager(prev => !prev)}
+          className="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+        >
+          <Tag className="w-3.5 h-3.5" />
+          <span>{showCategoryManager ? 'Hide Category Manager' : 'Manage Product Categories'}</span>
+          {showCategoryManager ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {showCategoryManager && (
+        <CategoryManagerCard isDarkMode={isDarkMode} />
+      )}
       
       {/* Search & Category Filter Bar */}
       <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl border transition-all ${
@@ -60,6 +84,18 @@ export const ProductsTab = ({
               ))}
             </select>
           </div>
+
+          {products.length > 0 && onResetCatalog && (
+            <button
+              type="button"
+              onClick={onResetCatalog}
+              className="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shadow-2xs flex items-center gap-1.5"
+              title="Clear all products from store"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear All</span>
+            </button>
+          )}
 
           {onOpenAdd && (
             <button
@@ -108,9 +144,6 @@ export const ProductsTab = ({
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                <span className="absolute bottom-2.5 right-2.5 px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-black shadow-md font-mono">
-                  {formatPrice ? formatPrice(product.price) : `₹${product.price}`}
-                </span>
                 {product.category && (
                   <span className={`absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm flex items-center gap-1 ${
                     isDarkMode 

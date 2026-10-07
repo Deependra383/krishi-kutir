@@ -18,7 +18,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { useHomepageContent } from '../../context/HomepageContentContext';
-import { uploadProductImage, isSupabaseConfigured } from '../../supabase';
+import { uploadWorkshopImage, isSupabaseConfigured } from '../../supabase';
 
 export const EventsWorkshopsCard = () => {
   const { 
@@ -79,19 +79,19 @@ export const EventsWorkshopsCard = () => {
     setUploadingIndex(index);
 
     try {
-      // 1. Try Supabase cloud storage first
+      // 1. Try Supabase cloud storage 'workshops' bucket first
       if (isSupabaseConfigured) {
         try {
-          const res = await uploadProductImage(file);
+          const res = await uploadWorkshopImage(file);
           if (res?.url) {
             handleFieldChange(index, 'image', res.url);
-            setSuccessMsg(`Card #${index + 1} image uploaded to cloud storage successfully!`);
+            setSuccessMsg(`Card #${index + 1} image uploaded to "workshops" bucket successfully!`);
             setTimeout(() => setSuccessMsg(''), 3000);
             setUploadingIndex(null);
             return;
           }
         } catch (sbErr) {
-          console.warn('Supabase upload fallback to dataURL:', sbErr);
+          console.warn('Supabase workshop upload notice:', sbErr);
         }
       }
 

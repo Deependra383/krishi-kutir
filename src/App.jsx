@@ -66,9 +66,9 @@ function MainAppContent() {
   // Selected Category ID for dedicated screen view
   const [selectedCategory, setSelectedCategory] = useState(() => {
     if (typeof window !== 'undefined' && window.location.hash.startsWith('#category=')) {
-      return window.location.hash.replace('#category=', '') || 'harvested-microgreens';
+      return window.location.hash.replace('#category=', '') || '';
     }
-    return 'harvested-microgreens';
+    return '';
   });
 
   // Page View State: 'store' | 'admin' | 'cart' | 'category'
@@ -114,7 +114,7 @@ function MainAppContent() {
         setCurrentView('cart');
         setIsCartOpen(true);
       } else if (window.location.hash.startsWith('#category=')) {
-        const catId = window.location.hash.replace('#category=', '') || 'harvested-microgreens';
+        const catId = window.location.hash.replace('#category=', '') || '';
         setSelectedCategory(catId);
         setCurrentView('category');
         setIsCartOpen(false);

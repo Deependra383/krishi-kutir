@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { User, Upload, RotateCcw, CheckCircle2, Save, Sparkles, Image as ImageIcon, Link as LinkIcon, RefreshCw } from 'lucide-react';
 import { useHomepageContent } from '../../context/HomepageContentContext';
-import { uploadProductImage, isSupabaseConfigured } from '../../supabase';
+import { uploadFounderImage, isSupabaseConfigured } from '../../supabase';
 
 export const FoundersCustomizerCard = () => {
   const { founders, updateFounder, saveFounders, resetFounders, defaultFounders } = useHomepageContent();
@@ -58,19 +58,19 @@ export const FoundersCustomizerCard = () => {
     setUploading(true);
 
     try {
-      // Try Supabase upload if available
+      // Try Supabase upload to dedicated 'founders' bucket
       if (isSupabaseConfigured) {
         try {
-          const res = await uploadProductImage(file);
+          const res = await uploadFounderImage(file);
           if (res?.url) {
             handleChange(founderKey, 'image', res.url);
-            setSuccessMsg(`Image uploaded to Supabase storage successfully for ${founderKey === 'founder1' ? 'Founder 1' : 'Founder 2'}`);
+            setSuccessMsg(`Image uploaded to Supabase "founders" bucket successfully for ${founderKey === 'founder1' ? 'Founder 1' : 'Founder 2'}`);
             setTimeout(() => setSuccessMsg(''), 3000);
             setUploading(false);
             return;
           }
         } catch (sbErr) {
-          console.warn('Supabase upload fallback to dataURL:', sbErr);
+          console.warn('Supabase founder upload notice:', sbErr);
         }
       }
 

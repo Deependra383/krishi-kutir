@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { User, Images, Sparkles } from 'lucide-react';
+import { User, Images, Sparkles, FolderKanban } from 'lucide-react';
 import { LogoCustomizerCard } from './LogoCustomizerCard';
 import { FoundersCustomizerCard } from './FoundersCustomizerCard';
 import { HomepageImagesCard } from './HomepageImagesCard';
+import { StorageBucketsGuideCard } from './StorageBucketsGuideCard';
 
 export const StoreSettingsTab = () => {
   // Sub-navigation filter
-  const [settingsFilter, setSettingsFilter] = useState('all'); // 'all' | 'home-images' | 'founders' | 'logo'
+  const [settingsFilter, setSettingsFilter] = useState('all'); // 'all' | 'buckets' | 'home-images' | 'founders' | 'logo'
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -23,6 +24,19 @@ export const StoreSettingsTab = () => {
           }`}
         >
           All Settings
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSettingsFilter('buckets')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            settingsFilter === 'buckets'
+              ? 'bg-emerald-700 text-white shadow-xs'
+              : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200'
+          }`}
+        >
+          <FolderKanban className="w-3.5 h-3.5" />
+          <span>Storage Buckets</span>
         </button>
 
         <button
@@ -64,6 +78,11 @@ export const StoreSettingsTab = () => {
           <span>Brand Logo</span>
         </button>
       </div>
+
+      {/* 0. Storage Buckets Configuration & Status */}
+      {(settingsFilter === 'all' || settingsFilter === 'buckets') && (
+        <StorageBucketsGuideCard />
+      )}
 
       {/* 1. Homepage Showcase Images & Slides Customizer */}
       {(settingsFilter === 'all' || settingsFilter === 'home-images') && (

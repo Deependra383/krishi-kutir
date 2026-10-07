@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Package, Upload, Image as ImageIcon, Save, Loader2, CheckCircle2, AlertCircle, Cloud } from 'lucide-react';
+import { useProducts } from '../../context/ProductContext';
 
 export const ProductFormModal = ({
   isOpen,
@@ -17,6 +18,8 @@ export const ProductFormModal = ({
   categories = [],
   isDarkMode = false
 }) => {
+  const { majorCategories = [], showcaseCategories = [] } = useProducts();
+
   if (!isOpen) return null;
 
   return (
@@ -85,49 +88,83 @@ export const ProductFormModal = ({
             />
           </div>
 
-          {/* Category & Price */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${
-                isDarkMode ? 'text-neutral-400' : 'text-neutral-600'
-              }`}>
-                Category *
-              </label>
-              <select
+          {/* Category */}
+          <div>
+            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${
+              isDarkMode ? 'text-neutral-400' : 'text-neutral-600'
+            }`}>
+              Category *
+            </label>
+            {categories.filter(c => c !== 'All').length > 0 ? (
+              <div className="space-y-1.5">
+                <select
+                  value={formState.category}
+                  onChange={(e) => setFormState(p => ({ ...p, category: e.target.value }))}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none cursor-pointer transition-all ${
+                    isDarkMode 
+                      ? 'bg-neutral-900 border-neutral-800 text-white' 
+                      : 'bg-neutral-50 border-neutral-200 text-neutral-900'
+                  }`}
+                >
+                  <option value="">-- Choose Category --</option>
+                  {majorCategories.length > 0 ? (
+                    <>
+                      {majorCategories.map(m => {
+                        const subs = showcaseCategories.filter(s => s.majorCategoryId === m.id);
+                        if (subs.length === 0) return null;
+                        return (
+                          <optgroup key={m.id} label={`📂 ${m.name}`}>
+                            {subs.map(s => (
+                              <option key={s.id} value={s.title}>{s.title}</option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
+                      {(() => {
+                        const otherSubs = categories.filter(c => 
+                          c !== 'All' && !showcaseCategories.some(s => s.majorCategoryId && (s.title === c || s.name === c))
+                        );
+                        if (otherSubs.length === 0) return null;
+                        return (
+                          <optgroup label="Other Sub-Categories">
+                            {otherSubs.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </optgroup>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    categories.filter(c => c !== 'All').map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))
+                  )}
+                </select>
+                <div className="flex items-center gap-1.5 text-[10px] text-neutral-400">
+                  <span>Or custom:</span>
+                  <input
+                    type="text"
+                    placeholder="Type new category..."
+                    value={formState.category}
+                    onChange={(e) => setFormState(p => ({ ...p, category: e.target.value }))}
+                    className="flex-1 px-2 py-1 rounded-lg border border-neutral-200 text-xs bg-transparent"
+                  />
+                </div>
+              </div>
+            ) : (
+              <input
+                type="text"
+                placeholder="Enter category name (e.g. Spices, Microgreens, Herbal Powders)..."
                 value={formState.category}
                 onChange={(e) => setFormState(p => ({ ...p, category: e.target.value }))}
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none cursor-pointer transition-all ${
-                  isDarkMode 
-                    ? 'bg-neutral-900 border-neutral-800 text-white' 
-                    : 'bg-neutral-50 border-neutral-200 text-neutral-900'
-                }`}
-              >
-                {categories.filter(c => c !== 'All').map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${
-                isDarkMode ? 'text-neutral-400' : 'text-neutral-600'
-              }`}>
-                Price in INR (₹) *
-              </label>
-              <input
-                type="number"
                 required
-                min="1"
-                placeholder=""
-                value={formState.price}
-                onChange={(e) => setFormState(p => ({ ...p, price: e.target.value }))}
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold transition-all ${
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none font-bold transition-all ${
                   isDarkMode 
-                    ? 'bg-neutral-900 border-neutral-800 text-white' 
-                    : 'bg-neutral-50 border-neutral-200 text-neutral-900'
+                    ? 'bg-neutral-900 border-neutral-800 text-white placeholder-neutral-500' 
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-900 placeholder-neutral-400'
                 }`}
               />
-            </div>
+            )}
           </div>
 
           {/* Unit & MOQ */}

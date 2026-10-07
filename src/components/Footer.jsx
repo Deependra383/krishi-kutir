@@ -1,8 +1,10 @@
 import React from 'react';
 import { MapPin, Phone, Mail, Instagram, Facebook, Youtube } from 'lucide-react';
 import { AnimatedLogo } from './AnimatedLogo';
+import { useProducts } from '../context/ProductContext';
 
 export const Footer = () => {
+  const { showcaseCategories = [] } = useProducts();
   return (
     <footer className="bg-emerald-50/90 text-emerald-950 py-16 px-4 sm:px-6 lg:px-8 border-t border-emerald-200/90 select-none transition-colors duration-300">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
@@ -51,31 +53,40 @@ export const Footer = () => {
           </div>
         </div>
 
-        {/* Microgreens Navigation */}
+        {/* Produce Categories Navigation */}
         <div className="space-y-3">
           <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950">
-            Living Microgreens
+            Produce Collections
           </h4>
           <ul className="space-y-2 text-xs text-emerald-800/85 font-medium">
-            <li><a href="#category=harvested-microgreens" className="hover:text-emerald-950 hover:underline transition-colors">Fresh Harvested Clamshells</a></li>
-            <li><a href="#category=harvested-microgreens" className="hover:text-emerald-950 hover:underline transition-colors">Living Grow Trays</a></li>
-            <li><a href="#category=microgreen-seeds" className="hover:text-emerald-950 hover:underline transition-colors">Untreated Heirloom Seeds</a></li>
-            <li><a href="#training-academy" className="hover:text-emerald-950 hover:underline transition-colors">Commercial Training Masterclass</a></li>
-            <li><a href="#partner-with-us" className="hover:text-emerald-950 hover:underline transition-colors">HoReCa Chef Supply</a></li>
+            {showcaseCategories.length > 0 ? (
+              showcaseCategories.slice(0, 5).map(cat => (
+                <li key={cat.id}>
+                  <a href={`#category=${cat.id}`} className="hover:text-emerald-950 hover:underline transition-colors">
+                    {cat.title}
+                  </a>
+                </li>
+              ))
+            ) : (
+              <>
+                <li><a href="#product-categories-showcase" className="hover:text-emerald-950 hover:underline transition-colors">Explore Categories</a></li>
+                <li><a href="#product-inquiry-section" className="hover:text-emerald-950 hover:underline transition-colors">Living Farm Store</a></li>
+              </>
+            )}
+            <li><a href="#product-inquiry-section" className="hover:text-emerald-950 hover:underline transition-colors">WhatsApp Direct Orders</a></li>
           </ul>
         </div>
 
-        {/* Powders & Spices */}
+        {/* Commercial & Training */}
         <div className="space-y-3">
           <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950">
-            Botanical Powders & Extracts
+            Commercial & Academy
           </h4>
           <ul className="space-y-2 text-xs text-emerald-800/85 font-medium">
-            <li><a href="#category=fruits" className="hover:text-emerald-950 hover:underline transition-colors">Pure Fruit & Vegetable Powders</a></li>
-            <li><a href="#category=spices" className="hover:text-emerald-950 hover:underline transition-colors">Lakadong Turmeric & Spices</a></li>
-            <li><a href="#category=dairy-alternatives" className="hover:text-emerald-950 hover:underline transition-colors">Plant Milk Powders (Almond, Oat)</a></li>
+            <li><a href="#training-academy" className="hover:text-emerald-950 hover:underline transition-colors">Hydroponic Grow Academy</a></li>
+            <li><a href="#partner-with-us" className="hover:text-emerald-950 hover:underline transition-colors">B2B & HoReCa Wholesale Supply</a></li>
             <li><a href="#partner-with-us" className="hover:text-emerald-950 hover:underline transition-colors">Private Label Dehydration</a></li>
-            <li><a href="#partner-with-us" className="hover:text-emerald-950 hover:underline transition-colors">Bulk Commercial Orders</a></li>
+            <li><a href="#partner-with-us" className="hover:text-emerald-950 hover:underline transition-colors">Bulk Commercial Inquiries</a></li>
           </ul>
         </div>
 

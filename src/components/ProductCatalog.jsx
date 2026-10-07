@@ -23,7 +23,7 @@ export const ProductCatalog = ({
     offset: ["start end", "end start"]
   });
 
-  const { products } = useProducts();
+  const { products, categories: dynamicCategories = [] } = useProducts();
   const { addToCart, setIsCheckoutOpen } = useCart();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,16 +31,15 @@ export const ProductCatalog = ({
   const [sortBy, setSortBy] = useState('default');
   const [addedItemEffect, setAddedItemEffect] = useState({});
 
-  // Dynamic list of categories detected in products + common defaults
+  // Dynamic list of categories detected in products + dynamicCategories from Admin
   const categories = useMemo(() => {
     const set = new Set(['All']);
+    (dynamicCategories || []).forEach(c => set.add(c));
     (products || []).forEach(p => {
       if (p.category) set.add(p.category);
     });
-    // Ensure core expected categories exist
-    ['Harvested Microgreens', 'Live Microgreens', 'Microgreens Seeds', 'Dairy Alternatives', 'Fruits and Vegetables', 'Spices and Seasoning', 'Professional Grow Trays', 'Substrates & Growing Mediums'].forEach(c => set.add(c));
     return Array.from(set);
-  }, [products]);
+  }, [products, dynamicCategories]);
 
   const filteredProducts = useMemo(() => {
     let list = (products || []).filter(p => {
@@ -59,11 +58,7 @@ export const ProductCatalog = ({
       return matchesSearch && matchesCategory;
     });
 
-    if (sortBy === 'price-low') {
-      list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-    } else if (sortBy === 'price-high') {
-      list.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
-    } else if (sortBy === 'name') {
+    if (sortBy === 'name') {
       list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
 
@@ -138,8 +133,6 @@ export const ProductCatalog = ({
                 className="bg-transparent text-neutral-700 text-xs font-bold outline-none cursor-pointer"
               >
                 <option value="default">Default Order</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
                 <option value="name">Name: A to Z</option>
               </select>
             </div>
@@ -148,22 +141,24 @@ export const ProductCatalog = ({
         </div>
 
         {/* Category Pills */}
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-100">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              id={`cat-filter-${cat.replace(/\s+/g, '-').toLowerCase()}`}
-              onClick={() => setSelectedCategory(cat)}
-              className={`text-xs px-3.5 py-1.5 rounded-full cursor-pointer transition-all font-bold ${
-                selectedCategory === cat 
-                  ? 'bg-emerald-700 text-white shadow-xs font-black' 
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200/70 border border-neutral-200/50'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {categories.length > 1 && (
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-100">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                id={`cat-filter-${cat.replace(/\s+/g, '-').toLowerCase()}`}
+                onClick={() => setSelectedCategory(cat)}
+                className={`text-xs px-3.5 py-1.5 rounded-full cursor-pointer transition-all font-bold ${
+                  selectedCategory === cat 
+                    ? 'bg-emerald-700 text-white shadow-xs font-black' 
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200/70 border border-neutral-200/50'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
 
       </div>
 
@@ -204,13 +199,23 @@ export const ProductCatalog = ({
 
       {filteredProducts.length === 0 && (
         <div className="py-20 text-center space-y-4 bg-white rounded-3xl border border-neutral-200">
-          <p className="text-neutral-600 font-bold text-sm">No products found matching your active filter.</p>
-          <button
-            onClick={() => { setSearchTerm(''); setSelectedCategory('All'); }}
-            className="px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase hover:bg-emerald-800 transition-all cursor-pointer shadow-xs"
-          >
-            Clear Filters & Show All
-          </button>
+          <p className="text-neutral-600 font-bold text-sm">
+            {products.length === 0 
+              ? 'No products added to the catalogue yet.' 
+              : 'No products found matching your active filter.'}
+          </p>
+          {products.length === 0 ? (
+            <p className="text-xs text-neutral-400 max-w-sm mx-auto">
+              You can add your products and categories directly through the Admin Dashboard.
+            </p>
+          ) : (
+            <button
+              onClick={() => { setSearchTerm(''); setSelectedCategory('All'); }}
+              className="px-5 py-2.5 bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase hover:bg-emerald-800 transition-all cursor-pointer shadow-xs"
+            >
+              Clear Filters & Show All
+            </button>
+          )}
         </div>
       )}
       </div>
