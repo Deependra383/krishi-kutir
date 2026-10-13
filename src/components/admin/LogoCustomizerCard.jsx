@@ -107,8 +107,6 @@ export const LogoCustomizerCard = () => {
       };
       setDraftConfig(updated);
       saveLogoConfig(updated);
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
     };
     reader.onerror = () => {
       setUploadError('Failed to read image file');

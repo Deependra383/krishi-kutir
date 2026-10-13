@@ -86,6 +86,7 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
   // Delete Confirmation State
   const [productToDelete, setProductToDelete] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [showResetCatalogModal, setShowResetCatalogModal] = useState(false);
 
   const categories = React.useMemo(() => {
     const list = Array.isArray(dynamicCategories) ? dynamicCategories : [];
@@ -453,12 +454,15 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
     }
   };
 
-  const handleResetCatalog = async () => {
-    if (window.confirm('Delete all products from the store? This will completely clear the product catalog so you can add your items manually.')) {
-      await resetToDefaultCatalog();
-      setProductSuccessMsg('All products cleared from catalog. Ready for fresh products.');
-      setTimeout(() => setProductSuccessMsg(''), 4000);
-    }
+  const handleResetCatalog = () => {
+    setShowResetCatalogModal(true);
+  };
+
+  const confirmResetCatalog = async () => {
+    await resetToDefaultCatalog();
+    setShowResetCatalogModal(false);
+    setProductSuccessMsg('All products cleared from catalog. Ready for fresh products.');
+    setTimeout(() => setProductSuccessMsg(''), 4000);
   };
 
   if (!isStrictAdmin) {
@@ -654,6 +658,39 @@ export const AdminDashboard = ({ onBackToStore, formatPrice }) => {
                 ) : (
                   <span>Yes, Delete</span>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Catalog Confirmation Modal */}
+      {showResetCatalogModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 admin-light-mode">
+          <div className="bg-white text-neutral-900 border border-neutral-200 rounded-3xl p-6 sm:p-7 max-w-sm w-full space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto bg-red-50 text-red-600 border border-red-200">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1">
+              <h3 className="text-base font-black uppercase text-neutral-900">Clear All Products?</h3>
+              <p className="text-xs leading-relaxed text-neutral-600">
+                Are you sure you want to delete all products from the store? This will completely clear the product catalog so you can add your custom items.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowResetCatalogModal(false)}
+                className="py-2.5 px-4 rounded-xl border border-neutral-200 text-neutral-700 hover:bg-neutral-100 text-xs font-bold uppercase transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmResetCatalog}
+                className="py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+              >
+                <span>Yes, Clear All</span>
               </button>
             </div>
           </div>

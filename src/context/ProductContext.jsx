@@ -272,16 +272,31 @@ export const ProductProvider = ({ children }) => {
     saveMajorCategoriesList(updated);
   };
 
-  const deleteMajorCategory = (id) => {
-    const targetId = (id || '').toString().trim().toLowerCase();
-    const updated = majorCategories.filter(m => m.id !== targetId && m.name.toLowerCase() !== targetId);
+  const deleteMajorCategory = (identifier) => {
+    if (!identifier) return false;
+    const majorObj = typeof identifier === 'object' ? identifier : null;
+    const rawVal = typeof identifier === 'string' 
+      ? identifier 
+      : (majorObj?.id || majorObj?.name || majorObj?.title || '');
+    const targetId = (rawVal || '').toString().trim().toLowerCase();
+    const slug = targetId.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+    const updated = (majorCategories || []).filter(m => {
+      const mId = (m.id || '').toLowerCase().trim();
+      const mName = (m.name || m.title || '').toLowerCase().trim();
+      const mSlug = mName.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      return mId !== targetId && mName !== targetId && mSlug !== slug && mId !== slug;
+    });
     saveMajorCategoriesList(updated);
 
     // Also unassign majorCategoryId from subcategories if attached
     const updatedConfigs = { ...categoryConfigs };
     let configsChanged = false;
     Object.keys(updatedConfigs).forEach(catKey => {
-      if (updatedConfigs[catKey]?.majorCategoryId === targetId) {
+      const cfg = updatedConfigs[catKey];
+      const parentId = (cfg?.majorCategoryId || '').toLowerCase().trim();
+      const parentName = (cfg?.majorCategoryName || '').toLowerCase().trim();
+      if (parentId === targetId || parentId === slug || parentName === targetId) {
         updatedConfigs[catKey] = {
           ...updatedConfigs[catKey],
           majorCategoryId: null,
@@ -381,24 +396,49 @@ export const ProductProvider = ({ children }) => {
   const deleteCategory = (identifier) => {
     if (!identifier) return false;
     const catObj = typeof identifier === 'object' ? identifier : null;
-    const rawVal = typeof identifier === 'string' ? identifier : (catObj?.title || catObj?.name || catObj?.id || '');
+    const rawVal = typeof identifier === 'string' 
+      ? identifier 
+      : (catObj?.id || catObj?.title || catObj?.name || '');
     const trimmed = (rawVal || '').toString().trim().toLowerCase();
-    const targetId = (catObj?.id || trimmed).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const explicitId = (catObj?.id || '').toString().trim().toLowerCase();
+    const slug = (catObj?.id || trimmed).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const altSlug = trimmed.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
     // 1. Filter out from customCategories safely
     const updatedList = (customCategories || []).filter(c => {
       if (!c) return false;
       const cStr = typeof c === 'string' ? c : (c?.name || c?.title || c?.id || '');
       const cTrimmed = (cStr || '').trim().toLowerCase();
-      const cId = cTrimmed.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      return cTrimmed !== trimmed && cId !== targetId && cTrimmed !== targetId && cId !== trimmed;
+      const cSlug = cTrimmed.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const cExplicitId = (typeof c === 'object' && c?.id ? c.id : '').toLowerCase().trim();
+
+      // Check matches
+      if (cTrimmed === trimmed || cSlug === slug || cSlug === altSlug || cTrimmed === slug) return false;
+      if (explicitId && (cExplicitId === explicitId || cSlug === explicitId || cTrimmed === explicitId)) return false;
+      if (cExplicitId && (cExplicitId === slug || cExplicitId === trimmed)) return false;
+      return true;
     });
 
     // 2. Remove from categoryConfigs
     const updatedConfigs = { ...categoryConfigs };
-    delete updatedConfigs[targetId];
-    delete updatedConfigs[trimmed];
-    if (catObj?.id) delete updatedConfigs[catObj.id];
+    Object.keys(updatedConfigs).forEach(key => {
+      const cfg = updatedConfigs[key];
+      const kLower = key.toLowerCase().trim();
+      const cfgId = (cfg?.id || '').toLowerCase().trim();
+      const cfgTitle = (cfg?.title || cfg?.name || '').toLowerCase().trim();
+      const cfgSlug = cfgTitle.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+      if (
+        kLower === trimmed ||
+        kLower === slug ||
+        kLower === altSlug ||
+        (explicitId && kLower === explicitId) ||
+        (cfgId && (cfgId === explicitId || cfgId === slug || cfgId === trimmed)) ||
+        (cfgTitle && (cfgTitle === trimmed || cfgSlug === slug))
+      ) {
+        delete updatedConfigs[key];
+      }
+    });
 
     saveCategoriesList(updatedList, updatedConfigs);
     return true;

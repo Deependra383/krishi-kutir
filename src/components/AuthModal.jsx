@@ -47,7 +47,7 @@ export const AuthModal = ({ isOpen, onClose, initialTab = 'login', onAdminSucces
         }, 600);
       }
     } catch (err) {
-      console.error('Auth error:', err);
+      console.warn('Auth notice:', err?.message || err);
       const rawMsg = (err?.message || '').toLowerCase();
       if (rawMsg.includes('rate limit') || rawMsg.includes('over_email_send_rate_limit') || rawMsg.includes('too many requests')) {
         setError('Email rate limit reached: Supabase free tier limits confirmation emails to ~3-4 emails per hour. Please wait a few minutes, use another email, or sign in directly if your account was already created.');
@@ -146,6 +146,31 @@ export const AuthModal = ({ isOpen, onClose, initialTab = 'login', onAdminSucces
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-bold flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               {successMsg}
+            </div>
+          )}
+
+          {tab === 'login' && (
+            <div className="p-3 bg-emerald-50/90 border border-emerald-200/90 rounded-xl text-xs flex items-center justify-between gap-3 shadow-2xs">
+              <div className="min-w-0">
+                <div className="font-bold text-emerald-900 flex items-center gap-1.5 text-xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>Admin Credentials:</span>
+                </div>
+                <div className="text-[11px] text-emerald-800 font-mono mt-0.5 truncate">
+                  krishi345@gmail.com <span className="text-emerald-500 font-normal">/</span> krishi123
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('krishi345@gmail.com');
+                  setPassword('krishi123');
+                  setError('');
+                }}
+                className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] rounded-lg cursor-pointer shrink-0 transition-colors shadow-2xs"
+              >
+                Auto-fill
+              </button>
             </div>
           )}
 

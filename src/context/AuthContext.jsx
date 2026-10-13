@@ -254,7 +254,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (error) {
-      console.error('Supabase Auth signIn error:', error);
+      console.warn('Supabase Auth signIn warning:', error?.message);
       throw error;
     }
 

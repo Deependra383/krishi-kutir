@@ -328,7 +328,7 @@ export const NavigationBar = ({
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 6, scale: 0.98 }}
                           transition={{ duration: 0.16 }}
-                          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[760px] max-w-[95vw] bg-white rounded-2xl shadow-2xl border border-neutral-200/90 z-50 overflow-hidden flex flex-col"
+                          className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[640px] max-w-[95vw] bg-white rounded-2xl shadow-2xl border border-neutral-200/90 z-50 overflow-hidden flex flex-col"
                         >
                           {categoriesList.length === 0 ? (
                             <div className="p-8 text-center space-y-2.5">
@@ -352,14 +352,17 @@ export const NavigationBar = ({
                               )}
                             </div>
                           ) : (
-                            <div className="grid grid-cols-12 min-h-[360px]">
+                            <div className="grid grid-cols-12">
                             
                             {/* Column 1: Major Categories (e.g. Natural Powders, Microgreens & Seeds) */}
                             {majorCategories && majorCategories.length > 0 && (
-                              <div className="col-span-3 border-r border-neutral-100 p-2.5 bg-neutral-100/60 flex flex-col justify-between">
+                              <div className="col-span-5 border-r border-neutral-100 p-2.5 bg-neutral-100/60 flex flex-col justify-between">
                                 <div>
-                                  <div className="text-[10px] font-black uppercase tracking-wider text-neutral-400 px-2 py-1.5 mb-1">
-                                    Major Category
+                                  <div className="text-[10px] font-black uppercase tracking-wider text-neutral-400 px-2 py-1 mb-1 flex items-center justify-between">
+                                    <span>Major Categories</span>
+                                    <span className="text-[9px] font-mono font-bold bg-neutral-200/80 px-1.5 py-0.5 rounded text-neutral-600">
+                                      {majorCategories.length}
+                                    </span>
                                   </div>
                                   <div className="space-y-1">
                                     {majorCategories.map((m) => {
@@ -379,163 +382,75 @@ export const NavigationBar = ({
                                             const firstSub = categoriesList.find(c => c.majorCategoryId === m.id);
                                             if (firstSub) setActiveDropdownCatId(firstSub.id);
                                           }}
-                                          className={`w-full text-left px-2.5 py-2 rounded-xl transition-all flex items-center justify-between group cursor-pointer text-xs ${
+                                          className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center justify-between group cursor-pointer text-xs ${
                                             isMajorSelected
                                               ? 'bg-neutral-900 text-white font-black shadow-2xs'
                                               : 'text-neutral-700 hover:bg-neutral-200/80 font-bold'
                                           }`}
                                         >
-                                          <span className="truncate leading-tight">{m.name}</span>
-                                          <ChevronRight className={`w-3.5 h-3.5 shrink-0 transition-transform ${isMajorSelected ? 'translate-x-0.5 text-white' : 'text-neutral-400'}`} />
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            <span className="truncate leading-tight">{m.name}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                                              isMajorSelected ? 'bg-white/20 text-white font-bold' : 'bg-neutral-200 text-neutral-600'
+                                            }`}>
+                                              {majorSubs.length}
+                                            </span>
+                                            <ChevronRight className={`w-3.5 h-3.5 shrink-0 transition-transform ${isMajorSelected ? 'translate-x-0.5 text-white' : 'text-neutral-400'}`} />
+                                          </div>
                                         </button>
                                       );
                                     })}
                                   </div>
                                 </div>
-
-                                <div className="pt-2 border-t border-neutral-200/80 px-1">
-                                  <span className="text-[9px] font-semibold text-neutral-400 uppercase tracking-wider block">
-                                    Krishi Kutir
-                                  </span>
-                                </div>
                               </div>
                             )}
 
                             {/* Column 2: Sub-Categories under the Selected Major Category */}
-                            <div className={`${majorCategories && majorCategories.length > 0 ? 'col-span-4' : 'col-span-5'} border-r border-neutral-100 p-2.5 bg-neutral-50/50 flex flex-col justify-between`}>
+                            <div className={`${majorCategories && majorCategories.length > 0 ? 'col-span-7' : 'col-span-12'} p-2.5 bg-white flex flex-col`}>
                               <div>
-                                <div className="text-[10px] font-black uppercase tracking-wider text-neutral-400 px-2 py-1.5 mb-1 flex items-center justify-between">
-                                  <span>{currentMajorCat ? currentMajorCat.name : 'Sub-Categories'}</span>
-                                  <span className="text-[9px] font-mono font-bold bg-neutral-200/70 px-1.5 py-0.5 rounded text-neutral-600">
+                                <div className="text-[10px] font-black uppercase tracking-wider text-emerald-950 px-2 py-1 mb-1 flex items-center justify-between border-b border-neutral-100 pb-1.5">
+                                  <span>{currentMajorCat ? `${currentMajorCat.name} Sub-Categories` : 'Sub-Categories'}</span>
+                                  <span className="text-[9px] font-mono font-bold bg-emerald-100/70 text-emerald-800 px-1.5 py-0.5 rounded">
                                     {currentMajorSubCategories.length}
                                   </span>
                                 </div>
 
-                                <div className="space-y-0.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-none">
+                                <div className="space-y-1 max-h-[300px] overflow-y-auto pr-0.5 scrollbar-none mt-1">
                                   {currentMajorSubCategories.map((cat) => {
-                                    const isSelected = (currentNavCat?.id === cat.id);
-                                    const prods = getCategoryProducts(cat);
                                     return (
                                       <button
                                         key={cat.id}
                                         type="button"
-                                        onMouseEnter={() => setActiveDropdownCatId(cat.id)}
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          setActiveDropdownCatId(cat.id);
-                                        }}
-                                        className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center justify-between group cursor-pointer ${
-                                          isSelected 
-                                            ? 'bg-emerald-700 text-white shadow-xs font-bold' 
-                                            : 'text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 font-semibold'
-                                        }`}
+                                        onClick={() => handleNavigateCategory(cat.id)}
+                                        className="w-full text-left px-3 py-2 rounded-xl transition-all flex items-center justify-between group cursor-pointer bg-neutral-50/70 hover:bg-emerald-700 text-neutral-800 hover:text-white border border-neutral-100 hover:border-emerald-600 shadow-2xs hover:shadow-xs"
                                       >
-                                        <span className="text-xs truncate">{cat.title}</span>
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                          {prods.length > 0 && (
-                                            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                                              isSelected ? 'bg-white/20 text-white font-bold' : 'bg-neutral-200/80 text-neutral-600 font-medium'
-                                            }`}>
-                                              {prods.length}
-                                            </span>
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          {cat.icon && (
+                                            <span className="text-sm shrink-0">{cat.icon}</span>
                                           )}
-                                          <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isSelected ? 'translate-x-0.5 text-white' : 'text-neutral-400 group-hover:text-neutral-700'}`} />
+                                          <div className="min-w-0">
+                                            <span className="text-xs font-bold truncate block group-hover:text-white">
+                                              {cat.title}
+                                            </span>
+                                            {cat.tagline && (
+                                              <span className="text-[10px] text-neutral-400 group-hover:text-emerald-100 block truncate">
+                                                {cat.tagline}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <span className="text-[10px] font-semibold text-emerald-700 group-hover:text-white flex items-center gap-0.5">
+                                            <span>Explore</span>
+                                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                                          </span>
                                         </div>
                                       </button>
                                     );
                                   })}
                                 </div>
-                              </div>
-
-                              <div className="pt-2 mt-2 border-t border-neutral-200/70 px-1">
-                                <button
-                                  type="button"
-                                  onClick={handleNavigateAllShowcase}
-                                  className="w-full py-1.5 px-2.5 rounded-xl bg-white hover:bg-emerald-50 hover:text-emerald-800 text-neutral-700 text-[11px] font-bold border border-neutral-200/80 flex items-center justify-between transition-colors cursor-pointer shadow-2xs"
-                                >
-                                  <span>All Produce Showcase</span>
-                                  <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Column 3: Products Belonging to Selected Sub-Category (e.g. Dairy Alternatives products) */}
-                            <div className={`${majorCategories && majorCategories.length > 0 ? 'col-span-5' : 'col-span-7'} p-3.5 bg-white flex flex-col justify-between`}>
-                              <div>
-                                <div className="flex items-center justify-between pb-2 border-b border-neutral-100 px-1">
-                                  <div className="min-w-0 pr-2">
-                                    <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950 truncate">
-                                      {currentNavCat?.title} Products
-                                    </h4>
-                                    <span className="text-[10px] text-neutral-400 block truncate">
-                                      {activeCategoryProducts.length} items available
-                                    </span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleNavigateCategory(currentNavCat?.id)}
-                                    className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer transition-colors bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg shrink-0"
-                                  >
-                                    <span>Open Page</span>
-                                    <ArrowRight className="w-3 h-3" />
-                                  </button>
-                                </div>
-
-                                {/* Products List */}
-                                <div className="mt-2 space-y-1.5 max-h-[250px] overflow-y-auto pr-1 scrollbar-none">
-                                  {activeCategoryProducts.length > 0 ? (
-                                    activeCategoryProducts.map((prod) => (
-                                      <button
-                                        key={prod.id}
-                                        type="button"
-                                        onClick={() => handleNavigateCategory(currentNavCat?.id)}
-                                        className="w-full text-left p-2 rounded-xl hover:bg-emerald-50/80 border border-transparent hover:border-emerald-200/70 transition-colors flex items-center justify-between group cursor-pointer gap-2"
-                                        title={prod.name}
-                                      >
-                                        <div className="flex items-center gap-2 min-w-0">
-                                          {prod.image && (
-                                            <img
-                                              src={prod.image}
-                                              alt={prod.name}
-                                              className="w-7 h-7 rounded-lg object-contain bg-white border border-neutral-200/80 p-0.5 shrink-0"
-                                            />
-                                          )}
-                                          <div className="min-w-0">
-                                            <span className="text-xs font-bold text-neutral-800 group-hover:text-emerald-900 truncate block">
-                                              {prod.name}
-                                            </span>
-                                            {prod.unit && (
-                                              <span className="text-[9px] font-mono text-neutral-400 block">
-                                                {prod.unit}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        {prod.price !== undefined && (
-                                          <span className="text-[11px] font-mono font-bold text-emerald-800 shrink-0">
-                                            ₹{prod.price}
-                                          </span>
-                                        )}
-                                      </button>
-                                    ))
-                                  ) : (
-                                    <div className="py-12 text-center text-xs text-neutral-400 font-medium">
-                                      No products listed in {currentNavCat?.title} yet.
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="pt-2 border-t border-neutral-100 flex items-center justify-between px-1 text-[11px]">
-                                <span className="text-neutral-400 text-[10px]">100% Pure & Traceable</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleNavigateCategory(currentNavCat?.id)}
-                                  className="font-bold text-emerald-700 hover:underline cursor-pointer"
-                                >
-                                  View All {currentNavCat?.title} &rarr;
-                                </button>
                               </div>
                             </div>
 

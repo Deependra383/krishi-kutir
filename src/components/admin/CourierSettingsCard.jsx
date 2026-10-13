@@ -47,12 +47,10 @@ export const CourierSettingsCard = () => {
   };
 
   const handleReset = () => {
-    if (window.confirm('Reset courier delivery charges to standard default slabs (Bhopal ₹40, MP ₹70, Pan-India ₹110)?')) {
-      const reset = resetCourierSettings();
-      setSettings(reset);
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    }
+    const reset = resetCourierSettings();
+    setSettings(reset);
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   return (

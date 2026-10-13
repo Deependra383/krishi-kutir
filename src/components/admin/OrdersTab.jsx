@@ -317,11 +317,7 @@ export const OrdersTab = ({
                       </button>
 
                       <button
-                        onClick={() => {
-                          if (window.confirm(`Are you sure you want to cancel order #${order.id}?`)) {
-                            handleUpdateOrderStatus(order.id, 'Cancelled');
-                          }
-                        }}
+                        onClick={() => handleUpdateOrderStatus(order.id, 'Cancelled')}
                         className={`px-3 py-2.5 text-xs font-bold uppercase rounded-xl border transition-all cursor-pointer ${
                           isDarkMode
                             ? 'bg-neutral-900 hover:bg-red-950 text-neutral-400 hover:text-red-400 border-neutral-800'

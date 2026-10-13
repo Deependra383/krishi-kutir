@@ -41,9 +41,7 @@ export const FullPageCart = ({
   } = useCart();
 
   const handleClearCart = () => {
-    if (window.confirm('Are you sure you want to remove all items from your shopping bag?')) {
-      clearCart();
-    }
+    clearCart();
   };
 
   return (

@@ -59,6 +59,7 @@ export const CategoryManagerCard = ({ isDarkMode = false }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   // File upload to Supabase Storage ('products' or fallback)
   const handleImageFileChange = async (e, targetSetter) => {
@@ -518,13 +519,9 @@ export const CategoryManagerCard = ({ isDarkMode = false }) => {
                                 </a>
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    if (window.confirm(`Delete sub-category "${cat.title}"?`)) {
-                                      handleExecuteDeleteSub(cat);
-                                    }
-                                  }}
-                                  title="Delete sub-category"
-                                  className="p-1 rounded-md text-red-500 hover:bg-red-50 hover:text-red-700 cursor-pointer transition-colors"
+                                  onClick={() => setPendingDelete({ type: 'sub', item: cat })}
+                                  title={`Delete sub-category "${cat.title}"`}
+                                  className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 cursor-pointer transition-colors"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -587,13 +584,9 @@ export const CategoryManagerCard = ({ isDarkMode = false }) => {
                                 </a>
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    if (window.confirm(`Delete sub-category "${cat.title}"?`)) {
-                                      handleExecuteDeleteSub(cat);
-                                    }
-                                  }}
-                                  title="Delete sub-category"
-                                  className="p-1 rounded-md text-red-500 hover:bg-red-50 hover:text-red-700 cursor-pointer transition-colors"
+                                  onClick={() => setPendingDelete({ type: 'sub', item: cat })}
+                                  title={`Delete sub-category "${cat.title}"`}
+                                  className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 cursor-pointer transition-colors"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
@@ -740,13 +733,9 @@ export const CategoryManagerCard = ({ isDarkMode = false }) => {
 
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm(`Delete Major Category "${m.name}"? Subcategories will become unassigned.`)) {
-                            handleExecuteDeleteMajor(m);
-                          }
-                        }}
+                        onClick={() => setPendingDelete({ type: 'major', item: m })}
                         className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 cursor-pointer transition-colors shrink-0"
-                        title="Delete Major Category"
+                        title={`Delete Major Category "${m.name}"`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -755,6 +744,69 @@ export const CategoryManagerCard = ({ isDarkMode = false }) => {
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Delete Category (Safe in iframes) */}
+      {pendingDelete && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl border border-neutral-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150 text-neutral-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black uppercase tracking-wider text-neutral-900">
+                  {pendingDelete.type === 'sub' ? 'Delete Sub-Category?' : 'Delete Major Category?'}
+                </h3>
+                <p className="text-xs text-neutral-500 mt-1">
+                  {pendingDelete.type === 'sub'
+                    ? `Are you sure you want to delete "${pendingDelete.item.title || pendingDelete.item.name}"? It will be removed from navigation and categories showcase.`
+                    : `Are you sure you want to delete Major Category "${pendingDelete.item.name}"? Any sub-categories assigned to it will remain active as unassigned categories.`}
+                </p>
+              </div>
+            </div>
+
+            {pendingDelete.type === 'sub' && getProductCountForCat(pendingDelete.item) > 0 && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>{getProductCountForCat(pendingDelete.item)} product(s)</strong> are currently categorized under this sub-category.
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-neutral-100">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="px-4 py-2.5 rounded-xl border border-neutral-300 text-neutral-700 hover:bg-neutral-100 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingDelete.type === 'sub') {
+                    handleExecuteDeleteSub(pendingDelete.item);
+                  } else {
+                    handleExecuteDeleteMajor(pendingDelete.item);
+                  }
+                  setPendingDelete(null);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Yes, Delete</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

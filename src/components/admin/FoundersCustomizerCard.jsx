@@ -107,17 +107,15 @@ export const FoundersCustomizerCard = () => {
   };
 
   const handleReset = () => {
-    if (window.confirm('Reset both founder names, roles, quotes, and photos to original default settings?')) {
-      resetFounders();
-      setFormState({
-        founder1: { ...defaultFounders.founder1 },
-        founder2: { ...defaultFounders.founder2 }
-      });
-      if (founder1InputRef.current) founder1InputRef.current.value = '';
-      if (founder2InputRef.current) founder2InputRef.current.value = '';
-      setSuccessMsg('Profiles reset to defaults');
-      setTimeout(() => setSuccessMsg(''), 3000);
-    }
+    resetFounders();
+    setFormState({
+      founder1: { ...defaultFounders.founder1 },
+      founder2: { ...defaultFounders.founder2 }
+    });
+    if (founder1InputRef.current) founder1InputRef.current.value = '';
+    if (founder2InputRef.current) founder2InputRef.current.value = '';
+    setSuccessMsg('Profiles reset to defaults');
+    setTimeout(() => setSuccessMsg(''), 3000);
   };
 
   return (

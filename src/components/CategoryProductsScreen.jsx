@@ -68,14 +68,22 @@ export const CategoryProductsScreen = ({
         ? cat.filterProduct
         : (p) => {
             const pCat = (p.category || '').toLowerCase();
+            const pSub = (p.subCategory || '').toLowerCase();
+            const pSubId = (p.subCategoryId || '').toLowerCase();
             const pName = (p.name || '').toLowerCase();
-            const query = (cat.title || '').toLowerCase();
-            return pCat.includes(query) || pName.includes(query);
+            const query = (cat.title || cat.name || '').toLowerCase();
+            const queryId = (cat.id || '').toLowerCase();
+            return pCat === query ||
+                   pSub === query ||
+                   pSubId === queryId ||
+                   pCat.includes(query) ||
+                   pSub.includes(query) ||
+                   pCat.includes(queryId) ||
+                   pSub.includes(queryId) ||
+                   pName.includes(query);
           }
     };
   }, [selectedCategoryId, categoriesList]);
-
-
 
   // Scroll to top when category changes
   useEffect(() => {
@@ -87,15 +95,31 @@ export const CategoryProductsScreen = ({
   const categoryProducts = useMemo(() => {
     if (!products || !currentCategory) return [];
 
-    let filtered = products.filter(p => currentCategory.filterProduct(p));
+    let filtered = products.filter(p => {
+      try {
+        return currentCategory.filterProduct(p);
+      } catch {
+        return false;
+      }
+    });
 
-    // Fallback: if category specific filter returns empty, match by category name substring
+    // Fallback: if category specific filter returns empty, match by category/subCategory substring
     if (filtered.length === 0) {
+      const title = (currentCategory.title || currentCategory.name || '').toLowerCase();
+      const catId = (currentCategory.id || '').toLowerCase();
       filtered = products.filter(p => {
         const pCat = (p.category || '').toLowerCase();
+        const pSub = (p.subCategory || '').toLowerCase();
+        const pSubId = (p.subCategoryId || '').toLowerCase();
         const pName = (p.name || '').toLowerCase();
-        const title = currentCategory.title.toLowerCase();
-        return pCat.includes(title) || pName.includes(title);
+        return pCat === title ||
+               pSub === title ||
+               pSubId === catId ||
+               pCat.includes(title) ||
+               pSub.includes(title) ||
+               pCat.includes(catId) ||
+               pSub.includes(catId) ||
+               pName.includes(title);
       });
     }
 
@@ -198,23 +222,23 @@ export const CategoryProductsScreen = ({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-5">
         
         {/* ================= CATEGORY HERO BANNER ================= */}
         <div 
-          className={`relative overflow-hidden bg-white border ${currentCategory.borderColor} rounded-3xl p-6 sm:p-10 shadow-lg`}
+          className={`relative overflow-hidden bg-white border ${currentCategory.borderColor} rounded-2xl p-5 sm:p-7 shadow-md`}
         >
           {/* Large Serif Watermark Letter */}
           <span 
-            className={`absolute -top-4 left-6 sm:left-10 text-[160px] sm:text-[220px] font-serif font-black leading-none select-none pointer-events-none ${currentCategory.watermarkColor} opacity-70`}
+            className={`absolute -top-3 left-6 sm:left-10 text-[120px] sm:text-[160px] font-serif font-black leading-none select-none pointer-events-none ${currentCategory.watermarkColor} opacity-70`}
           >
             {currentCategory.letter}
           </span>
 
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 sm:gap-10">
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-5 sm:gap-8">
             
             {/* Centerpiece Cutout Image */}
-            <div className="w-36 h-36 sm:w-48 sm:h-48 shrink-0 flex items-center justify-center p-2 bg-neutral-50/60 rounded-2xl border border-neutral-100 shadow-2xs">
+            <div className="w-28 h-28 sm:w-36 sm:h-36 shrink-0 flex items-center justify-center p-2 bg-neutral-50/60 rounded-2xl border border-neutral-100 shadow-2xs">
               <img
                 src={currentCategory.image}
                 alt={currentCategory.title}
@@ -223,28 +247,28 @@ export const CategoryProductsScreen = ({
             </div>
 
             {/* Category Info */}
-            <div className="flex-1 space-y-3 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 text-neutral-800 text-[11px] font-black uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+            <div className="flex-1 space-y-2 text-center md:text-left">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neutral-100 text-neutral-800 text-[10px] font-black uppercase tracking-wider">
+                <Sparkles className="w-3 h-3 text-emerald-700" />
                 <span>{currentCategory.tag}</span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-black text-neutral-900 tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-black text-neutral-900 tracking-tight leading-tight">
                 {currentCategory.title}
               </h1>
 
-              <p className="text-neutral-600 text-sm sm:text-base font-normal max-w-2xl leading-relaxed">
+              <p className="text-neutral-600 text-xs sm:text-sm font-normal max-w-2xl leading-relaxed">
                 {currentCategory.shortDesc}
               </p>
 
               {/* Key Benefits Pills */}
-              <div className="pt-2 flex flex-wrap gap-2 justify-center md:justify-start">
+              <div className="pt-1 flex flex-wrap gap-2 justify-center md:justify-start">
                 {(Array.isArray(currentCategory?.benefits) ? currentCategory.benefits : []).slice(0, 2).map((b, idx) => (
                   <span 
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-neutral-200 text-xs font-medium text-neutral-700 shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white border border-neutral-200 text-[11px] font-medium text-neutral-700 shadow-2xs"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <ShieldCheck className="w-3 h-3 text-emerald-600 shrink-0" />
                     <span>{b}</span>
                   </span>
                 ))}
@@ -256,7 +280,7 @@ export const CategoryProductsScreen = ({
         </div>
 
         {/* ================= CATEGORY QUICK JUMP SWITCHER ================= */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs text-neutral-500 font-semibold px-1">
             <span>Switch Category:</span>
             <span className="text-neutral-400 font-normal">Click any category to change view</span>
@@ -276,7 +300,14 @@ export const CategoryProductsScreen = ({
                       : 'bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200/90 shadow-2xs'
                   }`}
                 >
-                  <span className="font-serif font-black text-sm">{cat.letter}</span>
+                  {cat.image ? (
+                    <img 
+                      src={cat.image} 
+                      alt="" 
+                      className="w-4 h-4 object-contain rounded-full shrink-0" 
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ) : null}
                   <span>{cat.title}</span>
                 </button>
               );

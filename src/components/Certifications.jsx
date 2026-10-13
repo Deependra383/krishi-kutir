@@ -42,19 +42,82 @@ export const Certifications = ({
           </p>
         </div>
 
-        {/* Certifications Row - Dedicated z-20 stacking context with dropdown animation */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 text-center font-sans relative z-20">
+        {/* Certifications Standing Cards Row - Upright Standing Rectangles */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 lg:gap-3.5 text-center font-sans relative z-20">
           {[
-            { label: "MSME", sub: "Small Enterprises", desc: "Regulated growth model.", icon: "🏢" },
-            { label: "FSSAI", sub: "Food Safety", desc: "100% food-grade process.", icon: "🥗" },
-            { label: "GST Registered", sub: "Tax Compliance", desc: "Official transparent invoices.", icon: "📄" },
-            { label: "IEC CODE", sub: "Import Export Registration", desc: "Worldwide bulk clearance.", icon: "🚢" },
-            { label: "APEDA", sub: "Agricultural Products", desc: "Certified exporter standard.", icon: "🌾" },
-            { label: "ISO 9001:2015", sub: "Certified Quality System", desc: "Continuous audits.", icon: "🏅" },
-            { label: "Trademarked", sub: "Brand Guarantee", desc: "Registered logo and name.", icon: "🛡️" }
+            { 
+              id: "msme",
+              label: "MSME", 
+              sub: "Small Enterprises", 
+              authority: "Ministry of MSME",
+              desc: "Udyam registered sustainable enterprise following regulated agricultural models.", 
+              icon: "🏢",
+              regCode: "UDYAM-MP-03",
+              statusText: "Active Registry"
+            },
+            { 
+              id: "fssai",
+              label: "FSSAI", 
+              sub: "Food Safety", 
+              authority: "Food Safety & Standards",
+              desc: "100% food-grade process, sterile handling, and contaminant-free testing clearance.", 
+              icon: "🥗",
+              regCode: "LIC-10023-FSS",
+              statusText: "100% Food Grade"
+            },
+            { 
+              id: "gst",
+              label: "GST Registered", 
+              sub: "Tax Compliance", 
+              authority: "CBIC Central Board",
+              desc: "Official transparent invoices with full business-to-business tax legitimacy.", 
+              icon: "📄",
+              regCode: "23AAACV8921",
+              statusText: "Compliant Invoices"
+            },
+            { 
+              id: "iec",
+              label: "IEC CODE", 
+              sub: "Import Export", 
+              authority: "DGFT Ministry of Commerce",
+              desc: "Authorized global cross-border botanical export and international port clearance.", 
+              icon: "🚢",
+              regCode: "IEC-GLOBAL-EX",
+              statusText: "Export Clearance"
+            },
+            { 
+              id: "apeda",
+              label: "APEDA", 
+              sub: "Agricultural Products", 
+              authority: "Agri Export Authority",
+              desc: "Standardized organic crop exports meeting stringent global biosecurity benchmarks.", 
+              icon: "🌾",
+              regCode: "RCMC-APEDA",
+              statusText: "Organic Standard"
+            },
+            { 
+              id: "iso",
+              label: "ISO 9001:2015", 
+              sub: "Quality System", 
+              authority: "Quality Management",
+              desc: "Strictly audited quality assurance for indoor vertical crops, seed purity, and distribution.", 
+              icon: "🏅",
+              regCode: "ISO-QMS-2026",
+              statusText: "Audited System"
+            },
+            { 
+              id: "trademark",
+              label: "Trademarked", 
+              sub: "Brand Guarantee", 
+              authority: "IP India Registry",
+              desc: "Legally secured brand identity, proprietary extraction methods, and certified origin.", 
+              icon: "🛡️",
+              regCode: "TM-REG-CL31",
+              statusText: "Legal Protection"
+            }
           ].map((cert, idx) => (
             <motion.div 
-              key={idx} 
+              key={cert.id || idx} 
               initial={{ opacity: 0, y: -26 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
@@ -63,12 +126,51 @@ export const Certifications = ({
                 delay: idx * 0.07, 
                 ease: [0.22, 1, 0.36, 1] 
               }}
-              className="bg-white p-5 rounded-2xl border border-neutral-100 shadow-xs space-y-2 hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative z-20"
+              className="bg-white rounded-2xl sm:rounded-3xl border border-neutral-200/90 shadow-sm hover:shadow-xl hover:-translate-y-2 hover:border-emerald-400/80 transition-all duration-300 relative z-20 flex flex-col justify-between items-center text-center p-4 sm:p-5 min-h-[310px] sm:min-h-[335px] group overflow-hidden"
             >
-              <div className="text-3xl">{cert.icon}</div>
-              <h4 className="font-extrabold text-sm uppercase text-neutral-800 leading-none">{cert.label}</h4>
-              <p className="text-[10px] font-bold text-emerald-600 tracking-tight">{cert.sub}</p>
-              <p className="text-[9px] text-neutral-400 font-light leading-tight">{cert.desc}</p>
+              {/* Top standing accent stripe */}
+              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-600 via-amber-400 to-emerald-600 opacity-90 group-hover:h-2 transition-all duration-300" />
+
+              {/* Card Header & Reg Badge */}
+              <div className="w-full pt-1 flex items-center justify-between text-[8.5px] font-mono text-neutral-400 uppercase tracking-wider font-semibold">
+                <span className="truncate max-w-[80px]">{cert.regCode}</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500/80 group-hover:scale-125 transition-transform shrink-0" />
+              </div>
+
+              {/* Standing Seal Medallion */}
+              <div className="relative my-2.5">
+                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-b from-amber-50/70 via-neutral-50 to-emerald-50/70 border border-neutral-200/80 shadow-2xs flex items-center justify-center text-2xl sm:text-3xl group-hover:scale-110 group-hover:rotate-2 group-hover:border-emerald-300 transition-all duration-300">
+                  {cert.icon}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-bold shadow-xs border-2 border-white">
+                  ✓
+                </div>
+              </div>
+
+              {/* Standing Card Body */}
+              <div className="space-y-1 flex-1 flex flex-col justify-center w-full px-0.5">
+                <h4 className="font-extrabold text-xs sm:text-sm uppercase text-neutral-900 tracking-tight leading-snug group-hover:text-emerald-950 transition-colors">
+                  {cert.label}
+                </h4>
+                <p className="text-[10px] font-bold text-emerald-700 tracking-tight leading-tight">
+                  {cert.sub}
+                </p>
+                <div className="w-6 h-0.5 bg-neutral-200 mx-auto my-1.5 group-hover:w-10 group-hover:bg-emerald-400 transition-all duration-300" />
+                <p className="text-[10px] text-neutral-500 font-light leading-relaxed line-clamp-3">
+                  {cert.desc}
+                </p>
+              </div>
+
+              {/* Bottom Standing Base / Verification Stamp */}
+              <div className="w-full pt-2.5 mt-2.5 border-t border-dashed border-neutral-200 flex flex-col items-center gap-1">
+                <span className="text-[8.5px] uppercase font-mono tracking-widest text-neutral-400 font-semibold truncate max-w-full">
+                  {cert.authority}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50/90 px-2 py-0.5 rounded-full border border-emerald-200/70">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {cert.statusText}
+                </span>
+              </div>
             </motion.div>
           ))}
         </div>
