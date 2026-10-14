@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import { useSyncedSetting } from './useSyncedSetting';
 import { HOME_3D_ASSETS } from '../data';
 import defaultRachnaImg from '../assets/images/founder_portrait_1788864054548.jpg';
 import defaultJanviImg from '../assets/images/janvi_portrait_1790083174336.jpg';
@@ -308,695 +309,287 @@ export const useHomepageContent = () => {
   return context;
 };
 
+// ---------------------------------------------------------------------------
+// All homepage content is stored in the shared Supabase `site_settings` table,
+// so admin changes show on every device and every login.
+// ---------------------------------------------------------------------------
+
+// One-time move of the old founder image key into the founders cache
+if (typeof window !== 'undefined') {
+  try {
+    const legacyRachnaImg = localStorage.getItem('kk_founder_rachna_image');
+    if (legacyRachnaImg && !localStorage.getItem('krishi_founders_config')) {
+      localStorage.setItem('krishi_founders_config', JSON.stringify({
+        ...DEFAULT_FOUNDERS,
+        founder1: { ...DEFAULT_FOUNDERS.founder1, image: legacyRachnaImg }
+      }));
+    }
+  } catch {}
+}
+
+const nonEmptyArrayOr = (fallback) => (v) => (Array.isArray(v) && v.length > 0 ? v : fallback);
+
+const normalizeFounders = (v) => ({
+  founder1: { ...DEFAULT_FOUNDERS.founder1, ...(v?.founder1 || {}) },
+  founder2: { ...DEFAULT_FOUNDERS.founder2, ...(v?.founder2 || {}) }
+});
+
+const normalizeHeroSlides = (v) => {
+  if (!Array.isArray(v) || v.length === 0) return DEFAULT_HERO_SLIDES;
+  // Auto-upgrade slide-1 to the new botanical hero if it has the older title
+  return v.map((s, idx) => {
+    if (idx === 0 && (!s.heading || s.heading.includes('Fresh Microgreens & Live Growing Trays'))) {
+      return { ...s, ...DEFAULT_HERO_SLIDES[0] };
+    }
+    return s;
+  });
+};
+
+const normalizeHomeImages = (v) => ({
+  microgreens: { ...DEFAULT_HOME_IMAGES.microgreens, ...(v?.microgreens || {}) },
+  botanicalPowders: { ...DEFAULT_HOME_IMAGES.botanicalPowders, ...(v?.botanicalPowders || {}) },
+  spices: { ...DEFAULT_HOME_IMAGES.spices, ...(v?.spices || {}) },
+  verticalFarm: { ...DEFAULT_HOME_IMAGES.verticalFarm, ...(v?.verticalFarm || {}) }
+});
+
+const normalizeEvents = (v) => {
+  if (!Array.isArray(v) || v.length === 0) return DEFAULT_EVENTS_WORKSHOPS;
+  return v.map(ev => {
+    if (ev.image && ev.image.includes('photo-1544535830-9d5a6724cd31')) {
+      return { ...ev, image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80' };
+    }
+    return ev;
+  });
+};
+
+const normalizeFooter = nonEmptyArrayOr(DEFAULT_FOOTER_IMAGES);
+const normalizeInfrastructure = nonEmptyArrayOr(DEFAULT_INFRASTRUCTURE_CARDS);
+const normalizeDivisions = nonEmptyArrayOr(DEFAULT_DIVISION_CARDS);
+
+// Helpers for list-type settings
+const updateAt = (list, index, field, value) => {
+  const updated = [...list];
+  if (updated[index]) updated[index] = { ...updated[index], [field]: value };
+  return updated;
+};
+const removeAt = (list, index) => (list.length <= 1 ? list : list.filter((_, i) => i !== index));
+
 export const HomepageContentProvider = ({ children }) => {
-  // 1. Founders State
-  const [founders, setFounders] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('krishi_founders_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return {
-            founder1: { ...DEFAULT_FOUNDERS.founder1, ...(parsed.founder1 || {}) },
-            founder2: { ...DEFAULT_FOUNDERS.founder2, ...(parsed.founder2 || {}) }
-          };
-        }
-        // Legacy check for Rachna image
-        const legacyRachnaImg = localStorage.getItem('kk_founder_rachna_image');
-        if (legacyRachnaImg) {
-          return {
-            ...DEFAULT_FOUNDERS,
-            founder1: { ...DEFAULT_FOUNDERS.founder1, image: legacyRachnaImg }
-          };
-        }
-      } catch (e) {
-        console.warn('Error reading founders config from localStorage:', e);
-      }
-    }
-    return DEFAULT_FOUNDERS;
+  const foundersSetting = useSyncedSetting({
+    key: 'founders', cacheKey: 'krishi_founders_config',
+    defaults: DEFAULT_FOUNDERS, normalize: normalizeFounders
   });
-
-  // 1b. Hero Slides State (Dynamic Home Carousel with Editable Text & Images)
-  const [heroSlides, setHeroSlides] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('krishi_hero_slides_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            // Auto-upgrade slide-1 to the new botanical hero if it has the older title
-            const upgraded = parsed.map((s, idx) => {
-              if (idx === 0 && (!s.heading || s.heading.includes('Fresh Microgreens & Live Growing Trays'))) {
-                return { ...s, ...DEFAULT_HERO_SLIDES[0] };
-              }
-              return s;
-            });
-            return upgraded;
-          }
-        }
-      } catch (e) {
-        console.warn('Error reading hero slides config from localStorage:', e);
-      }
-    }
-    return DEFAULT_HERO_SLIDES;
+  const heroSetting = useSyncedSetting({
+    key: 'hero_slides', cacheKey: 'krishi_hero_slides_config',
+    defaults: DEFAULT_HERO_SLIDES, normalize: normalizeHeroSlides
   });
-
-  // 2. Home Images State (kept synced for legacy callers)
-  const [homeImages, setHomeImages] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('krishi_home_images_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return {
-            microgreens: { ...DEFAULT_HOME_IMAGES.microgreens, ...(parsed.microgreens || {}) },
-            botanicalPowders: { ...DEFAULT_HOME_IMAGES.botanicalPowders, ...(parsed.botanicalPowders || {}) },
-            spices: { ...DEFAULT_HOME_IMAGES.spices, ...(parsed.spices || {}) },
-            verticalFarm: { ...DEFAULT_HOME_IMAGES.verticalFarm, ...(parsed.verticalFarm || {}) }
-          };
-        }
-      } catch (e) {
-        console.warn('Error reading home images config from localStorage:', e);
-      }
-    }
-    return DEFAULT_HOME_IMAGES;
+  const homeImagesSetting = useSyncedSetting({
+    key: 'home_images', cacheKey: 'krishi_home_images_config',
+    defaults: DEFAULT_HOME_IMAGES, normalize: normalizeHomeImages
   });
-
-  // 3. Footer Images State
-  const [footerImages, setFooterImages] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('krishi_footer_images_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch (e) {
-        console.warn('Error reading footer images config from localStorage:', e);
-      }
-    }
-    return DEFAULT_FOOTER_IMAGES;
+  const footerSetting = useSyncedSetting({
+    key: 'footer_images', cacheKey: 'krishi_footer_images_config',
+    defaults: DEFAULT_FOOTER_IMAGES, normalize: normalizeFooter
   });
-
-  // 4. Events & Workshops State
-  const [eventsWorkshops, setEventsWorkshops] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('krishi_events_workshops_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed.map(ev => {
-              if (ev.image && ev.image.includes('photo-1544535830-9d5a6724cd31')) {
-                return { ...ev, image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80' };
-              }
-              return ev;
-            });
-          }
-        }
-      } catch (e) {
-        console.warn('Error reading events workshops config from localStorage:', e);
-      }
-    }
-    return DEFAULT_EVENTS_WORKSHOPS;
+  const eventsSetting = useSyncedSetting({
+    key: 'events_workshops', cacheKey: 'krishi_events_workshops_config',
+    defaults: DEFAULT_EVENTS_WORKSHOPS, normalize: normalizeEvents
   });
-
-  // 5. Infrastructure Cards State (Our Infrastructure & Supply Guarantee)
-  const [infrastructureCards, setInfrastructureCards] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('krishi_infrastructure_cards_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch (e) {
-        console.warn('Error reading infrastructure cards config from localStorage:', e);
-      }
-    }
-    return DEFAULT_INFRASTRUCTURE_CARDS;
+  const infraSetting = useSyncedSetting({
+    key: 'infrastructure_cards', cacheKey: 'krishi_infrastructure_cards_config',
+    defaults: DEFAULT_INFRASTRUCTURE_CARDS, normalize: normalizeInfrastructure
   });
-
-  // 6. Division Cards State (Pure Botanical Ingredients & Living Superfoods)
-  const [divisionCards, setDivisionCards] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('krishi_division_cards_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch (e) {
-        console.warn('Error reading division cards config from localStorage:', e);
-      }
-    }
-    return DEFAULT_DIVISION_CARDS;
+  const divisionSetting = useSyncedSetting({
+    key: 'division_cards', cacheKey: 'krishi_division_cards_config',
+    defaults: DEFAULT_DIVISION_CARDS, normalize: normalizeDivisions
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Sync with other tabs / storage events
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === 'krishi_founders_config' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          setFounders({
-            founder1: { ...DEFAULT_FOUNDERS.founder1, ...(parsed.founder1 || {}) },
-            founder2: { ...DEFAULT_FOUNDERS.founder2, ...(parsed.founder2 || {}) }
-          });
-        } catch {}
-      }
-      if (e.key === 'krishi_hero_slides_config' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setHeroSlides(parsed);
-          }
-        } catch {}
-      }
-      if (e.key === 'krishi_home_images_config' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          setHomeImages({
-            microgreens: { ...DEFAULT_HOME_IMAGES.microgreens, ...(parsed.microgreens || {}) },
-            botanicalPowders: { ...DEFAULT_HOME_IMAGES.botanicalPowders, ...(parsed.botanicalPowders || {}) },
-            spices: { ...DEFAULT_HOME_IMAGES.spices, ...(parsed.spices || {}) },
-            verticalFarm: { ...DEFAULT_HOME_IMAGES.verticalFarm, ...(parsed.verticalFarm || {}) }
-          });
-        } catch {}
-      }
-      if (e.key === 'krishi_footer_images_config' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setFooterImages(parsed);
-          }
-        } catch {}
-      }
-      if (e.key === 'krishi_events_workshops_config' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setEventsWorkshops(parsed);
-          }
-        } catch {}
-      }
-      if (e.key === 'krishi_infrastructure_cards_config' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setInfrastructureCards(parsed);
-          }
-        } catch {}
-      }
-      if (e.key === 'krishi_division_cards_config' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setDivisionCards(parsed);
-          }
-        } catch {}
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  const flashSaved = (ok) => {
+    if (!ok) return;
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 3000);
+  };
 
-  // Update specific founder field
+  // FOUNDERS
   const updateFounder = (founderKey, field, value) => {
-    setFounders(prev => {
-      const updated = {
-        ...prev,
-        [founderKey]: {
-          ...prev[founderKey],
-          [field]: value
-        }
-      };
-      try {
-        localStorage.setItem('krishi_founders_config', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Error persisting founders config:', err);
-      }
-      return updated;
-    });
+    foundersSetting.setValue(prev => ({
+      ...prev,
+      [founderKey]: { ...prev[founderKey], [field]: value }
+    }));
   };
-
-  // Commit full founders
   const saveFounders = (newFounders) => {
-    setFounders(newFounders);
-    try {
-      localStorage.setItem('krishi_founders_config', JSON.stringify(newFounders));
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error saving founders config:', err);
-    }
+    foundersSetting.setValue(newFounders, { immediate: true }).then(flashSaved);
   };
-
-  // Reset founders
   const resetFounders = () => {
-    setFounders(DEFAULT_FOUNDERS);
-    try {
-      localStorage.removeItem('krishi_founders_config');
-      localStorage.removeItem('kk_founder_rachna_image');
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error resetting founders config:', err);
-    }
+    try { localStorage.removeItem('kk_founder_rachna_image'); } catch {}
+    foundersSetting.reset().then(flashSaved);
   };
 
-  // HERO SLIDES METHODS
-  const updateHeroSlide = (index, field, value) => {
-    setHeroSlides(prev => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = { ...updated[index], [field]: value };
-      }
-      try {
-        localStorage.setItem('krishi_hero_slides_config', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Error persisting hero slides config:', err);
-      }
-      return updated;
-    });
-  };
-
-  const saveHeroSlides = (newSlides) => {
-    setHeroSlides(newSlides);
-    try {
-      localStorage.setItem('krishi_hero_slides_config', JSON.stringify(newSlides));
-      // Also update homeImages for backward compatibility
-      if (newSlides[0]?.image) updateHomeImage('microgreens', newSlides[0].image);
-      if (newSlides[1]?.image) updateHomeImage('spices', newSlides[1].image);
-      if (newSlides[2]?.image) updateHomeImage('verticalFarm', newSlides[2].image);
-      if (newSlides[3]?.image) updateHomeImage('botanicalPowders', newSlides[3].image);
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error saving hero slides config:', err);
-    }
-  };
-
-  const resetHeroSlides = () => {
-    setHeroSlides(DEFAULT_HERO_SLIDES);
-    try {
-      localStorage.removeItem('krishi_hero_slides_config');
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error resetting hero slides config:', err);
-    }
-  };
-
-  const addHeroSlide = (newSlide) => {
-    setHeroSlides(prev => {
-      const slideId = `slide-${Date.now()}`;
-      const defaultNew = {
-        id: slideId,
-        title: "Krishi Kutir Harvest",
-        heading: "New Living Harvest Showcase",
-        description: "Freshly cultivated in our automated Bhopal facility with 100% natural, chemical-free standards.",
-        image: HOME_3D_ASSETS.microgreens,
-        accent: "Featured Farm Lot",
-        tag: "Fresh Harvest",
-        badge: "Krishi Kutir • Live Batch",
-        overlaySub: "Leaf Lounge Vertical Farm",
-        overlayCap: "Hydroponic Facility",
-        target: "#microgreens-section",
-        ...(newSlide || {})
-      };
-      const updated = [...prev, defaultNew];
-      try {
-        localStorage.setItem('krishi_hero_slides_config', JSON.stringify(updated));
-      } catch (err) {}
-      return updated;
-    });
-  };
-
-  const deleteHeroSlide = (index) => {
-    setHeroSlides(prev => {
-      if (prev.length <= 1) return prev;
-      const updated = prev.filter((_, i) => i !== index);
-      try {
-        localStorage.setItem('krishi_hero_slides_config', JSON.stringify(updated));
-      } catch (err) {}
-      return updated;
-    });
-  };
-
-  // Update single home image
+  // HOME IMAGES (kept synced for legacy callers)
   const updateHomeImage = (imageKey, newUrl) => {
-    setHomeImages(prev => {
-      const updated = {
-        ...prev,
-        [imageKey]: {
-          ...prev[imageKey],
-          url: newUrl
-        }
-      };
-      try {
-        localStorage.setItem('krishi_home_images_config', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Error persisting home images config:', err);
-      }
-      return updated;
-    });
+    homeImagesSetting.setValue(prev => ({
+      ...prev,
+      [imageKey]: { ...prev[imageKey], url: newUrl }
+    }));
   };
-
-  // Commit full home images
   const saveHomeImages = (newHomeImages) => {
-    setHomeImages(newHomeImages);
-    try {
-      localStorage.setItem('krishi_home_images_config', JSON.stringify(newHomeImages));
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error saving home images config:', err);
-    }
+    homeImagesSetting.setValue(newHomeImages, { immediate: true }).then(flashSaved);
   };
-
-  // Reset home images
   const resetHomeImages = () => {
-    setHomeImages(DEFAULT_HOME_IMAGES);
-    try {
-      localStorage.removeItem('krishi_home_images_config');
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error resetting home images config:', err);
-    }
+    homeImagesSetting.reset().then(flashSaved);
   };
 
-  // Update single footer image
+  // HERO SLIDES
+  const updateHeroSlide = (index, field, value) => {
+    heroSetting.setValue(prev => updateAt(prev, index, field, value));
+  };
+  const saveHeroSlides = (newSlides) => {
+    heroSetting.setValue(newSlides, { immediate: true }).then(flashSaved);
+    // Also update homeImages for backward compatibility
+    if (newSlides[0]?.image) updateHomeImage('microgreens', newSlides[0].image);
+    if (newSlides[1]?.image) updateHomeImage('spices', newSlides[1].image);
+    if (newSlides[2]?.image) updateHomeImage('verticalFarm', newSlides[2].image);
+    if (newSlides[3]?.image) updateHomeImage('botanicalPowders', newSlides[3].image);
+  };
+  const resetHeroSlides = () => {
+    heroSetting.reset().then(flashSaved);
+  };
+  const addHeroSlide = (newSlide) => {
+    heroSetting.setValue(prev => [...prev, {
+      id: `slide-${Date.now()}`,
+      title: "Krishi Kutir Harvest",
+      heading: "New Living Harvest Showcase",
+      description: "Freshly cultivated in our automated Bhopal facility with 100% natural, chemical-free standards.",
+      image: HOME_3D_ASSETS.microgreens,
+      accent: "Featured Farm Lot",
+      tag: "Fresh Harvest",
+      badge: "Krishi Kutir • Live Batch",
+      overlaySub: "Leaf Lounge Vertical Farm",
+      overlayCap: "Hydroponic Facility",
+      target: "#microgreens-section",
+      ...(newSlide || {})
+    }], { immediate: true });
+  };
+  const deleteHeroSlide = (index) => {
+    heroSetting.setValue(prev => removeAt(prev, index), { immediate: true });
+  };
+
+  // FOOTER IMAGES
   const updateFooterImage = (index, field, value) => {
-    setFooterImages(prev => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = {
-          ...updated[index],
-          [field]: value
-        };
-      }
-      try {
-        localStorage.setItem('krishi_footer_images_config', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Error persisting footer images config:', err);
-      }
-      return updated;
-    });
+    footerSetting.setValue(prev => updateAt(prev, index, field, value));
   };
-
-  // Commit full footer images
   const saveFooterImages = (newFooterImages) => {
-    setFooterImages(newFooterImages);
-    try {
-      localStorage.setItem('krishi_footer_images_config', JSON.stringify(newFooterImages));
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error saving footer images config:', err);
-    }
+    footerSetting.setValue(newFooterImages, { immediate: true }).then(flashSaved);
   };
-
-  // Reset footer images
   const resetFooterImages = () => {
-    setFooterImages(DEFAULT_FOOTER_IMAGES);
-    try {
-      localStorage.removeItem('krishi_footer_images_config');
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error resetting footer images config:', err);
-    }
+    footerSetting.reset().then(flashSaved);
   };
-
   const addFooterImage = (newImg) => {
-    setFooterImages(prev => {
-      const defaultNew = {
-        id: `footer-img-${Date.now()}`,
-        title: 'Krishi Kutir Live Facility',
-        subtitle: 'Harvest Snapshot',
-        url: 'https://images.unsplash.com/photo-1592417817098-8f3d69106093?auto=format&fit=crop&w=600&q=80',
-        ...(newImg || {})
-      };
-      const updated = [...prev, defaultNew];
-      try {
-        localStorage.setItem('krishi_footer_images_config', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    footerSetting.setValue(prev => [...prev, {
+      id: `footer-img-${Date.now()}`,
+      title: 'Krishi Kutir Live Facility',
+      subtitle: 'Harvest Snapshot',
+      url: 'https://images.unsplash.com/photo-1592417817098-8f3d69106093?auto=format&fit=crop&w=600&q=80',
+      ...(newImg || {})
+    }], { immediate: true });
   };
-
   const deleteFooterImage = (index) => {
-    setFooterImages(prev => {
-      if (prev.length <= 1) return prev;
-      const updated = prev.filter((_, i) => i !== index);
-      try {
-        localStorage.setItem('krishi_footer_images_config', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    footerSetting.setValue(prev => removeAt(prev, index), { immediate: true });
   };
 
-  // Update single event / workshop field
+  // EVENTS & WORKSHOPS
   const updateEventWorkshop = (index, field, value) => {
-    setEventsWorkshops(prev => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = {
-          ...updated[index],
-          [field]: value
-        };
-      }
-      try {
-        localStorage.setItem('krishi_events_workshops_config', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Error persisting events workshops config:', err);
-      }
-      return updated;
-    });
+    eventsSetting.setValue(prev => updateAt(prev, index, field, value));
   };
-
-  // Commit full events & workshops
   const saveEventsWorkshops = (newEvents) => {
-    setEventsWorkshops(newEvents);
-    try {
-      localStorage.setItem('krishi_events_workshops_config', JSON.stringify(newEvents));
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error saving events workshops config:', err);
-    }
+    eventsSetting.setValue(newEvents, { immediate: true }).then(flashSaved);
   };
-
-  // Reset events & workshops
   const resetEventsWorkshops = () => {
-    setEventsWorkshops(DEFAULT_EVENTS_WORKSHOPS);
-    try {
-      localStorage.removeItem('krishi_events_workshops_config');
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error resetting events workshops config:', err);
-    }
+    eventsSetting.reset().then(flashSaved);
   };
-
   const addEventWorkshop = (newEvent) => {
-    setEventsWorkshops(prev => {
-      const defaultNew = {
-        id: `event-${Date.now()}`,
-        title: 'New Workshop / Farm Session',
-        location: 'Bhopal Chapter',
-        desc: 'Interactive workshop on vertical microgreen cultivation and clean superfoods.',
-        image: 'https://images.unsplash.com/photo-1544535830-9d5a6724cd31?auto=format&fit=crop&w=500&q=80',
-        ...(newEvent || {})
-      };
-      const updated = [...prev, defaultNew];
-      try {
-        localStorage.setItem('krishi_events_workshops_config', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    eventsSetting.setValue(prev => [...prev, {
+      id: `event-${Date.now()}`,
+      title: 'New Workshop / Farm Session',
+      location: 'Bhopal Chapter',
+      desc: 'Interactive workshop on vertical microgreen cultivation and clean superfoods.',
+      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=600&q=80',
+      ...(newEvent || {})
+    }], { immediate: true });
   };
-
   const deleteEventWorkshop = (index) => {
-    setEventsWorkshops(prev => {
-      if (prev.length <= 1) return prev;
-      const updated = prev.filter((_, i) => i !== index);
-      try {
-        localStorage.setItem('krishi_events_workshops_config', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    eventsSetting.setValue(prev => removeAt(prev, index), { immediate: true });
   };
 
-  // Update single infrastructure card field
+  // INFRASTRUCTURE CARDS
   const updateInfrastructureCard = (index, field, value) => {
-    setInfrastructureCards(prev => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = {
-          ...updated[index],
-          [field]: value
-        };
-      }
-      try {
-        localStorage.setItem('krishi_infrastructure_cards_config', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Error persisting infrastructure cards config:', err);
-      }
-      return updated;
-    });
+    infraSetting.setValue(prev => updateAt(prev, index, field, value));
   };
-
-  // Commit full infrastructure cards
   const saveInfrastructureCards = (newCards) => {
-    setInfrastructureCards(newCards);
-    try {
-      localStorage.setItem('krishi_infrastructure_cards_config', JSON.stringify(newCards));
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error saving infrastructure cards config:', err);
-    }
+    infraSetting.setValue(newCards, { immediate: true }).then(flashSaved);
   };
-
-  // Reset infrastructure cards
   const resetInfrastructureCards = () => {
-    setInfrastructureCards(DEFAULT_INFRASTRUCTURE_CARDS);
-    try {
-      localStorage.removeItem('krishi_infrastructure_cards_config');
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error resetting infrastructure cards config:', err);
-    }
+    infraSetting.reset().then(flashSaved);
   };
-
   const addInfrastructureCard = (newCard) => {
-    setInfrastructureCards(prev => {
-      const defaultNew = {
-        id: `infra-${Date.now()}`,
-        category: 'Supply Facility',
-        title: 'New Infrastructure Unit',
-        desc: 'Advanced automated climate-controlled racks and cold-chain distribution center.',
-        badge: '100% Quality Inspected',
-        image: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80',
-        ...(newCard || {})
-      };
-      const updated = [...prev, defaultNew];
-      try {
-        localStorage.setItem('krishi_infrastructure_cards_config', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    infraSetting.setValue(prev => [...prev, {
+      id: `infra-${Date.now()}`,
+      category: 'Supply Facility',
+      title: 'New Infrastructure Unit',
+      desc: 'Advanced automated climate-controlled racks and cold-chain distribution center.',
+      badge: '100% Quality Inspected',
+      image: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?auto=format&fit=crop&w=600&q=80',
+      ...(newCard || {})
+    }], { immediate: true });
   };
-
   const deleteInfrastructureCard = (index) => {
-    setInfrastructureCards(prev => {
-      if (prev.length <= 1) return prev;
-      const updated = prev.filter((_, i) => i !== index);
-      try {
-        localStorage.setItem('krishi_infrastructure_cards_config', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    infraSetting.setValue(prev => removeAt(prev, index), { immediate: true });
   };
 
-  // Update single division card field
+  // DIVISION CARDS
   const updateDivisionCard = (index, field, value) => {
-    setDivisionCards(prev => {
-      const updated = [...prev];
-      if (updated[index]) {
-        updated[index] = {
-          ...updated[index],
-          [field]: value
-        };
-      }
-      try {
-        localStorage.setItem('krishi_division_cards_config', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('Error persisting division cards config:', err);
-      }
-      return updated;
-    });
+    divisionSetting.setValue(prev => updateAt(prev, index, field, value));
   };
-
-  // Commit full division cards
   const saveDivisionCards = (newCards) => {
-    setDivisionCards(newCards);
-    try {
-      localStorage.setItem('krishi_division_cards_config', JSON.stringify(newCards));
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error saving division cards config:', err);
-    }
+    divisionSetting.setValue(newCards, { immediate: true }).then(flashSaved);
   };
-
-  // Reset division cards
   const resetDivisionCards = () => {
-    setDivisionCards(DEFAULT_DIVISION_CARDS);
-    try {
-      localStorage.removeItem('krishi_division_cards_config');
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      console.warn('Error resetting division cards config:', err);
-    }
+    divisionSetting.reset().then(flashSaved);
   };
-
   const addDivisionCard = (newCard) => {
-    setDivisionCards(prev => {
-      const defaultNew = {
-        id: `div-${Date.now()}`,
-        name: 'New Botanical Product Division',
-        subtitle: 'Natural Living Harvest & Superfoods',
-        description: 'Cultivated and produced under clean room and natural organic farming conditions.',
-        image: HOME_3D_ASSETS.microgreens,
-        badge: 'Pure Botanical',
-        badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-        tag: '100% Traceable',
-        target: '#full-catalogue-section',
-        ...(newCard || {})
-      };
-      const updated = [...prev, defaultNew];
-      try {
-        localStorage.setItem('krishi_division_cards_config', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    divisionSetting.setValue(prev => [...prev, {
+      id: `div-${Date.now()}`,
+      name: 'New Botanical Product Division',
+      subtitle: 'Natural Living Harvest & Superfoods',
+      description: 'Cultivated and produced under clean room and natural organic farming conditions.',
+      image: HOME_3D_ASSETS.microgreens,
+      badge: 'Pure Botanical',
+      badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      tag: '100% Traceable',
+      target: '#full-catalogue-section',
+      ...(newCard || {})
+    }], { immediate: true });
+  };
+  const deleteDivisionCard = (index) => {
+    divisionSetting.setValue(prev => removeAt(prev, index), { immediate: true });
   };
 
-  const deleteDivisionCard = (index) => {
-    setDivisionCards(prev => {
-      if (prev.length <= 1) return prev;
-      const updated = prev.filter((_, i) => i !== index);
-      try {
-        localStorage.setItem('krishi_division_cards_config', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
-  };
+  const contentError =
+    foundersSetting.error || heroSetting.error || homeImagesSetting.error || footerSetting.error ||
+    eventsSetting.error || infraSetting.error || divisionSetting.error || null;
 
   return (
     <HomepageContentContext.Provider
       value={{
-        founders,
-        heroSlides,
-        homeImages,
-        footerImages,
-        eventsWorkshops,
-        infrastructureCards,
-        divisionCards,
+        founders: foundersSetting.value,
+        heroSlides: heroSetting.value,
+        homeImages: homeImagesSetting.value,
+        footerImages: footerSetting.value,
+        eventsWorkshops: eventsSetting.value,
+        infrastructureCards: infraSetting.value,
+        divisionCards: divisionSetting.value,
         defaultFounders: DEFAULT_FOUNDERS,
         defaultHeroSlides: DEFAULT_HERO_SLIDES,
         defaultHomeImages: DEFAULT_HOME_IMAGES,
@@ -1035,6 +628,7 @@ export const HomepageContentProvider = ({ children }) => {
         resetDivisionCards,
         addDivisionCard,
         deleteDivisionCard,
+        contentError,
         savedSuccess
       }}
     >

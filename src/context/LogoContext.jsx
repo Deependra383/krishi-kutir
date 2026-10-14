@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import { useSyncedSetting } from './useSyncedSetting';
 
 const DEFAULT_LOGO_CONFIG = {
   mode: 'emblem', // 'emblem' | 'custom_image' | 'minimal'
@@ -20,6 +21,8 @@ const DEFAULT_LOGO_CONFIG = {
   fontFamily: 'Playfair Display' // 'Playfair Display' | 'Inter' | 'Caveat'
 };
 
+const normalizeLogo = (v) => ({ ...DEFAULT_LOGO_CONFIG, ...(v || {}) });
+
 const LogoContext = createContext(null);
 
 export const useLogo = () => {
@@ -36,68 +39,45 @@ export const useLogo = () => {
 };
 
 export const LogoProvider = ({ children }) => {
-  const [logoConfig, setLogoConfig] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('krishi_logo_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          return { ...DEFAULT_LOGO_CONFIG, ...parsed };
-        }
-      } catch (e) {
-        console.warn('Error reading logo config from localStorage:', e);
-      }
-    }
-    return DEFAULT_LOGO_CONFIG;
+  // Stored in Supabase `site_settings` (key: logo_config), shared by every device
+  const logo = useSyncedSetting({
+    key: 'logo_config',
+    cacheKey: 'krishi_logo_config',
+    defaults: DEFAULT_LOGO_CONFIG,
+    normalize: normalizeLogo
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // Helper to update specific fields in state
+  const flashSaved = (ok) => {
+    if (!ok) return;
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2000);
+  };
+
+  // Update specific fields (saved automatically a moment later)
   const updateLogoConfig = (newFields) => {
-    setLogoConfig(prev => {
-      const updated = { ...prev, ...newFields };
-      try {
-        localStorage.setItem('krishi_logo_config', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('Error persisting logo config:', e);
-      }
-      return updated;
-    });
+    logo.setValue(prev => ({ ...prev, ...newFields }));
   };
 
-  // Helper to commit full state & persist
+  // Commit full config and save straight away
   const saveLogoConfig = (fullConfig) => {
-    const toSave = { ...DEFAULT_LOGO_CONFIG, ...fullConfig };
-    setLogoConfig(toSave);
-    try {
-      localStorage.setItem('krishi_logo_config', JSON.stringify(toSave));
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 2000);
-    } catch (e) {
-      console.warn('Error saving logo config:', e);
-    }
+    logo.setValue(normalizeLogo(fullConfig), { immediate: true }).then(flashSaved);
   };
 
-  // Reset to original default logo
+  // Reset to the original default logo for everyone
   const resetLogoConfig = () => {
-    setLogoConfig(DEFAULT_LOGO_CONFIG);
-    try {
-      localStorage.removeItem('krishi_logo_config');
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 2000);
-    } catch (e) {
-      console.warn('Error resetting logo config:', e);
-    }
+    logo.reset().then(flashSaved);
   };
 
   return (
     <LogoContext.Provider value={{
-      logoConfig,
+      logoConfig: logo.value,
       updateLogoConfig,
       saveLogoConfig,
       resetLogoConfig,
       savedSuccess,
+      logoError: logo.error,
       defaultLogoConfig: DEFAULT_LOGO_CONFIG
     }}>
       {children}

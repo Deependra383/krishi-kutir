@@ -1,7 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../supabase';
-import { ALL_PRODUCTS_LIST } from '../data';
-import { CATEGORIES_CONFIG, createCategoryConfigItem } from '../data/categoriesConfig';
+import { createCategoryConfigItem } from '../data/categoriesConfig';
 
 const ProductContext = createContext(null);
 
@@ -181,16 +180,74 @@ export const STANDARD_PRODUCTS = [
   }
 ];
 
-// Seed the user requested hierarchy if not initialized yet
-if (typeof window !== 'undefined') {
+// ---------------------------------------------------------------------------
+// Storage helpers
+// Supabase is the single source of truth. localStorage is only a cache for a
+// fast first paint (and the full store when Supabase isn't configured).
+// ---------------------------------------------------------------------------
+const USE_CLOUD = Boolean(isSupabaseConfigured && supabase);
+
+const LS_KEYS = {
+  products: 'krishi_local_products',
+  majors: 'krishi_major_categories',
+  cats: 'krishi_custom_categories',
+  configs: 'krishi_category_configs'
+};
+
+// Rows in the Supabase `site_settings` table
+const SETTINGS_KEYS = {
+  majors: 'major_categories',
+  cats: 'custom_categories',
+  configs: 'category_configs'
+};
+
+const isObj = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+const readLS = (key, fallback, isValid) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (isValid(parsed)) return parsed;
+    }
+  } catch {}
+  return fallback;
+};
+
+const writeLS = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.warn(`Failed to cache ${key}:`, e);
+  }
+};
+
+const isNonEmpty = (v) => (Array.isArray(v) ? v.length > 0 : isObj(v) && Object.keys(v).length > 0);
+
+// Only these columns are sent to the `products` table
+const PRODUCT_COLUMNS = ['id', 'name', 'price', 'unit', 'moq', 'category', 'subCategory', 'majorCategory', 'benefit', 'image'];
+
+const toProductRow = (p) => {
+  const row = {};
+  PRODUCT_COLUMNS.forEach((col) => {
+    if (p[col] !== undefined) row[col] = p[col];
+  });
+  if (row.price !== undefined) row.price = Number(row.price) || 0;
+  return row;
+};
+
+const slugify = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+// Local-only mode (no Supabase): seed the starter hierarchy once per browser
+if (typeof window !== 'undefined' && !USE_CLOUD) {
   try {
     if (localStorage.getItem('krishi_hierarchy_initialized_v2') !== 'true') {
-      localStorage.setItem('krishi_major_categories', JSON.stringify(STANDARD_MAJOR_CATEGORIES));
-      localStorage.setItem('krishi_custom_categories', JSON.stringify(STANDARD_SUB_CATEGORIES));
-      localStorage.setItem('krishi_category_configs', JSON.stringify(STANDARD_CATEGORY_CONFIGS));
-      const existingProds = localStorage.getItem('krishi_local_products');
+      writeLS(LS_KEYS.majors, STANDARD_MAJOR_CATEGORIES);
+      writeLS(LS_KEYS.cats, STANDARD_SUB_CATEGORIES);
+      writeLS(LS_KEYS.configs, STANDARD_CATEGORY_CONFIGS);
+      const existingProds = localStorage.getItem(LS_KEYS.products);
       if (!existingProds || existingProds === '[]' || existingProds === 'null') {
-        localStorage.setItem('krishi_local_products', JSON.stringify(STANDARD_PRODUCTS));
+        writeLS(LS_KEYS.products, STANDARD_PRODUCTS);
       }
       localStorage.setItem('krishi_hierarchy_initialized_v2', 'true');
     }
@@ -198,59 +255,187 @@ if (typeof window !== 'undefined') {
 }
 
 export const ProductProvider = ({ children }) => {
-  const [products, setProducts] = useState(() => {
-    try {
-      const saved = localStorage.getItem('krishi_local_products');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch {}
-    return [];
-  });
+  const [products, setProducts] = useState(() => readLS(LS_KEYS.products, [], Array.isArray));
+  const [customCategories, setCustomCategories] = useState(() => readLS(LS_KEYS.cats, [], Array.isArray));
+  const [majorCategories, setMajorCategories] = useState(() => readLS(LS_KEYS.majors, [], Array.isArray));
+  const [categoryConfigs, setCategoryConfigs] = useState(() => readLS(LS_KEYS.configs, {}, isObj));
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [customCategories, setCustomCategories] = useState(() => {
-    try {
-      const savedCats = localStorage.getItem('krishi_custom_categories');
-      if (savedCats) {
-        const parsed = JSON.parse(savedCats);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch {}
-    return [];
-  });
+  // Latest values, so async rollbacks restore the right snapshot
+  const productsRef = useRef(products);
+  const settingsRef = useRef({ majors: majorCategories, cats: customCategories, configs: categoryConfigs });
+  useEffect(() => { productsRef.current = products; }, [products]);
+  useEffect(() => {
+    settingsRef.current = { majors: majorCategories, cats: customCategories, configs: categoryConfigs };
+  }, [majorCategories, customCategories, categoryConfigs]);
 
-  // Major Categories State (e.g. "Natural Powders", "Microgreens & Seeds")
-  const [majorCategories, setMajorCategories] = useState(() => {
-    try {
-      const saved = localStorage.getItem('krishi_major_categories');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch {}
-    return [];
-  });
-
-  const saveMajorCategoriesList = (newMajors) => {
-    setMajorCategories(newMajors);
-    try {
-      localStorage.setItem('krishi_major_categories', JSON.stringify(newMajors));
-    } catch (e) {
-      console.warn('Failed to save major categories to localStorage:', e);
-    }
+  const setProductsAndCache = (list) => {
+    productsRef.current = list;
+    setProducts(list);
+    writeLS(LS_KEYS.products, list);
   };
+
+  // Apply any of { majors, cats, configs } to state + cache
+  const applySettingsLocally = (changes) => {
+    const next = { ...settingsRef.current };
+    if ('majors' in changes) {
+      next.majors = changes.majors;
+      setMajorCategories(changes.majors);
+      writeLS(LS_KEYS.majors, changes.majors);
+    }
+    if ('cats' in changes) {
+      next.cats = changes.cats;
+      setCustomCategories(changes.cats);
+      writeLS(LS_KEYS.cats, changes.cats);
+    }
+    if ('configs' in changes) {
+      next.configs = changes.configs;
+      setCategoryConfigs(changes.configs);
+      writeLS(LS_KEYS.configs, changes.configs);
+    }
+    settingsRef.current = next;
+  };
+
+  // Optimistic save of category settings to Supabase, rolled back on failure
+  const persistSettings = async (changes) => {
+    const previous = {};
+    Object.keys(changes).forEach((k) => { previous[k] = settingsRef.current[k]; });
+    applySettingsLocally(changes);
+    if (!USE_CLOUD) return true;
+
+    const now = new Date().toISOString();
+    const rows = Object.entries(changes).map(([k, value]) => ({ key: SETTINGS_KEYS[k], value, updated_at: now }));
+    const { error: sbError } = await supabase.from('site_settings').upsert(rows, { onConflict: 'key' });
+    if (sbError) {
+      console.error('Failed to save categories to Supabase:', sbError);
+      applySettingsLocally(previous);
+      setError(sbError.message);
+      return false;
+    }
+    setError(null);
+    return true;
+  };
+
+  // ---------------------------------------------------------------------------
+  // Loading from Supabase
+  // ---------------------------------------------------------------------------
+  const loadSettings = async ({ seedIfMissing = false } = {}) => {
+    const { data, error: sbError } = await supabase.from('site_settings').select('key, value');
+    if (sbError) throw sbError;
+
+    const byKey = {};
+    (data || []).forEach((row) => { byKey[row.key] = row.value; });
+
+    const found = {};
+    const missing = {};
+    Object.entries(SETTINGS_KEYS).forEach(([local, remote]) => {
+      if (byKey[remote] !== undefined && byKey[remote] !== null) {
+        found[local] = byKey[remote];
+      } else if (seedIfMissing) {
+        // First run after the fix: push this browser's categories up (or the starter set)
+        const cached = settingsRef.current[local];
+        const starter = local === 'majors' ? STANDARD_MAJOR_CATEGORIES
+          : local === 'cats' ? STANDARD_SUB_CATEGORIES
+          : STANDARD_CATEGORY_CONFIGS;
+        missing[local] = isNonEmpty(cached) ? cached : starter;
+      }
+    });
+
+    if (Object.keys(found).length) applySettingsLocally(found);
+
+    const wasMissing = Object.keys(missing).length > 0;
+    if (wasMissing) {
+      const now = new Date().toISOString();
+      const rows = Object.entries(missing).map(([k, value]) => ({ key: SETTINGS_KEYS[k], value, updated_at: now }));
+      // ignoreDuplicates: never overwrite rows another device created a moment ago
+      const { error: seedErr } = await supabase
+        .from('site_settings')
+        .upsert(rows, { onConflict: 'key', ignoreDuplicates: true });
+      if (seedErr) throw seedErr;
+      applySettingsLocally(missing);
+    }
+    return wasMissing;
+  };
+
+  const loadProducts = async ({ migrateLocal = false } = {}) => {
+    const { data, error: sbError } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (sbError) throw sbError;
+
+    if ((data || []).length === 0 && migrateLocal && productsRef.current.length > 0) {
+      // Cloud catalog is empty on the very first run: upload this browser's products
+      const rows = productsRef.current.map(toProductRow);
+      const { error: upErr } = await supabase.from('products').upsert(rows, { onConflict: 'id' });
+      if (upErr) throw upErr;
+      return loadProducts();
+    }
+
+    setProductsAndCache(data || []);
+  };
+
+  useEffect(() => {
+    if (!USE_CLOUD) {
+      setLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let channel = null;
+
+    const init = async () => {
+      try {
+        const firstRun = await loadSettings({ seedIfMissing: true });
+        if (cancelled) return;
+        await loadProducts({ migrateLocal: firstRun });
+        if (!cancelled) setError(null);
+      } catch (err) {
+        console.error('Supabase sync failed, showing cached data:', err);
+        if (!cancelled) setError(err?.message || 'Could not reach Supabase');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    init();
+
+    // Realtime: changes made on any device/account show up everywhere
+    try {
+      channel = supabase
+        .channel('krishi-catalog-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+          loadProducts().catch((e) => console.warn('Realtime products refresh failed:', e));
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, () => {
+          loadSettings().catch((e) => console.warn('Realtime categories refresh failed:', e));
+        })
+        .subscribe();
+    } catch (subErr) {
+      console.warn('Supabase realtime subscription notice:', subErr);
+    }
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Major categories
+  // ---------------------------------------------------------------------------
+  const saveMajorCategoriesList = (newMajors) => persistSettings({ majors: newMajors });
 
   const addMajorCategory = (majorData) => {
     const rawName = typeof majorData === 'string' ? majorData : majorData?.name;
     const trimmed = (rawName || '').trim();
     if (!trimmed) return false;
 
-    const id = (typeof majorData === 'object' && majorData?.id)
-      ? majorData.id
-      : trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const id = (typeof majorData === 'object' && majorData?.id) ? majorData.id : slugify(trimmed);
 
-    const exists = majorCategories.some(m => m.id === id || m.name.toLowerCase() === trimmed.toLowerCase());
+    const exists = majorCategories.some(m => m.id === id || (m.name || '').toLowerCase() === trimmed.toLowerCase());
     if (exists) return false;
 
     const newMajor = {
@@ -262,32 +447,29 @@ export const ProductProvider = ({ children }) => {
       createdAt: new Date().toISOString()
     };
 
-    const updated = [...majorCategories, newMajor];
-    saveMajorCategoriesList(updated);
+    saveMajorCategoriesList([...majorCategories, newMajor]);
     return newMajor;
   };
 
   const updateMajorCategory = (id, updatedFields) => {
-    const updated = majorCategories.map(m => m.id === id ? { ...m, ...updatedFields } : m);
-    saveMajorCategoriesList(updated);
+    saveMajorCategoriesList(majorCategories.map(m => m.id === id ? { ...m, ...updatedFields } : m));
   };
 
   const deleteMajorCategory = (identifier) => {
     if (!identifier) return false;
     const majorObj = typeof identifier === 'object' ? identifier : null;
-    const rawVal = typeof identifier === 'string' 
-      ? identifier 
+    const rawVal = typeof identifier === 'string'
+      ? identifier
       : (majorObj?.id || majorObj?.name || majorObj?.title || '');
     const targetId = (rawVal || '').toString().trim().toLowerCase();
-    const slug = targetId.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const slug = slugify(targetId);
 
-    const updated = (majorCategories || []).filter(m => {
+    const updatedMajors = (majorCategories || []).filter(m => {
       const mId = (m.id || '').toLowerCase().trim();
       const mName = (m.name || m.title || '').toLowerCase().trim();
-      const mSlug = mName.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const mSlug = slugify(mName);
       return mId !== targetId && mName !== targetId && mSlug !== slug && mId !== slug;
     });
-    saveMajorCategoriesList(updated);
 
     // Also unassign majorCategoryId from subcategories if attached
     const updatedConfigs = { ...categoryConfigs };
@@ -297,49 +479,22 @@ export const ProductProvider = ({ children }) => {
       const parentId = (cfg?.majorCategoryId || '').toLowerCase().trim();
       const parentName = (cfg?.majorCategoryName || '').toLowerCase().trim();
       if (parentId === targetId || parentId === slug || parentName === targetId) {
-        updatedConfigs[catKey] = {
-          ...updatedConfigs[catKey],
-          majorCategoryId: null,
-          majorCategoryName: null
-        };
+        updatedConfigs[catKey] = { ...cfg, majorCategoryId: null, majorCategoryName: null };
         configsChanged = true;
       }
     });
-    if (configsChanged) {
-      setCategoryConfigs(updatedConfigs);
-      try {
-        localStorage.setItem('krishi_category_configs', JSON.stringify(updatedConfigs));
-      } catch {}
-    }
+
+    persistSettings(configsChanged
+      ? { majors: updatedMajors, configs: updatedConfigs }
+      : { majors: updatedMajors });
     return true;
   };
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Load custom rich category configs (metadata like image, desc, benefits)
-  const [categoryConfigs, setCategoryConfigs] = useState(() => {
-    try {
-      const saved = localStorage.getItem('krishi_category_configs');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed === 'object' && parsed !== null) return parsed;
-      }
-    } catch {}
-    return {};
-  });
-
-  // Helper to persist categories
-  const saveCategoriesList = (newCategories, newConfigs = categoryConfigs) => {
-    setCustomCategories(newCategories);
-    setCategoryConfigs(newConfigs);
-    try {
-      localStorage.setItem('krishi_custom_categories', JSON.stringify(newCategories));
-      localStorage.setItem('krishi_category_configs', JSON.stringify(newConfigs));
-    } catch (e) {
-      console.warn('Failed to save categories to localStorage:', e);
-    }
-  };
+  // ---------------------------------------------------------------------------
+  // Sub-categories
+  // ---------------------------------------------------------------------------
+  const saveCategoriesList = (newCategories, newConfigs = categoryConfigs) =>
+    persistSettings({ cats: newCategories, configs: newConfigs });
 
   const addCategory = (categoryData) => {
     // categoryData can be string or object { name, image, shortDesc, letter, tag, benefits }
@@ -347,30 +502,19 @@ export const ProductProvider = ({ children }) => {
     const trimmed = (name || '').trim();
     if (!trimmed) return false;
 
-    const catId = (typeof categoryData === 'object' && categoryData?.id)
-      ? categoryData.id 
-      : trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const catId = (typeof categoryData === 'object' && categoryData?.id) ? categoryData.id : slugify(trimmed);
 
     const exists = customCategories.some(c => {
       const cStr = typeof c === 'string' ? c : (c?.name || c?.title || '');
       return (cStr || '').trim().toLowerCase() === trimmed.toLowerCase();
     });
     const updatedList = exists ? customCategories : [...customCategories, trimmed];
-    let updatedConfigs = { ...categoryConfigs };
+    const updatedConfigs = { ...categoryConfigs };
 
     if (typeof categoryData === 'object' && categoryData !== null) {
-      updatedConfigs[catId] = {
-        ...categoryData,
-        id: catId,
-        title: trimmed,
-        name: trimmed
-      };
+      updatedConfigs[catId] = { ...categoryData, id: catId, title: trimmed, name: trimmed };
     } else if (!updatedConfigs[catId]) {
-      updatedConfigs[catId] = {
-        id: catId,
-        title: trimmed,
-        name: trimmed
-      };
+      updatedConfigs[catId] = { id: catId, title: trimmed, name: trimmed };
     }
 
     saveCategoriesList(updatedList, updatedConfigs);
@@ -378,41 +522,33 @@ export const ProductProvider = ({ children }) => {
   };
 
   const updateCategoryConfig = (catId, updatedFields) => {
-    const updated = {
-      ...categoryConfigs,
-      [catId]: {
-        ...(categoryConfigs[catId] || {}),
-        ...updatedFields
+    persistSettings({
+      configs: {
+        ...categoryConfigs,
+        [catId]: { ...(categoryConfigs[catId] || {}), ...updatedFields }
       }
-    };
-    setCategoryConfigs(updated);
-    try {
-      localStorage.setItem('krishi_category_configs', JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Failed to save category config:', e);
-    }
+    });
   };
 
   const deleteCategory = (identifier) => {
     if (!identifier) return false;
     const catObj = typeof identifier === 'object' ? identifier : null;
-    const rawVal = typeof identifier === 'string' 
-      ? identifier 
+    const rawVal = typeof identifier === 'string'
+      ? identifier
       : (catObj?.id || catObj?.title || catObj?.name || '');
     const trimmed = (rawVal || '').toString().trim().toLowerCase();
     const explicitId = (catObj?.id || '').toString().trim().toLowerCase();
-    const slug = (catObj?.id || trimmed).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const altSlug = trimmed.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const slug = slugify(catObj?.id || trimmed);
+    const altSlug = slugify(trimmed);
 
     // 1. Filter out from customCategories safely
     const updatedList = (customCategories || []).filter(c => {
       if (!c) return false;
       const cStr = typeof c === 'string' ? c : (c?.name || c?.title || c?.id || '');
       const cTrimmed = (cStr || '').trim().toLowerCase();
-      const cSlug = cTrimmed.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const cSlug = slugify(cTrimmed);
       const cExplicitId = (typeof c === 'object' && c?.id ? c.id : '').toLowerCase().trim();
 
-      // Check matches
       if (cTrimmed === trimmed || cSlug === slug || cSlug === altSlug || cTrimmed === slug) return false;
       if (explicitId && (cExplicitId === explicitId || cSlug === explicitId || cTrimmed === explicitId)) return false;
       if (cExplicitId && (cExplicitId === slug || cExplicitId === trimmed)) return false;
@@ -426,7 +562,7 @@ export const ProductProvider = ({ children }) => {
       const kLower = key.toLowerCase().trim();
       const cfgId = (cfg?.id || '').toLowerCase().trim();
       const cfgTitle = (cfg?.title || cfg?.name || '').toLowerCase().trim();
-      const cfgSlug = cfgTitle.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const cfgSlug = slugify(cfgTitle);
 
       if (
         kLower === trimmed ||
@@ -444,210 +580,110 @@ export const ProductProvider = ({ children }) => {
     return true;
   };
 
-  const resetCategories = () => {
-    saveCategoriesList([], {});
-  };
-
-  const clearAllCategories = () => {
-    saveCategoriesList([], {});
-  };
+  const resetCategories = () => saveCategoriesList([], {});
+  const clearAllCategories = () => saveCategoriesList([], {});
 
   // Purely dynamic produce collections - only categories created by user are shown
   const showcaseCategories = useMemo(() => {
     return (customCategories || []).map((catItem, idx) => {
       const catName = typeof catItem === 'string' ? catItem : (catItem?.title || catItem?.name || '');
       const trimmed = (catName || '').trim();
-      const id = (typeof catItem === 'object' && catItem?.id)
-        ? catItem.id
-        : trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const id = (typeof catItem === 'object' && catItem?.id) ? catItem.id : slugify(trimmed);
       const customConfig = categoryConfigs[id] || (typeof catItem === 'object' ? catItem : {});
       return createCategoryConfigItem(trimmed, customConfig, idx);
     }).filter(c => Boolean(c.title));
   }, [customCategories, categoryConfigs]);
 
-  // Sync products with Supabase or LocalStorage
-  useEffect(() => {
-    let supabaseChannel = null;
-
-    if (isSupabaseConfigured && supabase) {
-      const fetchSupabaseProducts = async () => {
-        try {
-          // One-time purge of all products in Supabase so user can start with a clean slate
-          if (localStorage.getItem('krishi_purged_all_products_v3') !== 'true') {
-            try {
-              await supabase.from('products').delete().neq('id', 'null');
-            } catch (pErr) {
-              console.warn('Supabase purge notice:', pErr);
-            }
-            localStorage.setItem('krishi_purged_all_products_v3', 'true');
-          }
-
-          const { data, error: sbError } = await supabase
-            .from('products')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (sbError) throw sbError;
-
-          if (data) {
-            setProducts(data);
-            try {
-              localStorage.setItem('krishi_local_products', JSON.stringify(data));
-            } catch {}
-          }
-        } catch (err) {
-          console.warn('Supabase products fetch notice, using local products:', err);
-          try {
-            const saved = localStorage.getItem('krishi_local_products');
-            if (saved) setProducts(JSON.parse(saved));
-            else setProducts([]);
-          } catch {
-            setProducts([]);
-          }
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchSupabaseProducts();
-
-      // Realtime subscription for Supabase
-      try {
-        supabaseChannel = supabase
-          .channel('public:products')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
-            const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-            if (data) {
-              setProducts(data);
-              try {
-                localStorage.setItem('krishi_local_products', JSON.stringify(data));
-              } catch {}
-            }
-          })
-          .subscribe();
-      } catch (subErr) {
-        console.warn('Supabase realtime channel subscription notice:', subErr);
-      }
-    } else {
-      // Local storage
-      try {
-        const saved = localStorage.getItem('krishi_local_products');
-        if (saved) {
-          setProducts(JSON.parse(saved));
-        } else {
-          setProducts([]);
-        }
-      } catch {
-        setProducts([]);
-      }
-      setLoading(false);
-    }
-
-    return () => {
-      if (supabaseChannel && supabase) supabase.removeChannel(supabaseChannel);
-    };
-  }, []);
-
-  // Save to local storage whenever products change
-  const persistLocally = (newProducts) => {
-    try {
-      localStorage.setItem('krishi_local_products', JSON.stringify(newProducts));
-    } catch (e) {
-      console.warn('Failed to save products to localStorage:', e);
-    }
+  // ---------------------------------------------------------------------------
+  // Products (optimistic update, rollback if Supabase rejects)
+  // ---------------------------------------------------------------------------
+  const failProducts = (previous, sbError, action) => {
+    console.error(`Error ${action} in Supabase:`, sbError);
+    setProductsAndCache(previous);
+    setError(sbError.message);
+    throw new Error(`Could not ${action}: ${sbError.message}`);
   };
 
-  // Add Product
   const addProduct = async (productData) => {
     const generatedId = productData.id || `PROD-${Date.now()}`;
+    const firstCat = customCategories[0];
+    const firstCatName = typeof firstCat === 'string' ? firstCat : (firstCat?.name || firstCat?.title);
     const newProduct = {
       id: generatedId,
       name: productData.name || 'New Produce Item',
       price: productData.price !== undefined ? Number(productData.price) : 0,
       unit: productData.unit || '100 GM',
       moq: productData.moq || '1 Pack',
-      category: productData.category || (customCategories[0] || 'General Produce'),
+      category: productData.category || firstCatName || 'General Produce',
+      subCategory: productData.subCategory || productData.category || null,
+      majorCategory: productData.majorCategory || null,
       benefit: productData.benefit || 'Pure, nutrient-dense organic harvest cultivated with zero chemical pesticides.',
       image: productData.image || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
     };
 
-    setProducts(prev => {
-      const updated = [newProduct, ...prev.filter(p => p.id !== generatedId)];
-      persistLocally(updated);
-      return updated;
-    });
+    const previous = productsRef.current;
+    setProductsAndCache([newProduct, ...previous.filter(p => p.id !== generatedId)]);
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('products').insert([newProduct]);
-      } catch (err) {
-        console.error('Error adding product to Supabase:', err);
-      }
+    if (USE_CLOUD) {
+      const { error: sbError } = await supabase.from('products').upsert([toProductRow(newProduct)], { onConflict: 'id' });
+      if (sbError) failProducts(previous, sbError, 'add product');
     }
-
     return newProduct;
   };
 
-  // Update Product
   const updateProduct = async (id, updatedFields) => {
-    const cleanData = { ...updatedFields };
-    if (cleanData.price !== undefined) {
-      cleanData.price = Number(cleanData.price);
-    }
+    const cleanData = toProductRow(updatedFields);
+    delete cleanData.id;
 
-    setProducts(prev => {
-      const updated = prev.map(p => p.id === id ? { ...p, ...cleanData } : p);
-      persistLocally(updated);
-      return updated;
-    });
+    const previous = productsRef.current;
+    setProductsAndCache(previous.map(p => p.id === id ? { ...p, ...cleanData } : p));
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('products').update(cleanData).eq('id', id);
-      } catch (err) {
-        console.error('Error updating product in Supabase:', err);
-      }
+    if (USE_CLOUD) {
+      const { error: sbError } = await supabase.from('products').update(cleanData).eq('id', id);
+      if (sbError) failProducts(previous, sbError, 'update product');
     }
   };
 
-  // Delete Product
   const deleteProduct = async (id) => {
-    setProducts(prev => {
-      const updated = prev.filter(p => p.id !== id);
-      persistLocally(updated);
-      return updated;
-    });
+    const previous = productsRef.current;
+    setProductsAndCache(previous.filter(p => p.id !== id));
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('products').delete().eq('id', id);
-      } catch (err) {
-        console.error('Error deleting product from Supabase:', err);
-      }
+    if (USE_CLOUD) {
+      const { error: sbError } = await supabase.from('products').delete().eq('id', id);
+      if (sbError) failProducts(previous, sbError, 'delete product');
     }
   };
 
-  // Reset / Clear all products
+  // Reset / Clear all products (only runs when the admin clicks it)
   const clearAllProducts = async () => {
-    setProducts([]);
-    persistLocally([]);
+    const previous = productsRef.current;
+    setProductsAndCache([]);
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('products').delete().neq('id', 'null');
-      } catch (err) {
-        console.error('Error clearing Supabase catalog:', err);
-      }
+    if (USE_CLOUD) {
+      const { error: sbError } = await supabase.from('products').delete().neq('id', '__none__');
+      if (sbError) failProducts(previous, sbError, 'clear catalog');
     }
   };
 
   const resetToDefaultCatalog = clearAllProducts;
 
   const seedStandardHierarchy = async () => {
-    saveMajorCategoriesList(STANDARD_MAJOR_CATEGORIES);
-    saveCategoriesList(STANDARD_SUB_CATEGORIES, STANDARD_CATEGORY_CONFIGS);
-    setProducts(STANDARD_PRODUCTS);
-    persistLocally(STANDARD_PRODUCTS);
+    const ok = await persistSettings({
+      majors: STANDARD_MAJOR_CATEGORIES,
+      cats: STANDARD_SUB_CATEGORIES,
+      configs: STANDARD_CATEGORY_CONFIGS
+    });
+    if (!ok) return false;
+
+    const previous = productsRef.current;
+    setProductsAndCache(STANDARD_PRODUCTS);
+    if (USE_CLOUD) {
+      const { error: sbError } = await supabase
+        .from('products')
+        .upsert(STANDARD_PRODUCTS.map(toProductRow), { onConflict: 'id' });
+      if (sbError) failProducts(previous, sbError, 'seed products');
+      await loadProducts();
+    }
     try {
       localStorage.setItem('krishi_hierarchy_initialized_v2', 'true');
     } catch {}
