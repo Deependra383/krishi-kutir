@@ -1,47 +1,49 @@
 import { createClient } from '@supabase/supabase-js';
 
-const DEFAULT_SUPABASE_URL = 'https://fiwpnlccjtluwjbahtkq.supabase.co';
-const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpd3BubGNjanRsdXdqYmFodGtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzMzUxNzksImV4cCI6MjEwMzkxMTE3OX0.ESEnCScXFDJjK4qJ-0hVKuONL4M0qwzGxbB3KyvQSU0';
+// ---------------------------------------------------------------------------
+// Supabase connection comes ONLY from the build-time env variables:
+//   VITE_SUPABASE_URL
+//   VITE_SUPABASE_ANON_KEY
+// Set them in Render (Environment) and in a local .env file for development.
+// Nothing is hardcoded and nothing is read from a browser's localStorage, so
+// every device and every login always uses the same database.
+// ---------------------------------------------------------------------------
+
+// Remove any old per-browser overrides saved by earlier versions of the app
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem('krishi_supabase_url');
+    localStorage.removeItem('krishi_supabase_anon_key');
+  } catch {
+    // ignore
+  }
+}
+
+const readEnv = (name) => {
+  try {
+    const value = import.meta.env && import.meta.env[name];
+    return value ? String(value).trim() : '';
+  } catch {
+    return '';
+  }
+};
 
 function resolveSupabaseUrl() {
-  let url = '';
-  
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_URL) {
-    url = String(import.meta.env.VITE_SUPABASE_URL).trim();
-  }
-  
-  if (!url && typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('krishi_supabase_url');
-      if (stored && stored !== 'undefined' && stored !== 'null') {
-        url = stored.trim();
-      }
-    } catch {
-      // ignore
-    }
-  }
+  let url = readEnv('VITE_SUPABASE_URL');
+  if (!url) return '';
 
-  if (!url) {
-    url = DEFAULT_SUPABASE_URL;
-  }
-
-  // Remove trailing /rest/v1 or /rest/v1/ if user pasted API URL
+  // Remove trailing /rest/v1 or /rest/v1/ if the API URL was pasted
   url = url.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 
-  // If user only entered project ref (e.g. 'fiwpnlccjtluwjbahtkq')
-  if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+  // If only the project ref was entered (e.g. 'abcdefghijklmnop')
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
     if (url.includes('.supabase.co')) {
       url = `https://${url}`;
     } else if (/^[a-z0-9-]+$/i.test(url)) {
       url = `https://${url}.supabase.co`;
     } else {
-      url = DEFAULT_SUPABASE_URL;
+      return '';
     }
-  }
-
-  // Double check if old typo domain exists
-  if (url.includes('fiwpnlccjtluxjbahtkq.supabase.co')) {
-    url = url.replace('fiwpnlccjtluxjbahtkq.supabase.co', 'fiwpnlccjtluwjbahtkq.supabase.co');
   }
 
   try {
@@ -50,48 +52,31 @@ function resolveSupabaseUrl() {
       return parsed.origin;
     }
   } catch {
-    // If URL parsing fails, fallback to default
-    return DEFAULT_SUPABASE_URL;
+    // invalid URL
   }
-
-  return DEFAULT_SUPABASE_URL;
+  return '';
 }
 
 function resolveSupabaseKey() {
-  let key = '';
-
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) {
-    key = String(import.meta.env.VITE_SUPABASE_ANON_KEY).trim();
-  }
-
-  if (!key && typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('krishi_supabase_anon_key');
-      if (stored && stored !== 'undefined' && stored !== 'null' && stored.length > 20) {
-        key = stored.trim();
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!key || key.length < 20) {
-    key = DEFAULT_SUPABASE_KEY;
-  }
-
-  return key;
+  const key = readEnv('VITE_SUPABASE_ANON_KEY');
+  return key.length >= 20 ? key : '';
 }
 
 export const SUPABASE_URL = resolveSupabaseUrl();
 export const SUPABASE_ANON_KEY = resolveSupabaseKey();
 
-export const isSupabaseConfigured = Boolean(
-  SUPABASE_URL && 
-  SUPABASE_ANON_KEY && 
-  (SUPABASE_URL.startsWith('https://') || SUPABASE_URL.startsWith('http://'))
-);
+export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+if (!isSupabaseConfigured) {
+  console.error(
+    'Supabase is NOT configured: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are missing or invalid. ' +
+    'Add them in Render > Environment, then use "Clear build cache & deploy". ' +
+    'Until then, changes are saved only in this browser.'
+  );
+}
 
 function createSafeSupabaseClient() {
+  if (!isSupabaseConfigured) return null;
   try {
     return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
@@ -101,18 +86,12 @@ function createSafeSupabaseClient() {
       }
     });
   } catch (err) {
-    console.error('Failed to create Supabase client with custom URL, falling back to default:', err);
-    return createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      }
-    });
+    console.error('Failed to create Supabase client:', err);
+    return null;
   }
 }
 
-// Initialize Supabase Client instance
+// Initialize Supabase Client instance (null when env variables are missing)
 export const supabase = createSafeSupabaseClient();
 
 /**
@@ -122,7 +101,7 @@ export const supabase = createSafeSupabaseClient();
  * - 'homepage' (Hero Slides, Banners & Showcase)
  * - 'workshops' (Events & Training Sessions)
  * - 'founders' (Leadership & Team Portraits)
- * 
+ *
  * Automatically creates unique timestamped filenames, attempts dedicated bucket
  * and cascades to generic buckets ('public', 'images') if needed.
  * Returns { success: true, url, bucket, path }
@@ -193,7 +172,7 @@ export async function uploadToSupabaseBucket(file, bucketType = 'products') {
   }
 
   throw new Error(
-    lastError?.message || 
+    lastError?.message ||
     `Could not upload to Supabase storage. Please create a public bucket named '${bucketType}' in your Supabase dashboard.`
   );
 }
@@ -241,12 +220,21 @@ CREATE TABLE IF NOT EXISTS public.products (
   name TEXT NOT NULL,
   price NUMERIC NOT NULL,
   category TEXT NOT NULL,
+  "subCategory" TEXT,
+  "majorCategory" TEXT,
   unit TEXT DEFAULT '100 GM',
   moq TEXT DEFAULT '1 Pack',
   benefit TEXT,
   image TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2b. Shared site settings (categories, shared by every device and login)
+CREATE TABLE IF NOT EXISTS public.site_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 3. Orders Table
@@ -313,6 +301,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 -- 7. Enable Row Level Security (RLS) & Public Policies
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.partner_inquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.training_inquiries ENABLE ROW LEVEL SECURITY;
@@ -321,6 +310,9 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 -- Allow public read & write for client application access
 CREATE POLICY "Allow public read on products" ON public.products FOR SELECT USING (true);
 CREATE POLICY "Allow public all on products" ON public.products FOR ALL USING (true);
+
+CREATE POLICY "Allow public read on site_settings" ON public.site_settings FOR SELECT USING (true);
+CREATE POLICY "Allow public all on site_settings" ON public.site_settings FOR ALL USING (true) WITH CHECK (true);
 
 CREATE POLICY "Allow public read on orders" ON public.orders FOR SELECT USING (true);
 CREATE POLICY "Allow public insert on orders" ON public.orders FOR INSERT WITH CHECK (true);
@@ -336,7 +328,7 @@ CREATE POLICY "Allow public all on users" ON public.users FOR ALL USING (true);
 
 -- 8. Storage Buckets ('products', 'homepage', 'workshops', 'founders')
 INSERT INTO storage.buckets (id, name, public)
-VALUES 
+VALUES
   ('products', 'products', true),
   ('homepage', 'homepage', true),
   ('workshops', 'workshops', true),
@@ -371,6 +363,17 @@ BEGIN
     CREATE POLICY "Allow Public Updates to Krishi Kutir Buckets"
     ON storage.objects FOR UPDATE
     USING (bucket_id IN ('products', 'homepage', 'workshops', 'founders'));
+  END IF;
+END $$;
+
+-- 9. Realtime: push product and category changes to every open browser
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'products') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'site_settings') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.site_settings;
   END IF;
 END $$;
 `;
