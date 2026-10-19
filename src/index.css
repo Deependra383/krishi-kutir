@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.cdnfonts.com/css/cereal');
+@import "tailwindcss";
 
 /* Global Smooth Scrolling and Anchor Offset */
 html {

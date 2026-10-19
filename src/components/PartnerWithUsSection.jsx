@@ -289,8 +289,8 @@ export const PartnerWithUsSection = ({ activeTheme }) => {
           </div>
         </div>
 
-        {/* Right Quick Info Card (Matching Equal Length) */}
-        <div className="lg:col-span-5 h-full flex flex-col relative z-20">
+        {/* Right Quick Info Card (Matching Equal Length) - laptop & desktop only */}
+        <div className="hidden lg:flex lg:col-span-5 h-full flex-col relative z-20">
           <div className="p-8 sm:p-10 rounded-3xl bg-white border border-neutral-200/90 text-neutral-900 shadow-xl flex-1 flex flex-col justify-between h-full space-y-6">
             
             <div className="space-y-5">

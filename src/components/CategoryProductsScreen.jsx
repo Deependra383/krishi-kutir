@@ -225,8 +225,9 @@ export const CategoryProductsScreen = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-5">
         
         {/* ================= CATEGORY HERO BANNER ================= */}
+        {/* Hidden on mobile (< 640px); shown unchanged on tablet/laptop */}
         <div 
-          className={`relative overflow-hidden bg-white border ${currentCategory.borderColor} rounded-2xl p-5 sm:p-7 shadow-md`}
+          className={`hidden sm:block relative overflow-hidden bg-white border ${currentCategory.borderColor} rounded-2xl p-5 sm:p-7 shadow-md`}
         >
           {/* Large Serif Watermark Letter */}
           <span 
@@ -281,7 +282,8 @@ export const CategoryProductsScreen = ({
 
         {/* ================= CATEGORY QUICK JUMP SWITCHER ================= */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-neutral-500 font-semibold px-1">
+          {/* Label row hidden on mobile so only the category pills show */}
+          <div className="hidden sm:flex items-center justify-between text-xs text-neutral-500 font-semibold px-1">
             <span>Switch Category:</span>
             <span className="text-neutral-400 font-normal">Click any category to change view</span>
           </div>

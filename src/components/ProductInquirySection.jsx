@@ -13,7 +13,13 @@ import {
   Minus,
   Send,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  Search,
+  X,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion, useScroll } from 'motion/react';
 import { supabase } from '../supabase';
@@ -21,6 +27,16 @@ import { BotanicalSectionBackdrop } from './common/BotanicalSectionBackdrop';
 import { useProducts } from '../context/ProductContext';
 
 const WHATSAPP_NUMBER = '9009911030';
+
+// How many products are offered from each category (Infinity = every product)
+const PRODUCTS_PER_CATEGORY = Infinity;
+
+// In the "All" tab, how many cards to show at first, and how many more each "Show more" adds
+const PAGE_SIZE = 6;
+
+// true  = the search bar looks through the whole catalog
+// false = the search bar only looks through the products offered above
+const SEARCH_WHOLE_CATALOG = true;
 
 export const ProductInquirySection = ({ activeTheme }) => {
   const { products = [] } = useProducts();
@@ -31,6 +47,8 @@ export const ProductInquirySection = ({ activeTheme }) => {
   });
 
   const [activeFilter, setActiveFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [trayMultiplier, setTrayMultiplier] = useState(1);
   const [customProduct, setCustomProduct] = useState('');
@@ -50,20 +68,100 @@ export const ProductInquirySection = ({ activeTheme }) => {
     }
   }, [products, selectedProduct]);
 
-  const filterTabs = useMemo(() => {
-    const tabs = [{ id: 'all', label: `All Items (${products.length})` }];
-    const uniqueCats = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-    uniqueCats.forEach(cat => {
-      tabs.push({ id: cat.toLowerCase(), label: cat });
+  // Only the first few products of every category are offered in this section
+  const offeredProducts = useMemo(() => {
+    const perCategory = {};
+    return products.filter(item => {
+      const key = (item.category || 'Other').toLowerCase();
+      perCategory[key] = (perCategory[key] || 0) + 1;
+      return perCategory[key] <= PRODUCTS_PER_CATEGORY;
     });
-    return tabs;
   }, [products]);
 
-  // Filter products by category tab
+  const filterTabs = useMemo(() => {
+    const tabs = [{ id: 'all', label: 'All Items', count: offeredProducts.length }];
+    const counts = {};
+    const order = [];
+    offeredProducts.forEach(p => {
+      if (!p.category) return;
+      const id = p.category.toLowerCase();
+      if (!(id in counts)) { counts[id] = 0; order.push({ id, label: p.category }); }
+      counts[id] += 1;
+    });
+    order.forEach(cat => tabs.push({ ...cat, count: counts[cat.id] }));
+    return tabs;
+  }, [offeredProducts]);
+
+  // Horizontal category strip
+  const tabsScrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateTabScrollButtons = () => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    updateTabScrollButtons();
+    window.addEventListener('resize', updateTabScrollButtons);
+    return () => window.removeEventListener('resize', updateTabScrollButtons);
+  }, [filterTabs]);
+
+  const scrollTabs = (direction) => {
+    const el = tabsScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * Math.max(200, el.clientWidth * 0.7), behavior: 'smooth' });
+  };
+
+  const handleSelectTab = (tabId, buttonEl) => {
+    setActiveFilter(tabId);
+    buttonEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  };
+
+  // Filter products by category tab, then by search text
   const displayedProducts = useMemo(() => {
-    if (activeFilter === 'all') return products;
-    return products.filter(item => (item.category || '').toLowerCase() === activeFilter);
-  }, [products, activeFilter]);
+    const words = searchTerm.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const source = (words.length > 0 && SEARCH_WHOLE_CATALOG) ? products : offeredProducts;
+
+    const byCategory = activeFilter === 'all'
+      ? source
+      : source.filter(item => (item.category || '').toLowerCase() === activeFilter);
+
+    if (words.length === 0) return byCategory;
+
+    return byCategory.filter(item => {
+      const haystack = [item.name, item.category, item.subCategory, item.majorCategory, item.unit, item.benefit]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return words.every(word => haystack.includes(word));
+    });
+  }, [products, activeFilter, searchTerm]);
+
+  // Start again from the first page whenever the tab or search changes
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [activeFilter, searchTerm]);
+
+  // A category tab shows all of its products; the "All" tab and search results page through them
+  const showEverything = activeFilter !== 'all' && !searchTerm.trim();
+  const visibleProducts = showEverything ? displayedProducts : displayedProducts.slice(0, visibleCount);
+  const hasMore = !showEverything && displayedProducts.length > visibleCount;
+  const canShowLess = !showEverything && visibleCount > PAGE_SIZE && displayedProducts.length > PAGE_SIZE;
+
+  const handleShowMore = () => setVisibleCount(prev => prev + PAGE_SIZE);
+  const handleShowLess = () => {
+    setVisibleCount(PAGE_SIZE);
+    document.getElementById('farm-products-search')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleUseSearchAsSpecialOrder = () => {
+    setCustomProduct(searchTerm.trim());
+    setIsSpecialOrderActive(Boolean(searchTerm.trim()));
+  };
 
   const handleSelectProduct = (prod) => {
     setSelectedProduct(prod);
@@ -81,8 +179,9 @@ export const ProductInquirySection = ({ activeTheme }) => {
     e?.preventDefault();
     const productName = isSpecialOrderActive && customProduct.trim() 
       ? `Special Order: ${customProduct.trim()}` 
-      : (selectedProduct?.name || customProduct.trim() || 'Fresh Farm Produce');
-    const priceEst = isSpecialOrderActive ? 'Custom Quote' : (selectedProduct?.price || 'Direct Farm Inquiry');
+      : (selectedProduct?.name
+        ? `${selectedProduct.name}${selectedProduct.unit ? ` (${selectedProduct.unit})` : ''}`
+        : (customProduct.trim() || 'Fresh Farm Produce'));
 
     const msg = 
       `*KRISHI KUTIR - FARM-TO-FORK ORDER INQUIRY*\n` +
@@ -107,7 +206,9 @@ export const ProductInquirySection = ({ activeTheme }) => {
 
     const productName = isSpecialOrderActive && customProduct.trim() 
       ? `Special Order: ${customProduct.trim()}` 
-      : (selectedProduct?.name || customProduct.trim() || 'Fresh Farm Produce');
+      : (selectedProduct?.name
+        ? `${selectedProduct.name}${selectedProduct.unit ? ` (${selectedProduct.unit})` : ''}`
+        : (customProduct.trim() || 'Fresh Farm Produce'));
 
     const inquiryRecord = {
       product_name: productName,
@@ -167,7 +268,7 @@ export const ProductInquirySection = ({ activeTheme }) => {
             </div>
 
             {/* Right: Harvest Window Badge Box */}
-            <div className="shrink-0 flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-amber-200/90 shadow-2xs">
+            <div className="shrink-0 hidden md:flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-amber-200/90 shadow-2xs">
               <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200/60">
                 <Clock className="w-5 h-5 text-amber-600" />
               </div>
@@ -209,8 +310,8 @@ export const ProductInquirySection = ({ activeTheme }) => {
               </div>
             ) : (
               <>
-                {/* Card Sub-Header: Select Farm Products + Tabs */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-100">
+                {/* Card Sub-Header: Select Farm Products */}
+                <div className="space-y-4 pb-4 border-b border-neutral-100">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200/70">
                       <ShoppingBag className="w-4 h-4 text-emerald-800" />
@@ -225,78 +326,203 @@ export const ProductInquirySection = ({ activeTheme }) => {
                     </div>
                   </div>
 
-                  {/* Filter Tabs */}
+                  {/* Category Tabs: one straight line, scroll left / right */}
                   {filterTabs.length > 1 && (
-                    <div className="flex flex-wrap items-center gap-1.5 p-1 bg-neutral-100/70 rounded-full border border-neutral-200/60">
-                      {filterTabs.map((tab) => {
-                        const isActive = activeFilter === tab.id;
-                        return (
+                    <div className="relative">
+                      {canScrollLeft && (
+                        <>
+                          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white to-transparent z-10" />
                           <button
-                            key={tab.id}
                             type="button"
-                            onClick={() => setActiveFilter(tab.id)}
-                            className={`px-3.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                              isActive 
-                                ? 'bg-[#1b4332] text-white shadow-2xs' 
-                                : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/60'
-                            }`}
+                            onClick={() => scrollTabs(-1)}
+                            aria-label="Scroll categories left"
+                            className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white border border-neutral-200 shadow-sm items-center justify-center text-neutral-700 hover:text-emerald-800 hover:border-emerald-300 transition-colors cursor-pointer"
                           >
-                            {tab.label}
+                            <ChevronLeft className="w-4 h-4" />
                           </button>
-                        );
-                      })}
+                        </>
+                      )}
+
+                      <div
+                        ref={tabsScrollRef}
+                        onScroll={updateTabScrollButtons}
+                        className="flex flex-nowrap items-center gap-2 overflow-x-auto scroll-smooth snap-x py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                      >
+                        {filterTabs.map((tab) => {
+                          const isActive = activeFilter === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              type="button"
+                              onClick={(e) => handleSelectTab(tab.id, e.currentTarget)}
+                              className={`shrink-0 snap-start whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                                isActive 
+                                  ? 'bg-[#1b4332] text-white border-[#1b4332] shadow-2xs' 
+                                  : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:text-neutral-900 hover:border-emerald-300 hover:bg-white'
+                              }`}
+                            >
+                              {tab.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {canScrollRight && (
+                        <>
+                          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent z-10" />
+                          <button
+                            type="button"
+                            onClick={() => scrollTabs(1)}
+                            aria-label="Scroll categories right"
+                            className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white border border-neutral-200 shadow-sm items-center justify-center text-neutral-700 hover:text-emerald-800 hover:border-emerald-300 transition-colors cursor-pointer"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
 
+                {/* Search Bar */}
+                {products.length > 0 && (
+                  <div className="space-y-2">
+                    <div
+                      id="farm-products-search"
+                      className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-neutral-300 bg-neutral-50/60 focus-within:border-emerald-600 focus-within:bg-white transition-all"
+                    >
+                      <Search className="w-4 h-4 text-neutral-400 shrink-0" />
+                      <input
+                        type="search"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search products, e.g. turmeric, chia seeds, pizza seasoning..."
+                        aria-label="Search farm products"
+                        className="w-full bg-transparent text-xs sm:text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+                      />
+                      {searchTerm && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchTerm('')}
+                          className="w-6 h-6 rounded-md flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/70 transition-colors cursor-pointer shrink-0"
+                          aria-label="Clear search"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-neutral-400 font-medium px-1">
+                      {displayedProducts.length === 0
+                        ? 'No matching products'
+                        : `Showing ${visibleProducts.length} of ${displayedProducts.length} product${displayedProducts.length === 1 ? '' : 's'}`}
+                      {searchTerm.trim() && displayedProducts.length > 0 && <> for "<span className="text-neutral-600">{searchTerm.trim()}</span>"</>}
+                    </p>
+                  </div>
+                )}
+
                 {/* Products Grid (2 Columns) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {displayedProducts.length === 0 ? (
-                    <div className="md:col-span-2 py-10 px-4 text-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/50 space-y-2">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  {products.length === 0 ? (
+                    <div className="col-span-2 py-10 px-4 text-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/50 space-y-2">
                       <p className="text-xs font-bold text-neutral-600">No catalog products listed yet.</p>
                       <p className="text-[11px] text-neutral-400">Add products via Admin Panel, or use the custom order option below to inquire directly via WhatsApp.</p>
                     </div>
+                  ) : displayedProducts.length === 0 ? (
+                    <div className="col-span-2 py-10 px-4 text-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/50 space-y-3">
+                      <p className="text-xs font-bold text-neutral-600">
+                        No products found{searchTerm.trim() ? ` for "${searchTerm.trim()}"` : ' in this category'}.
+                      </p>
+                      <p className="text-[11px] text-neutral-400">
+                        Try a different word, or send it to us as a special order.
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        {searchTerm.trim() && (
+                          <button
+                            type="button"
+                            onClick={handleUseSearchAsSpecialOrder}
+                            className="px-3.5 py-1.5 rounded-lg bg-[#1b4332] hover:bg-[#143526] text-white text-xs font-bold transition-all cursor-pointer"
+                          >
+                            Request "{searchTerm.trim()}" as Special Order
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => { setSearchTerm(''); setActiveFilter('all'); }}
+                          className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200 text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Show All Products
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    displayedProducts.map((prod) => {
+                    visibleProducts.map((prod) => {
                       const isSelected = selectedProduct?.id === prod.id && !isSpecialOrderActive;
                       return (
                         <div
                           key={prod.id}
                           onClick={() => handleSelectProduct(prod)}
-                          className={`group relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-                            isSelected 
-                              ? 'border-2 border-emerald-600 bg-emerald-50/30 shadow-sm' 
-                              : 'border-neutral-200 hover:border-emerald-300 hover:bg-neutral-50/50'
+                          className={`group relative flex flex-col md:flex-row overflow-hidden rounded-2xl bg-white cursor-pointer transition-all duration-200 ${
+                            isSelected
+                              ? 'border-2 border-emerald-600 shadow-md ring-4 ring-emerald-100'
+                              : 'border border-neutral-200 shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-emerald-300'
                           }`}
                         >
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <span className="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#1b4332] text-white">
-                                {prod.category || 'Farm Harvest'}
-                              </span>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                Chemical Free
-                              </span>
-                            </div>
+                          {/* Product image */}
+                          <div className="relative h-32 sm:h-36 md:h-auto md:min-h-[132px] md:w-36 lg:w-40 md:shrink-0 bg-neutral-100 flex items-center justify-center overflow-hidden md:border-r md:border-neutral-100">
+                            {prod.image ? (
+                              <img
+                                src={prod.image}
+                                alt={prod.name}
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                                className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+                              />
+                            ) : (
+                              <ShoppingBag className="w-10 h-10 text-neutral-300" />
+                            )}
 
-                            <h4 className="text-sm font-bold text-neutral-900 leading-snug group-hover:text-emerald-800 transition-colors">
+                            {isSelected && (
+                              <span className="absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black uppercase tracking-wider shadow-sm">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                                Selected
+                              </span>
+                            )}
+
+                          </div>
+
+                          {/* Details */}
+                          <div className="flex flex-col flex-1 min-w-0 px-3 sm:px-4 pt-2.5 pb-3 sm:py-4">
+                            <h4 className="text-[13px] sm:text-sm font-bold text-neutral-900 leading-snug line-clamp-2 group-hover:text-emerald-800 transition-colors">
                               {prod.name}
                             </h4>
 
-                            <p className="text-xs text-neutral-500 font-normal leading-relaxed line-clamp-2">
-                              {prod.benefit || 'Grown sustainably in Bhopal with zero synthetic pesticides.'}
+                            <p className="mt-0.5 text-[10px] sm:text-[11px] text-neutral-500 truncate">
+                              {prod.category || 'Farm Harvest'}
                             </p>
-                          </div>
 
-                          {/* Selected Radio Check Indicator */}
-                          <div className="pt-2 flex items-center justify-end">
-                            <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all ${
-                              isSelected 
-                                ? 'bg-emerald-600 text-white' 
-                                : 'border border-neutral-300'
-                            }`}>
-                              {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                            </div>
+                            <div className="flex-1 min-h-3" />
+
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleSelectProduct(prod); }}
+                              className={`w-full py-2 rounded-xl text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-emerald-700 text-white'
+                                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600'
+                              }`}
+                            >
+                              {isSelected ? (
+                                <>
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>Selected</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Select</span>
+                                </>
+                              )}
+                            </button>
                           </div>
                         </div>
                       );
@@ -304,8 +530,45 @@ export const ProductInquirySection = ({ activeTheme }) => {
                   )}
                 </div>
 
+                {/* Show More / Show Less */}
+                {(hasMore || canShowLess) && (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {hasMore && (
+                      <button
+                        type="button"
+                        onClick={handleShowMore}
+                        className="px-5 py-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                        <span>Show More ({displayedProducts.length - visibleCount} more)</span>
+                      </button>
+                    )}
+                    {canShowLess && (
+                      <button
+                        type="button"
+                        onClick={handleShowLess}
+                        className="px-5 py-2 rounded-xl bg-white hover:bg-neutral-100 text-neutral-600 border border-neutral-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                        <span>Show Less</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Currently selected product (stays visible even if search hides it) */}
+                {selectedProduct && !isSpecialOrderActive && !visibleProducts.some(p => p.id === selectedProduct.id) && (
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs text-emerald-900">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Selected: <strong>{selectedProduct.name}</strong>
+                      {selectedProduct.unit ? ` (${selectedProduct.unit})` : ''}
+                    </span>
+                  </div>
+                )}
+
                 {/* Looking For Something Else? / Special Order */}
-                <div className="space-y-2 pt-2">
+                <div className="hidden md:block space-y-2 pt-2">
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                     LOOKING FOR SOMETHING ELSE?
                   </label>
@@ -460,7 +723,7 @@ export const ProductInquirySection = ({ activeTheme }) => {
           </div>
 
           {/* ================= 4. THREE INFO PILLARS BELOW CARD ================= */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <div className="hidden md:grid grid-cols-3 gap-4 pt-2">
             
             <div className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-200/60">
@@ -507,7 +770,7 @@ export const ProductInquirySection = ({ activeTheme }) => {
           </div>
 
           {/* ================= 5. FOOTER COMPLIANCE & HELPDESK LINKS ================= */}
-          <div className="flex items-center justify-center gap-4 pt-6 border-t border-neutral-200/70 text-xs text-neutral-500 font-medium">
+          <div className="hidden md:flex items-center justify-center gap-4 pt-6 border-t border-neutral-200/70 text-xs text-neutral-500 font-medium">
             <a href="#about-philosophy" className="hover:text-emerald-800 transition-colors">
               Harvest Standards
             </a>

@@ -71,28 +71,70 @@ export const HeroSlider = ({
       onTouchEnd={handleTouchEnd}
       className="relative bg-[#faf9f6] border-b border-neutral-200/80 overflow-hidden select-none group/hero"
     >
-      {/* ================= HERO PANORAMIC CANVAS (Full Viewport Fill) ================= */}
-      <div className="relative min-h-[calc(100vh-68px)] lg:min-h-[calc(100vh-74px)] flex items-center justify-between">
+      {/* ================= MOBILE: IMAGE ONLY (full photo, no text, no blur) ================= */}
+      <div className="relative md:hidden">
+        <motion.img
+          key={activeSlideImage}
+          src={activeSlideImage}
+          alt={currentSlide?.heading || "Krishi Kutir"}
+          referrerPolicy="no-referrer"
+          initial={{ opacity: 0.6 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="block w-full h-auto"
+        />
+
+        {/* Small slide dots (swipe left/right to change slides) */}
+        {slides.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/35 backdrop-blur-sm">
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setCarouselIndex(idx)}
+                aria-label={`Go to slide ${idx + 1}`}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  idx === carouselIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ================= TABLET & DESKTOP: HERO PANORAMIC CANVAS (Full Viewport Fill) ================= */}
+      <div className="relative hidden md:flex min-h-[calc(100vh-68px)] lg:min-h-[calc(100vh-74px)] items-center justify-between">
         
         {/* Full-bleed background image across the whole page (mobile + desktop) */}
         <div className="absolute inset-0 z-0">
           <AnimatePresence mode="wait">
-            <motion.img 
+            <motion.div
               key={activeSlideImage}
-              src={activeSlideImage} 
-              alt={currentSlide?.heading || "Bringing Out The Beauty In You"}
-              referrerPolicy="no-referrer"
-              initial={{ opacity: 0.9, scale: 1.01 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0.9 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0.9 }}
               transition={{ duration: 0.65, ease: "easeOut" }}
-              className="w-full h-full object-cover object-center"
-            />
+              className="absolute inset-0 overflow-hidden"
+            >
+              {/* Soft blurred copy of the same photo fills any empty space around it */}
+              <img
+                src={activeSlideImage}
+                alt=""
+                aria-hidden="true"
+                referrerPolicy="no-referrer"
+                className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60"
+              />
+              {/* The real photo: always shown in full, never cropped or zoomed */}
+              <img
+                src={activeSlideImage}
+                alt={currentSlide?.heading || "Bringing Out The Beauty In You"}
+                referrerPolicy="no-referrer"
+                className="relative w-full h-full object-contain object-center md:object-right"
+              />
+            </motion.div>
           </AnimatePresence>
           {/* Desktop subtle gradient overlay on the left for crisp typography contrast */}
-          <div className="hidden md:block absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent w-[58%] lg:w-[54%] pointer-events-none" />
-          {/* Mobile subtle overlay: keeps the whole background image clearly visible without blurring */}
-          <div className="block md:hidden absolute inset-0 bg-gradient-to-b from-white/75 via-white/45 to-white/70 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent w-[58%] lg:w-[54%] pointer-events-none" />
         </div>
 
         {/* Left Arrow Navigation Button - Hidden on mobile */}

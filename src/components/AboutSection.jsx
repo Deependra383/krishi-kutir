@@ -32,13 +32,13 @@ export const AboutSection = () => {
         {/* Two-Column Side-by-Side Cards (Rooted in Botanical Purity & Meet Our Founders) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
           
-          {/* ================= LEFT CARD: ROOTED IN BOTANICAL PURITY ================= */}
+          {/* ================= LEFT CARD: ROOTED IN BOTANICAL PURITY (laptop & desktop only) ================= */}
           <motion.div 
             initial={{ opacity: 0, y: -28 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="bg-white rounded-[28px] sm:rounded-[32px] border border-neutral-200/90 shadow-md sm:shadow-lg p-6 sm:p-9 relative overflow-hidden flex flex-col justify-between"
+            className="hidden lg:flex bg-white rounded-[28px] sm:rounded-[32px] border border-neutral-200/90 shadow-md sm:shadow-lg p-6 sm:p-9 relative overflow-hidden flex-col justify-between"
           >
             {/* Top-Right Decorative Organic Accent Shape */}
             <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-bl from-emerald-100/50 via-emerald-50/20 to-transparent rounded-bl-[100px] pointer-events-none" />
